@@ -1,0 +1,20 @@
+{
+  "name": "minan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Marketing-focused commerce platform for lead generation and conversion.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": "24.16.0"
+  },
+  "scripts": {
+    "dev:web": "npm --workspace @minan/web run dev",
+    "dev:api": "npm --workspace @minan/api run dev",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  }
+}
