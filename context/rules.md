@@ -1,0 +1,13 @@
+# AI Rules
+- TypeScript strict mode everywhere — `no any`, no type casting with `as unknown`
+- Next.js 16 App Router only — no Pages Router, no `middleware.ts`, use `proxy.ts`
+- `use cache` for SSR data caching — NOT `fetch()` cache options (deprecated in Next.js 15+)
+- No Next.js Route Handlers — all API calls go to Express
+- GSAP only for animations — no Framer Motion
+- React Hook Form + Zod only for forms — no uncontrolled inputs
+- Zustand only for global state — no Redux, no Context for state
+- Do not target Radix UI internal DOM nodes with GSAP
+- Tailwind v4 utility classes only — no arbitrary CSS-in-JS
+- All Zod schemas defined in `features/<domain>/schemas/` and shared with backend
+- `next/image` for all images — never raw `<img>` tags
+- Cloudinary URLs stored in DB — never local image paths
