@@ -1,4 +1,4 @@
-    # MINAN Project Documentation
+# MINAN Project Documentation
     
     **Scope:** Marketing-focused commerce platform (Lead Gen/Conversion). No payment processing in MVP.
     **Market:** Bangladesh, mobile-first, 3G/4G, Facebook Ads.
