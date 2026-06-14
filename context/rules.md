@@ -1,13 +1,21 @@
 # AI Rules
+
+- Always follow the patterns and decisions defined in the /project.md file. Suggest alternatives if any technology is not mentioned or if you think the alternative technology should be obviously used.
 - TypeScript strict mode everywhere — `no any`, no type casting with `as unknown`
-- Next.js 16 App Router only — no Pages Router, no `middleware.ts`, use `proxy.ts`
-- `use cache` for SSR data caching — NOT `fetch()` cache options (deprecated in Next.js 15+)
+- Next.js 16 App Router only—no Pages Router, no `middleware.ts`, use `proxy.ts`
+- Always strictly maintain best practices and follow the best performance-optimized way. Must ensure the principles, coding style, and syntax of the latest versions of Next.js 16, Tailwind version 4, and React 19 and always use the latest versions of all packages.
+- `use cache` for SSR data caching—NOT `fetch()` cache options (deprecated in Next.js 15+)
 - No Next.js Route Handlers — all API calls go to Express
-- GSAP only for animations — no Framer Motion
-- React Hook Form + Zod only for forms — no uncontrolled inputs
-- Zustand only for global state — no Redux, no Context for state
+- For animations, use GSAP only. Do not suggest Framer Motion.
+- All code must be production-ready and working. No placeholders, no TODO stubs.
+- When generating code, stay consistent with the existing architecture described in the docs.
+- For forms, use React Hook Form + Zod only.
+- For the global state, use Zustand only.
 - Do not target Radix UI internal DOM nodes with GSAP
 - Tailwind v4 utility classes only — no arbitrary CSS-in-JS
-- All Zod schemas defined in `features/<domain>/schemas/` and shared with backend
-- `next/image` for all images — never raw `<img>` tags
+- All Zod schemas defined in `features/<domain>/schemas/` and shared with the backend.
+- `next/image` for all images—never raw `<img>` tags
 - Cloudinary URLs stored in DB — never local image paths
+- `next/link` for all internal links/routes.
+- Always use the latest, stable, and bug-free packages.
+- Keep responses concise. Skip basic explanations. Use code blocks.
