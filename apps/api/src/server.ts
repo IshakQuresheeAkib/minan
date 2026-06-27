@@ -1,6 +1,8 @@
 import "dotenv/config";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import {
   connectDB,
   disconnectDB,
@@ -8,12 +10,15 @@ import {
   isDBConnected,
 } from "./config/db.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { adminRouter } from "./routes/admin.routes.js";
+import { authRouter } from "./routes/auth.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "http://localhost:3000";
 
+app.use(helmet());
 app.use(
   cors({
     origin: allowedOrigin,
@@ -21,6 +26,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(cookieParser());
 
 app.get("/health", (_req, res) => {
   const db = getDBStatus();
@@ -33,6 +39,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/products", productsRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {

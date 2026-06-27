@@ -2,7 +2,7 @@
 
 **Scope:** Marketing-focused commerce platform (Lead Gen/Conversion). No payment processing in MVP.
 **Market:** Bangladesh, mobile-first, 3G/4G, Facebook Ads.
-**Supabase:** NOT used. Replaced by MongoDB Atlas + custom JWT auth.
+**Database:** MongoDB Atlas + custom JWT auth.
 **Route Handlers:** NONE in Next.js. All data ops go through Express API on Render.
 
 ---
@@ -492,7 +492,6 @@ src/
 - `lib/analytics/pixel.ts` — Meta Pixel client-side events only. CAPI is Express-only.
 - `store/auth.store.ts` — access token string in memory. Never persisted to localStorage.
 - `store/cart.store.ts` — cart state. `features/cart/hooks/useCart.ts` wraps this.
-- No `lib/supabase/` — Supabase is not used
 - No `app/api/` route handlers — all API calls go to Express on Render
 - Zod schemas in `features/<domain>/schemas/` — frontend source of truth. Backend maintains equivalent schemas independently (separate repos — no shared package).
 

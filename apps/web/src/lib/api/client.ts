@@ -33,7 +33,12 @@ export async function apiRequest<TResponse>(
     headers.set("X-Requested-With", "XMLHttpRequest");
   }
 
-  if (body && typeof body === "object" && !(body instanceof FormData) && !(body instanceof Blob)) {
+  if (
+    body &&
+    typeof body === "object" &&
+    !(body instanceof FormData) &&
+    !(body instanceof Blob)
+  ) {
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(body);
   }
@@ -47,7 +52,18 @@ export async function apiRequest<TResponse>(
   });
 
   if (!response.ok) {
-    throw new ApiError(response.statusText || "API request failed", response.status);
+    let message = response.statusText || "API request failed";
+
+    try {
+      const payload = (await response.json()) as { error?: string };
+      if (payload.error) {
+        message = payload.error;
+      }
+    } catch {
+      // Keep default message when body is not JSON.
+    }
+
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) {
