@@ -1,10 +1,18 @@
 import { ProductGrid } from "@/features/products/components/ProductGrid";
+import {
+  getProducts,
+  mapProductToCard,
+} from "@/features/products/services/product.service";
 
 export const metadata = {
   title: "Products",
 };
 
-export default function ProductsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ProductsPage() {
+  const { data } = await getProducts();
+console.log("data", data);
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-2">
@@ -13,7 +21,7 @@ export default function ProductsPage() {
           Premium daily wear selected for fast browsing and easy ordering.
         </p>
       </div>
-      <ProductGrid />
+      <ProductGrid products={data.map(mapProductToCard)} />
     </section>
   );
 }

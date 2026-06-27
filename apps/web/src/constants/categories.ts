@@ -4,7 +4,7 @@ export const productCategories = [
   "Pants",
   "Footwear",
   "Accessories",
-  "Ladies' Bags",
+  "Women",
 ] as const;
 
 export type ProductCategory = (typeof productCategories)[number];

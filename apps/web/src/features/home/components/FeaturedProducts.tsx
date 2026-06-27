@@ -1,9 +1,15 @@
 import { ProductGrid } from "@/features/products/components/ProductGrid";
+import {
+  getProducts,
+  mapProductToCard,
+} from "@/features/products/services/product.service";
 
-export function FeaturedProducts() {
+export async function FeaturedProducts() {
+  const { data } = await getProducts({ featured: true });
+
   return (
     <section aria-label="Featured products">
-      <ProductGrid />
+      <ProductGrid products={data.map(mapProductToCard)} />
     </section>
   );
 }
