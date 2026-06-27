@@ -3,12 +3,19 @@
 import { useEffect, useRef } from "react";
 
 import { ProductGrid } from "@/features/products/components/ProductGrid";
+import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { mapProductToCard } from "@/features/products/services/product.service";
 
-export function ProductsSection() {
+type ProductsSectionProps = {
+  category?: string;
+};
+
+export function ProductsSection({ category }: ProductsSectionProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const { products, isLoading, loadMore, hasMore } = useProducts();
+  const { products, isLoading, isRefreshing, loadMore, hasMore } = useProducts({
+    category,
+  });
 
   useEffect(() => {
     if (!hasMore) {
@@ -33,10 +40,17 @@ export function ProductsSection() {
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
 
+  const cardProducts = products.map(mapProductToCard);
+  const isPaginating = isLoading && !isRefreshing && products.length > 0;
+
   return (
-    <section aria-label="All products">
-      <ProductGrid products={products.map(mapProductToCard)} />
-      {isLoading && (
+    <section aria-label="All products" aria-busy={isLoading}>
+      {isRefreshing ? (
+        <ProductGridSkeleton />
+      ) : (
+        <ProductGrid products={cardProducts} />
+      )}
+      {isPaginating && (
         <p className="py-4 text-center text-sm text-muted-foreground">
           Loading products...
         </p>

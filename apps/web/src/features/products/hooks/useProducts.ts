@@ -16,7 +16,8 @@ export function useProducts(options: UseProductsOptions = {}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(true);
   const loadingRef = useRef(false);
 
   const fetchPage = useCallback(
@@ -26,6 +27,11 @@ export function useProducts(options: UseProductsOptions = {}) {
       }
 
       loadingRef.current = true;
+      const isFirstPage = pageToFetch === 1;
+
+      if (isFirstPage) {
+        setIsRefreshing(true);
+      }
       setIsLoading(true);
 
       try {
@@ -42,6 +48,9 @@ export function useProducts(options: UseProductsOptions = {}) {
         );
       } finally {
         loadingRef.current = false;
+        if (isFirstPage) {
+          setIsRefreshing(false);
+        }
         setIsLoading(false);
       }
     },
@@ -61,15 +70,18 @@ export function useProducts(options: UseProductsOptions = {}) {
   }, [fetchPage, page, products.length, total]);
 
   useEffect(() => {
-    setProducts([]);
     setPage(0);
     setTotal(0);
+    loadingRef.current = false;
+    setIsRefreshing(true);
+    setIsLoading(true);
     void fetchPage(1);
   }, [fetchPage]);
 
   return {
     products,
     isLoading,
+    isRefreshing,
     loadMore,
     hasMore: products.length < total,
     total,

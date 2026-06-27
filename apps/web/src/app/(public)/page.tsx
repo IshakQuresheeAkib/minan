@@ -1,5 +1,4 @@
-import { CategoryChips } from "@/features/home/components/CategoryChips";
-import { ProductsSection } from "@/features/home/components/ProductsSection";
+import { HomeCatalog } from "@/features/home/components/HomeCatalog";
 import { HeroCarousel } from "@/features/home/components/HeroCarousel";
 import { SearchBar } from "@/features/home/components/SearchBar";
 
@@ -10,8 +9,7 @@ export default function HomePage() {
     <>
       <SearchBar />
       <HeroCarousel />
-      <CategoryChips />
-      <ProductsSection />
+      <HomeCatalog />
     </>
   );
 }
