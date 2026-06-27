@@ -1,38 +1,67 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { publicRoutes } from "@/constants/routes";
 
-const highlights = ["T-Shirts", "Shirts", "Pants", "Footwear", "Accessories"] as const;
+const banners = [
+  {
+    id: "promo-40",
+    lines: ["40%", "Off, Shop", "Fashion Now!"],
+    cta: "Shop Now",
+    href: publicRoutes.products,
+    variant: "primary" as const,
+  },
+  {
+    id: "promo-new",
+    lines: ["New", "Arrivals", "This Week"],
+    cta: "Explore",
+    href: publicRoutes.products,
+    variant: "secondary" as const,
+  },
+] as const;
 
 export function HeroCarousel() {
   return (
-    <section className="border-b bg-[linear-gradient(135deg,var(--background),var(--secondary)_55%,var(--accent))]">
-      <div className="mx-auto grid min-h-[calc(100dvh-4rem)] w-full max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
-        <div className="max-w-2xl">
-          <p className="text-sm font-medium uppercase text-muted-foreground">Sylhet drop</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-normal text-foreground sm:text-5xl">
-            Premium everyday wear, ready for fast ordering.
-          </h1>
-          <p className="mt-5 text-base leading-7 text-muted-foreground sm:text-lg">
-            Browse selected styles, add to cart, and confirm delivery details without slowing down the purchase intent.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href="/products">Shop Products</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/checkout">Checkout</Link>
-            </Button>
-          </div>
-        </div>
-        <div className="grid gap-3 rounded-lg border bg-background/70 p-4 shadow-sm backdrop-blur">
-          {highlights.map((highlight) => (
-            <div key={highlight} className="flex items-center justify-between rounded-md border bg-card px-4 py-3">
-              <span className="text-sm font-medium">{highlight}</span>
-              <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+    <section
+      aria-label="Promotions"
+      className="-mx-4 mb-12 overflow-x-auto hide-scrollbar px-4"
+    >
+      <div className="flex min-w-max gap-4">
+        {banners.map((banner) => (
+          <article
+            key={banner.id}
+            className={
+              banner.variant === "primary"
+                ? "relative h-48 w-80 overflow-hidden rounded-3xl bg-accent"
+                : "relative h-48 w-80 overflow-hidden rounded-3xl bg-secondary/60"
+            }
+          >
+            <div
+              className={
+                banner.variant === "primary"
+                  ? "absolute inset-0 z-10 flex w-2/3 flex-col justify-center bg-linear-to-r from-accent/90 to-transparent p-6"
+                  : "absolute inset-0 z-10 flex w-2/3 flex-col justify-center bg-linear-to-r from-secondary/80 to-transparent p-6"
+              }
+            >
+              <h2 className="mb-2 font-display text-3xl font-bold leading-tight text-primary">
+                {banner.lines.map((line) => (
+                  <span key={line} className="block">
+                    {line}
+                  </span>
+                ))}
+              </h2>
+              <Link
+                href={banner.href}
+                className="w-max cursor-pointer rounded-full bg-card px-4 py-2 text-sm font-semibold text-card-foreground transition-opacity hover:opacity-90"
+              >
+                {banner.cta}
+              </Link>
             </div>
-          ))}
-        </div>
+            <div
+              className="absolute right-0 top-0 h-full w-2/3 bg-muted"
+              aria-hidden="true"
+            />
+          </article>
+        ))}
       </div>
     </section>
   );

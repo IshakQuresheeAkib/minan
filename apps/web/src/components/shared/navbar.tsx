@@ -1,30 +1,33 @@
-import { ShoppingBag } from "lucide-react";
+import { Bell, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-
-const links = [
-  { href: "/products", label: "Products" },
-  { href: "/cart", label: "Cart" },
-] as const;
+import { publicRoutes } from "@/constants/routes";
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-30 border-b bg-background/92 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 text-base font-semibold tracking-normal">
-          <span className="grid size-8 place-items-center rounded-md bg-primary text-primary-foreground">
-            <ShoppingBag className="size-4" aria-hidden="true" />
-          </span>
-          MINAN
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-background px-4">
+      <Link
+        href={publicRoutes.home}
+        className="font-display text-3xl font-bold tracking-tight text-foreground"
+      >
+        MINAN
+      </Link>
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          disabled
+          aria-label="Notifications"
+          className="flex size-10 cursor-not-allowed items-center justify-center rounded-full bg-muted text-muted-foreground opacity-60"
+        >
+          <Bell className="size-5" aria-hidden="true" />
+        </button>
+        <Link
+          href={publicRoutes.cart}
+          aria-label="Shopping bag"
+          className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-muted text-muted-foreground transition-opacity hover:opacity-80"
+        >
+          <ShoppingBag className="size-5" aria-hidden="true" />
         </Link>
-        <nav className="flex items-center gap-1">
-          {links.map((link) => (
-            <Button key={link.href} asChild variant="ghost" size="sm">
-              <Link href={link.href}>{link.label}</Link>
-            </Button>
-          ))}
-        </nav>
       </div>
     </header>
   );

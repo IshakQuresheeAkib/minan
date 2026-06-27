@@ -43,6 +43,7 @@ Thumbs.db
 
 # Vercel
 .vercel/
+.cursor/
 
 # Logs
 logs
