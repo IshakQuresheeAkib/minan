@@ -240,7 +240,6 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 | `sizes` | [String] | `["S","M","L","XL"]` |
 | `colors` | [String] | `["Red","Black"]` |
 | `images` | [String] | Cloudinary URLs |
-| `is_featured` | Boolean | default: `false` |
 | `is_active` | Boolean | default: `true` (soft delete) |
 | `createdAt` / `updatedAt` | Date | auto via `timestamps: true` |
 

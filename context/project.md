@@ -399,7 +399,6 @@ src/
 │   ├── home/
 │   │   ├── components/
 │   │   │   ├── HeroCarousel.tsx
-│   │   │   └── FeaturedProducts.tsx
 │   │   └── hooks/
 │   │
 │   ├── products/

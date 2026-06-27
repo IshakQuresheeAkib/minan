@@ -8,7 +8,6 @@ export type ProductResponse = {
   sizes: string[];
   colors: string[];
   images: string[];
-  is_featured: boolean;
   is_active: boolean;
   createdAt: string;
   updatedAt: string;

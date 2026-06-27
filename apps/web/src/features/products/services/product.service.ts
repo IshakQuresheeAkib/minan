@@ -13,8 +13,9 @@ const productListSchema = z.object({
 });
 
 type GetProductsOptions = {
-  featured?: boolean;
   category?: string;
+  page?: number;
+  limit?: number;
 };
 
 export async function getProducts(
@@ -22,12 +23,16 @@ export async function getProducts(
 ): Promise<ApiList<Product>> {
   const params = new URLSearchParams();
 
-  if (options.featured) {
-    params.set("featured", "true");
-  }
-
   if (options.category) {
     params.set("category", options.category);
+  }
+
+  if (options.page !== undefined) {
+    params.set("page", String(options.page));
+  }
+
+  if (options.limit !== undefined) {
+    params.set("limit", String(options.limit));
   }
 
   const query = params.toString();

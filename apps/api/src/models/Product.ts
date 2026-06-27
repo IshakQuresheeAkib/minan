@@ -9,7 +9,6 @@ export interface ProductDocument extends Document {
   sizes: string[];
   colors: string[];
   images: string[];
-  is_featured: boolean;
   is_active: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -35,7 +34,6 @@ const productSchema = new Schema<ProductDocument>(
     sizes: { type: [String], default: [] },
     colors: { type: [String], default: [] },
     images: { type: [String], default: [] },
-    is_featured: { type: Boolean, default: false },
     is_active: { type: Boolean, default: true },
   },
   { timestamps: true },

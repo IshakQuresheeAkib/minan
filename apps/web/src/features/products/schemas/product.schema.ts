@@ -10,7 +10,6 @@ export const productSchema = z.object({
   sizes: z.array(z.string()),
   colors: z.array(z.string()),
   images: z.array(z.url()),
-  is_featured: z.boolean(),
   is_active: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
