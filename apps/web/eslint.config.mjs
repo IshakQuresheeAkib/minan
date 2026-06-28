@@ -3,6 +3,14 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
 const eslintConfig = defineConfig([
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "dist/**",
+    "next-env.d.ts",
+    "eslint.config.mjs",
+  ]),
   ...nextVitals,
   ...nextTs,
   {
@@ -11,14 +19,11 @@ const eslintConfig = defineConfig([
         rootDir: "apps/web/",
       },
     },
+    rules: {
+      "@next/next/no-html-link-for-pages": "off",
+      "react/display-name": "off",
+    },
   },
-  globalIgnores([
-    ".next/**",
-    "out/**",
-    "build/**",
-    "dist/**",
-    "next-env.d.ts",
-  ]),
 ]);
 
 export default eslintConfig;

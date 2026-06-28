@@ -134,7 +134,7 @@ Express sets auth cookies with `Domain=.minan.com`. This allows the browser to s
 
 ### `proxy.ts` Clarification
 
-`proxy.ts` is placed at `src/proxy.ts` and registered as the middleware entry point in `next.config.ts` via the `experimental.middleware` config. It is a standard Next.js Edge Middleware function — the filename is `proxy.ts` purely as a project convention to signal its role (auth guard), not a special Next.js API.
+`proxy.ts` is placed at `src/proxy.ts` and exports the standard Next.js Proxy function plus a static `config.matcher`. It does not need registration in `next.config.ts`.
 
 ### Admin Boot Flow (Zustand Hydration After Reload)
 
@@ -168,7 +168,7 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 | Token         | Storage                          | TTL                          |
 | ------------- | -------------------------------- | ---------------------------- |
 | Access Token  | httpOnly cookie + Zustand memory | 15 min                       |
-| Refresh Token | httpOnly cookie only             | 7 days, rotated on every use |
+| Refresh Token | httpOnly cookie only             | 7 days, replacement issued on refresh |
 
 - Cookie → `proxy.ts` server-side read + admin layout boot refresh
 - Zustand → `Authorization: Bearer` header for API calls
@@ -190,14 +190,14 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 3. Admin layout calls `POST /api/auth/refresh` on mount to rehydrate Zustand after page reload
 4. `proxy.ts` reads httpOnly cookie → blocks unauthenticated admin renders
 5. API calls send `Authorization: Bearer` from Zustand
-6. 401 → `POST /api/auth/refresh` → Express rotates both tokens → returns new access token in body
+6. 401 → `POST /api/auth/refresh` → Express issues replacement access + refresh JWTs → returns new access token in body
 7. `POST /api/auth/logout` → Express clears cookies → Zustand cleared
 
 ### CSRF Mitigation
 
 - `X-Requested-With: XMLHttpRequest` required on all state-changing requests
 - Browsers block third-party sites from setting custom headers
-- Refresh token rotated on every use
+- Refresh requests issue a replacement refresh JWT. MVP tokens are stateless, so an older refresh JWT remains valid until its own 7-day expiry unless the admin account is deactivated.
 
 ---
 
@@ -620,7 +620,7 @@ Applies to: `product_view`, `add_to_cart`, `checkout_start`, `whatsapp_click`
 | XSS token theft  | httpOnly cookies — JS cannot read                                 |
 | CSRF             | `X-Requested-With: XMLHttpRequest` on all state-changing requests |
 | Password storage | argon2                                                            |
-| Token expiry     | Access: 15 min / Refresh: 7d, rotated                             |
+| Token expiry     | Access: 15 min / Refresh: 7d, replacement issued on refresh       |
 | Brute force      | rate-limit `/auth/login` — 10 req / 15 min / IP                   |
 | Checkout spam    | rate-limit `/leads` — 5 req / 15 min / IP                         |
 | HTTP headers     | `helmet`                                                          |
@@ -661,8 +661,13 @@ META_CAPI_TOKEN
 META_PIXEL_ID
 CLOUDINARY_URL
 CLOUDINARY_UPLOAD_FOLDER
+ADMIN_EMAIL
+ADMIN_PASSWORD
+ADMIN_ROLE
 NODE_ENV
 ```
+
+`seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`; use it intentionally in shared or production environments.
 
 ---
 

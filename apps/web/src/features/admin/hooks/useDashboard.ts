@@ -23,7 +23,6 @@ export function useDashboard() {
 
   useEffect(() => {
     if (!accessToken) {
-      setLoading(false);
       return;
     }
 
@@ -61,5 +60,5 @@ export function useDashboard() {
     };
   }, [accessToken]);
 
-  return { metrics, loading, error };
+  return { metrics, loading: accessToken ? loading : false, error };
 }

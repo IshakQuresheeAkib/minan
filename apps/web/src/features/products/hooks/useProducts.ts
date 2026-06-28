@@ -70,12 +70,16 @@ export function useProducts(options: UseProductsOptions = {}) {
   }, [fetchPage, page, products.length, total]);
 
   useEffect(() => {
-    setPage(0);
-    setTotal(0);
-    loadingRef.current = false;
-    setIsRefreshing(true);
-    setIsLoading(true);
-    void fetchPage(1);
+    async function refreshProducts() {
+      setPage(0);
+      setTotal(0);
+      loadingRef.current = false;
+      setIsRefreshing(true);
+      setIsLoading(true);
+      await fetchPage(1);
+    }
+
+    void refreshProducts();
   }, [fetchPage]);
 
   return {

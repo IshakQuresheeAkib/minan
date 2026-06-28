@@ -12,6 +12,16 @@ type AdminSessionProviderProps = {
   children: ReactNode;
 };
 
+function getLoginRedirectUrl(): string {
+  const nextPath = `${window.location.pathname}${window.location.search}`;
+
+  if (nextPath.startsWith("/admin") && nextPath !== publicRoutes.adminLogin) {
+    return `${publicRoutes.adminLogin}?next=${encodeURIComponent(nextPath)}`;
+  }
+
+  return publicRoutes.adminLogin;
+}
+
 export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
   const router = useRouter();
   const setSession = useAuthStore((state) => state.setSession);
@@ -38,7 +48,7 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
         }
 
         clearSession();
-        router.replace(publicRoutes.adminLogin);
+        router.replace(getLoginRedirectUrl());
         return;
       }
 
