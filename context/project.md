@@ -9,13 +9,13 @@
 
 ## 1. Project Meta
 
-| Property | Value |
-|---|---|
-| Framework | Next.js 16 |
-| Phase | MVP v1 |
-| Market | Bangladesh (Sylhet) |
-| Traffic | Facebook Ads |
-| Payment | Not in MVP — bKash TX ID collected manually |
+| Property  | Value                                       |
+| --------- | ------------------------------------------- |
+| Framework | Next.js 16                                  |
+| Phase     | MVP v1                                      |
+| Market    | Bangladesh (Sylhet)                         |
+| Traffic   | Facebook Ads                                |
+| Payment   | Not in MVP — bKash TX ID collected manually |
 
 ---
 
@@ -31,6 +31,7 @@
 ---
 
 ## 3. Coding Principles
+
 - Always follow the patterns and decisions defined in the documentation. suggest alternatives if any technology is not mentioned or if you think the alternative technology should be obviously used.
 - Follow Next.js 16 conventions: use proxy.ts not middleware.ts.
 - Always strictly maintain best practices and follow the best performance-optimized way. Must ensure the principles, coding style, and syntax of the latest versions of Next.js 16, Tailwind version 4, and React 19 and always use latest versions
@@ -59,46 +60,46 @@
 
 ### Frontend
 
-| Technology | Version |
-|---|---|
-| Next.js | 16 (App Router, `proxy.ts`) |
-| React | 19 (Compiler enabled) |
-| TypeScript | 5.1+ (strict, no `any`) |
-| Tailwind CSS | v4 |
-| shadcn/ui | Latest |
-| Zustand | Latest |
-| React Hook Form | Latest |
-| Zod | Latest |
-| GSAP | Latest |
-| Cloudinary | via `next/image` + blur placeholders |
+| Technology      | Version                              |
+| --------------- | ------------------------------------ |
+| Next.js         | 16 (App Router, `proxy.ts`)          |
+| React           | 19 (Compiler enabled)                |
+| TypeScript      | 5.1+ (strict, no `any`)              |
+| Tailwind CSS    | v4                                   |
+| shadcn/ui       | Latest                               |
+| Zustand         | Latest                               |
+| React Hook Form | Latest                               |
+| Zod             | Latest                               |
+| GSAP            | Latest                               |
+| Cloudinary      | via `next/image` + blur placeholders |
 
 ### Backend
 
-| Technology | Version |
-|---|---|
-| Node.js | 24.16.0 |
-| Express.js | 5.2.1 |
-| MongoDB | 8.3 |
-| Mongoose | 8.x |
-| jsonwebtoken | Latest |
-| argon2 | Latest |
-| cookie-parser | Latest |
-| cors | Latest |
-| express-rate-limit | Latest |
-| helmet | Latest |
-| Zod | Latest |
+| Technology         | Version |
+| ------------------ | ------- |
+| Node.js            | 24.16.0 |
+| Express.js         | 5.2.1   |
+| MongoDB            | 8.3     |
+| Mongoose           | 8.x     |
+| jsonwebtoken       | Latest  |
+| argon2             | Latest  |
+| cookie-parser      | Latest  |
+| cors               | Latest  |
+| express-rate-limit | Latest  |
+| helmet             | Latest  |
+| Zod                | Latest  |
 
 ### Infrastructure
 
-| Service | Role |
-|---|---|
-| Vercel | Frontend (Next.js) |
-| Render | Backend (Express) — Node 24.16.0 |
-| MongoDB Atlas | Managed MongoDB 8.3 |
-| Cloudinary | Image storage + CDN |
-| Meta Pixel + CAPI | Client + server-side ad events |
-| GA4 | Traffic + behavior |
-| Microsoft Clarity | Session recordings + heatmaps |
+| Service           | Role                             |
+| ----------------- | -------------------------------- |
+| Vercel            | Frontend (Next.js)               |
+| Render            | Backend (Express) — Node 24.16.0 |
+| MongoDB Atlas     | Managed MongoDB 8.3              |
+| Cloudinary        | Image storage + CDN              |
+| Meta Pixel + CAPI | Client + server-side ad events   |
+| GA4               | Traffic + behavior               |
+| Microsoft Clarity | Session recordings + heatmaps    |
 
 ---
 
@@ -112,10 +113,10 @@ Browser → Next.js (Vercel) → Express API (Render) → MongoDB Atlas
 
 Both frontend and backend must run on subdomains of the same parent domain so cookies are readable by `proxy.ts`:
 
-| Service | Domain |
-|---|---|
+| Service           | Domain          |
+| ----------------- | --------------- |
 | Frontend (Vercel) | `app.minan.com` |
-| Backend (Render) | `api.minan.com` |
+| Backend (Render)  | `api.minan.com` |
 
 Express sets auth cookies with `Domain=.minan.com`. This allows the browser to send the cookie on page requests to `app.minan.com`, which means `proxy.ts` can read the access token cookie server-side before admin pages render.
 
@@ -123,21 +124,22 @@ Express sets auth cookies with `Domain=.minan.com`. This allows the browser to s
 
 ### Request Layers
 
-| Layer | Role |
-|---|---|
-| `proxy.ts` | Reads httpOnly access token cookie, verifies JWT, redirects if invalid |
-| Next.js Client | Sends `Authorization: Bearer <token>` from Zustand on every API call |
-| Express Middleware | Verifies Bearer token independently on every protected route |
-| Express Routes | Business logic, DB ops, CAPI, rate limiting |
-| Mongoose | Persistence |
+| Layer              | Role                                                                   |
+| ------------------ | ---------------------------------------------------------------------- |
+| `proxy.ts`         | Reads httpOnly access token cookie, verifies JWT, redirects if invalid |
+| Next.js Client     | Sends `Authorization: Bearer <token>` from Zustand on every API call   |
+| Express Middleware | Verifies Bearer token independently on every protected route           |
+| Express Routes     | Business logic, DB ops, CAPI, rate limiting                            |
+| Mongoose           | Persistence                                                            |
 
 ### `proxy.ts` Clarification
 
-`proxy.ts` is placed at `src/proxy.ts` and registered as the middleware entry point in `next.config.ts` via the `experimental.middleware` config. It is a standard Next.js Edge Middleware function — the filename is `proxy.ts` purely as a project convention to signal its role (auth guard), not a special Next.js API.
+`proxy.ts` is placed at `src/proxy.ts` and exports the standard Next.js Proxy function plus a static `config.matcher`. It does not need registration in `next.config.ts`.
 
 ### Admin Boot Flow (Zustand Hydration After Reload)
 
 On load of any admin route, the admin layout (`app/(admin)/admin/layout.tsx`) calls `POST /api/auth/refresh` on mount to:
+
 1. Exchange the valid refresh token cookie for a new access token
 2. Repopulate `auth.store.ts` with the new access token in Zustand memory
 
@@ -145,10 +147,10 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 
 ### CORS
 
-| Option | Value |
-|---|---|
-| `origin` | `https://app.minan.com` from env var — never `*` |
-| `credentials` | `true` |
+| Option        | Value                                            |
+| ------------- | ------------------------------------------------ |
+| `origin`      | `https://app.minan.com` from env var — never `*` |
+| `credentials` | `true`                                           |
 
 ---
 
@@ -163,23 +165,23 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 
 ### Token Storage
 
-| Token | Storage | TTL |
-|---|---|---|
-| Access Token | httpOnly cookie + Zustand memory | 15 min |
-| Refresh Token | httpOnly cookie only | 7 days, rotated on every use |
+| Token         | Storage                          | TTL                          |
+| ------------- | -------------------------------- | ---------------------------- |
+| Access Token  | httpOnly cookie + Zustand memory | 15 min                       |
+| Refresh Token | httpOnly cookie only             | 7 days, replacement issued on refresh |
 
 - Cookie → `proxy.ts` server-side read + admin layout boot refresh
 - Zustand → `Authorization: Bearer` header for API calls
 
 ### Cookie Config
 
-| Flag | Value |
-|---|---|
-| `httpOnly` | `true` |
-| `secure` | `true` |
+| Flag       | Value                                                    |
+| ---------- | -------------------------------------------------------- |
+| `httpOnly` | `true`                                                   |
+| `secure`   | `true`                                                   |
 | `sameSite` | `none` (cross-origin: `app.minan.com` ↔ `api.minan.com`) |
-| `domain` | `.minan.com` |
-| `path` | `/` |
+| `domain`   | `.minan.com`                                             |
+| `path`     | `/`                                                      |
 
 ### Auth Flow
 
@@ -188,33 +190,33 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 3. Admin layout calls `POST /api/auth/refresh` on mount to rehydrate Zustand after page reload
 4. `proxy.ts` reads httpOnly cookie → blocks unauthenticated admin renders
 5. API calls send `Authorization: Bearer` from Zustand
-6. 401 → `POST /api/auth/refresh` → Express rotates both tokens → returns new access token in body
+6. 401 → `POST /api/auth/refresh` → Express issues replacement access + refresh JWTs → returns new access token in body
 7. `POST /api/auth/logout` → Express clears cookies → Zustand cleared
 
 ### CSRF Mitigation
 
 - `X-Requested-With: XMLHttpRequest` required on all state-changing requests
 - Browsers block third-party sites from setting custom headers
-- Refresh token rotated on every use
+- Refresh requests issue a replacement refresh JWT. MVP tokens are stateless, so an older refresh JWT remains valid until its own 7-day expiry unless the admin account is deactivated.
 
 ---
 
 ## 7. Admin Roles
 
-| Role | Access |
-|---|---|
-| `general` | Dashboard read-only |
+| Role      | Access                                          |
+| --------- | ----------------------------------------------- |
+| `general` | Dashboard read-only                             |
 | `premium` | Full CRUD — products, categories, leads, admins |
 
 ### Permission Matrix
 
-| Feature | general | premium |
-|---|---|---|
-| View Dashboard + Traffic | ✓ | ✓ |
-| Product CRUD | ✗ | ✓ |
-| Category CRUD | ✗ | ✓ |
-| Lead Read / Create / Update | ✗ | ✓ |
-| Admin CRUD | ✗ | ✓ |
+| Feature                     | general | premium |
+| --------------------------- | ------- | ------- |
+| View Dashboard + Traffic    | ✓       | ✓       |
+| Product CRUD                | ✗       | ✓       |
+| Category CRUD               | ✗       | ✓       |
+| Lead Read / Create / Update | ✗       | ✓       |
+| Admin CRUD                  | ✗       | ✓       |
 
 ### Enforcement
 
@@ -223,80 +225,87 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 - `proxy.ts` reads role from JWT cookie for server-side nav rendering
 - Role change requires token refresh to take effect
 
+### Self-Guard Rule
+
+A premium admin cannot demote or deactivate their own account:
+
+- `PATCH /api/admin/admins/:id` — rejected with `400` if the requesting admin's `id === :id` and the payload demotes `role` or sets `is_active` to `false`
+- `PATCH /api/admin/admins/:id/deactivate` — rejected with `400` if `req.admin.id === :id`
+- Enforced in the admins service/controller, not in middleware
+
 ---
 
 ## 8. Database — MongoDB 8.3 (Mongoose 8.x)
 
 ### `products`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | PK |
-| `name` | String | required |
-| `slug` | String | required, unique |
-| `description` | String | required |
-| `price` | Number | required, min: 0 |
-| `category_id` | ObjectId (ref: `Category`) | required |
-| `sizes` | [String] | `["S","M","L","XL"]` |
-| `colors` | [String] | `["Red","Black"]` |
-| `images` | [String] | Cloudinary URLs |
-| `is_featured` | Boolean | default: `false` |
-| `is_active` | Boolean | default: `true` (soft delete) |
-| `createdAt` / `updatedAt` | Date | auto via `timestamps: true` |
+| Field                     | Type                       | Notes                         |
+| ------------------------- | -------------------------- | ----------------------------- |
+| `_id`                     | ObjectId                   | PK                            |
+| `name`                    | String                     | required                      |
+| `slug`                    | String                     | required, unique              |
+| `description`             | String                     | required                      |
+| `price`                   | Number                     | required, min: 0              |
+| `category_id`             | ObjectId (ref: `Category`) | required                      |
+| `sizes`                   | [String]                   | `["S","M","L","XL"]`          |
+| `colors`                  | [String]                   | `["Red","Black"]`             |
+| `images`                  | [String]                   | Cloudinary URLs               |
+| `is_active`               | Boolean                    | default: `true` (soft delete) |
+| `createdAt` / `updatedAt` | Date                       | auto via `timestamps: true`   |
 
 ### `categories`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | PK |
-| `name` | String | required |
-| `slug` | String | required, unique |
-| `image_url` | String | Cloudinary URL |
-| `is_active` | Boolean | default: `true` (soft delete) |
-| `createdAt` / `updatedAt` | Date | auto |
+| Field                     | Type     | Notes                         |
+| ------------------------- | -------- | ----------------------------- |
+| `_id`                     | ObjectId | PK                            |
+| `name`                    | String   | required                      |
+| `slug`                    | String   | required, unique              |
+| `image_url`               | String   | Cloudinary URL                |
+| `is_active`               | Boolean  | default: `true` (soft delete) |
+| `createdAt` / `updatedAt` | Date     | auto                          |
 
 ### `leads`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | PK |
-| `name` | String | required |
-| `phone_number` | String | required |
-| `email` | String | required |
-| `address` | String | required |
-| `notes` | String | optional |
-| `bkash_txn_id` | String | optional |
-| `cart_snapshot` | Object | embedded cart at checkout — shape: `{ items: Array<{ product_id: string, name: string, price: number, size: string, color: string, quantity: number }>, total: number }` |
-| `status` | String | enum: `pending \| confirmed \| cancelled`, default: `pending` |
-| `createdAt` / `updatedAt` | Date | auto |
+| Field                     | Type     | Notes                                                                                                                                                                    |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `_id`                     | ObjectId | PK                                                                                                                                                                       |
+| `name`                    | String   | required                                                                                                                                                                 |
+| `phone_number`            | String   | required                                                                                                                                                                 |
+| `email`                   | String   | required                                                                                                                                                                 |
+| `address`                 | String   | required                                                                                                                                                                 |
+| `notes`                   | String   | optional                                                                                                                                                                 |
+| `bkash_txn_id`            | String   | optional                                                                                                                                                                 |
+| `cart_snapshot`           | Object   | embedded cart at checkout — shape: `{ items: Array<{ product_id: string, name: string, price: number, size: string, color: string, quantity: number }>, total: number }` |
+| `status`                  | String   | enum: `pending \| confirmed \| cancelled`, default: `pending`                                                                                                            |
+| `createdAt` / `updatedAt` | Date     | auto                                                                                                                                                                     |
 
 ### `analytics_events`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | PK |
-| `event_type` | String | enum: `page_view \| product_view \| add_to_cart \| checkout_start \| lead_submit \| whatsapp_click` |
-| `event_id` | String | `crypto.randomUUID()` — used for Meta CAPI deduplication; stored for audit |
-| `product_id` | ObjectId (ref: `Product`) | optional |
-| `category_id` | ObjectId (ref: `Category`) | optional |
-| `session_id` | String | required |
-| `utm_source` | String | optional |
-| `utm_medium` | String | optional |
-| `utm_campaign` | String | optional |
-| `createdAt` | Date | auto |
+| Field          | Type                       | Notes                                                                                               |
+| -------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
+| `_id`          | ObjectId                   | PK                                                                                                  |
+| `event_type`   | String                     | enum: `page_view \| product_view \| add_to_cart \| checkout_start \| lead_submit \| whatsapp_click` |
+| `event_id`     | String                     | `crypto.randomUUID()` — used for Meta CAPI deduplication; stored for audit                          |
+| `product_id`   | ObjectId (ref: `Product`)  | optional                                                                                            |
+| `category_id`  | ObjectId (ref: `Category`) | optional                                                                                            |
+| `session_id`   | String                     | required                                                                                            |
+| `utm_source`   | String                     | optional                                                                                            |
+| `utm_medium`   | String                     | optional                                                                                            |
+| `utm_campaign` | String                     | optional                                                                                            |
+| `createdAt`    | Date                       | auto                                                                                                |
 
 > `analytics_events` uses `{ timestamps: { createdAt: true, updatedAt: false } }` — events are immutable, `updatedAt` is not applicable.
 
 ### `admin_users`
 
-| Field | Type | Notes |
-|---|---|---|
-| `_id` | ObjectId | PK |
-| `email` | String | required, unique, lowercase |
-| `password` | String | argon2 hashed — never in API response |
-| `role` | String | enum: `general \| premium`, required |
-| `is_active` | Boolean | default: `true` (soft disable) |
-| `createdAt` / `updatedAt` | Date | auto |
+| Field                     | Type     | Notes                                 |
+| ------------------------- | -------- | ------------------------------------- |
+| `_id`                     | ObjectId | PK                                    |
+| `email`                   | String   | required, unique, lowercase           |
+| `password`                | String   | argon2 hashed — never in API response |
+| `role`                    | String   | enum: `general \| premium`, required  |
+| `is_active`               | Boolean  | default: `true` (soft disable)        |
+| `createdAt` / `updatedAt` | Date     | auto                                  |
 
 ### Mongoose Patterns
 
@@ -313,55 +322,60 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 
 ### Public
 
-| Method | Route | Description |
-|---|---|---|
-| GET | `/api/products` | List active products (filterable by category, featured) |
-| GET | `/api/products/:slug` | Single product by slug |
-| GET | `/api/categories` | List active categories |
-| POST | `/api/leads` | Submit checkout lead — rate-limited 5 req/15 min/IP |
-| POST | `/api/analytics` | Log analytics event + forward to Meta CAPI |
-| POST | `/api/whatsapp-click` | Log WhatsApp click + forward to Meta CAPI |
-| POST | `/api/auth/login` | Admin login — rate-limited 10 req/15 min/IP |
-| POST | `/api/auth/refresh` | Rotate tokens |
-| POST | `/api/auth/logout` | Clear auth cookies |
+| Method | Route                 | Description                                             |
+| ------ | --------------------- | ------------------------------------------------------- |
+| GET    | `/api/products`       | List active products (filterable by category, featured) |
+| GET    | `/api/products/:slug` | Single product by slug                                  |
+| GET    | `/api/categories`     | List active categories                                  |
+| POST   | `/api/leads`          | Submit checkout lead — rate-limited 5 req/15 min/IP     |
+| POST   | `/api/analytics`      | Log analytics event + forward to Meta CAPI              |
+| POST   | `/api/whatsapp-click` | Log WhatsApp click + forward to Meta CAPI               |
+| POST   | `/api/auth/login`     | Admin login — rate-limited 10 req/15 min/IP             |
+| POST   | `/api/auth/refresh`   | Rotate tokens                                           |
+| POST   | `/api/auth/logout`    | Clear auth cookies                                      |
 
 ### Protected (Bearer token required)
 
-| Method | Route | Role | Description |
-|---|---|---|---|
-| GET | `/api/admin/dashboard` | general + premium | Metrics summary |
-| GET | `/api/admin/leads` | premium | List leads |
-| PATCH | `/api/admin/leads/:id` | premium | Update lead status |
-| GET | `/api/admin/products` | premium | List all products (incl. inactive) |
-| POST | `/api/admin/products` | premium | Create product |
-| PATCH | `/api/admin/products/:id` | premium | Update product |
-| PATCH | `/api/admin/products/:id/deactivate` | premium | Soft delete |
-| GET | `/api/admin/categories` | premium | List all categories |
-| POST | `/api/admin/categories` | premium | Create category |
-| PATCH | `/api/admin/categories/:id` | premium | Update category |
-| PATCH | `/api/admin/categories/:id/deactivate` | premium | Soft delete |
-| GET | `/api/admin/admins` | premium | List admins |
-| POST | `/api/admin/admins` | premium | Create admin |
-| PATCH | `/api/admin/admins/:id` | premium | Update admin |
-| PATCH | `/api/admin/admins/:id/deactivate` | premium | Soft disable |
+| Method | Route                                  | Role              | Description                         |
+| ------ | -------------------------------------- | ----------------- | ----------------------------------- |
+| GET    | `/api/admin/dashboard`                 | general + premium | Metrics summary                     |
+| GET    | `/api/admin/leads`                     | premium           | List leads                          |
+| GET    | `/api/admin/leads/:id`                 | premium           | Get single lead                     |
+| PATCH  | `/api/admin/leads/:id`                 | premium           | Update lead status + notes          |
+| GET    | `/api/admin/products`                  | premium           | List all products (incl. inactive)  |
+| POST   | `/api/admin/products`                  | premium           | Create product                      |
+| PATCH  | `/api/admin/products/:id`              | premium           | Update product                      |
+| PATCH  | `/api/admin/products/:id/deactivate`   | premium           | Soft delete                         |
+| PATCH  | `/api/admin/products/:id/reactivate`   | premium           | Reactivate product                  |
+| GET    | `/api/admin/categories`                | premium           | List all categories                 |
+| POST   | `/api/admin/categories`                | premium           | Create category                     |
+| PATCH  | `/api/admin/categories/:id`            | premium           | Update category                     |
+| PATCH  | `/api/admin/categories/:id/deactivate` | premium           | Soft delete                         |
+| PATCH  | `/api/admin/categories/:id/reactivate` | premium           | Reactivate category                 |
+| GET    | `/api/admin/admins`                    | premium           | List admins                         |
+| POST   | `/api/admin/admins`                    | premium           | Create admin                        |
+| PATCH  | `/api/admin/admins/:id`                | premium           | Update admin                        |
+| PATCH  | `/api/admin/admins/:id/deactivate`     | premium           | Soft disable                        |
+| PATCH  | `/api/admin/admins/:id/reactivate`     | premium           | Reactivate admin                    |
+| GET    | `/api/admin/uploads/signature`         | premium           | Get Cloudinary signed upload params |
 
 ---
 
 ## 10. Pages / Routes
 
-| Route | Page | Access |
-|---|---|---|
-| `/` | Home | Public |
-| `/products` | Product Listing | Public |
-| `/products/[slug]` | Product Detail | Public |
-| `/cart` | Cart | Public |
-| `/checkout` | Checkout | Public |
-| `/admin/login` | Admin Login | Public |
-| `/admin` | Dashboard | General + Premium |
-| `/admin/products` | Product Management | Premium |
-| `/admin/categories` | Category Management | Premium |
-| `/admin/leads` | Lead Management | Premium |
-| `/admin/admins` | Admin Management | Premium |
+| Route               | Page                | Access            |
+| ------------------- | ------------------- | ----------------- |
+| `/`                 | Home                | Public            |
+| `/products`         | Product Listing     | Public            |
+| `/products/[slug]`  | Product Detail      | Public            |
+| `/cart`             | Cart                | Public            |
+| `/checkout`         | Checkout            | Public            |
+| `/admin/login`      | Admin Login         | Public            |
+| `/admin`            | Dashboard           | General + Premium |
+| `/admin/products`   | Product Management  | Premium           |
+| `/admin/categories` | Category Management | Premium           |
+| `/admin/leads`      | Lead Management     | Premium           |
+| `/admin/admins`     | Admin Management    | Premium           |
 
 ---
 
@@ -399,7 +413,6 @@ src/
 │   ├── home/
 │   │   ├── components/
 │   │   │   ├── HeroCarousel.tsx
-│   │   │   └── FeaturedProducts.tsx
 │   │   └── hooks/
 │   │
 │   ├── products/
@@ -435,13 +448,32 @@ src/
 │   │
 │   └── admin/
 │       ├── components/
-│       │   ├── LeadsTable.tsx
 │       │   ├── MetricsCard.tsx
 │       │   ├── ProductsTable.tsx
+│       │   ├── ProductForm.tsx
 │       │   ├── CategoriesTable.tsx
-│       │   └── AdminsTable.tsx
+│       │   ├── CategoryForm.tsx
+│       │   ├── LeadsTable.tsx
+│       │   ├── LeadDetailDialog.tsx   ← status select + notes update
+│       │   ├── AdminsTable.tsx
+│       │   ├── AdminForm.tsx          ← role select (general/premium)
+│       │   └── ImageUploader.tsx      ← Cloudinary signed upload
 │       ├── actions/
+│       │   ├── products.actions.ts
+│       │   ├── categories.actions.ts
+│       │   ├── leads.actions.ts
+│       │   ├── admins.actions.ts
+│       │   └── uploads.actions.ts    ← fetch Cloudinary signature
+│       ├── schemas/                  ← RHF + Zod schemas for admin forms
+│       │   ├── product.schema.ts
+│       │   ├── category.schema.ts
+│       │   ├── lead-update.schema.ts
+│       │   └── admin.schema.ts
 │       └── hooks/
+│           ├── useAdminProducts.ts
+│           ├── useAdminCategories.ts
+│           ├── useAdminLeads.ts
+│           └── useAdminAdmins.ts
 │
 ├── components/
 │   ├── ui/               ← shadcn/ui output only — do not edit manually
@@ -457,7 +489,8 @@ src/
 │   ├── api/
 │   │   └── client.ts     ← fetch wrapper — base URL = NEXT_PUBLIC_API_URL (not axios)
 │   ├── cloudinary/
-│   │   └── config.ts
+│   │   ├── config.ts
+│   │   └── upload.ts     ← get signature → POST FormData to Cloudinary → return secure_url
 │   ├── analytics/
 │   │   └── pixel.ts      ← Meta Pixel client-side only. CAPI fired from Express, not here.
 │   └── utils.ts
@@ -486,6 +519,7 @@ src/
 ```
 
 **Folder rules:**
+
 - `features/<domain>/` — all domain logic colocated: components, hooks, actions, services, schemas, types
 - `features/<domain>/actions/*.actions.ts` — plain async functions calling Express. NOT Next.js Server Actions. No `"use server"` directive.
 - `components/ui/` — shadcn/ui output only, never manually edited
@@ -501,14 +535,14 @@ src/
 
 ## 12. Checkout / Lead Form
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `name` | text | yes | |
-| `phone_number` | text | yes | BD format — Zod regex: `/^(?:\+?88)?01[3-9]\d{8}$/` |
-| `email` | email | yes | |
-| `address` | textarea | yes | |
-| `notes` | textarea | no | |
-| `bkash_txn_id` | text | no | Manual admin verification |
+| Field          | Type     | Required | Notes                                               |
+| -------------- | -------- | -------- | --------------------------------------------------- |
+| `name`         | text     | yes      |                                                     |
+| `phone_number` | text     | yes      | BD format — Zod regex: `/^(?:\+?88)?01[3-9]\d{8}$/` |
+| `email`        | email    | yes      |                                                     |
+| `address`      | textarea | yes      |                                                     |
+| `notes`        | textarea | no       |                                                     |
+| `bkash_txn_id` | text     | no       | Manual admin verification                           |
 
 Rate limit: 5 req / 15 min / IP on `POST /api/leads`.
 
@@ -529,13 +563,13 @@ Rate limit: 5 req / 15 min / IP on `POST /api/leads`.
 
 ### Tool Matrix
 
-| Tool | Fires From | Role |
-|---|---|---|
-| Meta Pixel | Next.js client | page_view, ViewContent, AddToCart, InitiateCheckout |
-| Meta CAPI | Express only | Server-side mirror — dedup via `event_id` |
-| GA4 | Next.js client | Traffic, behavior, conversions |
-| Microsoft Clarity | Next.js client | Session recordings + heatmaps |
-| `analytics_events` | Express | First-party MongoDB log |
+| Tool               | Fires From     | Role                                                |
+| ------------------ | -------------- | --------------------------------------------------- |
+| Meta Pixel         | Next.js client | page_view, ViewContent, AddToCart, InitiateCheckout |
+| Meta CAPI          | Express only   | Server-side mirror — dedup via `event_id`           |
+| GA4                | Next.js client | Traffic, behavior, conversions                      |
+| Microsoft Clarity  | Next.js client | Session recordings + heatmaps                       |
+| `analytics_events` | Express        | First-party MongoDB log                             |
 
 ### Deduplication Flow
 
@@ -549,21 +583,21 @@ Applies to: `product_view`, `add_to_cart`, `checkout_start`, `whatsapp_click`
 
 ### Non-Dedup Events
 
-| Event | Fired By | Notes |
-|---|---|---|
-| `page_view` | Client Pixel only | No CAPI mirror — not needed for dedup |
+| Event         | Fired By                             | Notes                                                           |
+| ------------- | ------------------------------------ | --------------------------------------------------------------- |
+| `page_view`   | Client Pixel only                    | No CAPI mirror — not needed for dedup                           |
 | `lead_submit` | Express only (via `POST /api/leads`) | No client Pixel event — server creates this after lead is saved |
 
 ### Tracked Events
 
-| Event | Client Pixel | Express CAPI |
-|---|---|---|
-| `page_view` | ✓ | ✗ |
-| `product_view` | ✓ | ✓ |
-| `add_to_cart` | ✓ | ✓ |
-| `checkout_start` | ✓ | ✓ |
-| `lead_submit` | ✗ | ✓ |
-| `whatsapp_click` | ✓ | ✓ |
+| Event            | Client Pixel | Express CAPI |
+| ---------------- | ------------ | ------------ |
+| `page_view`      | ✓            | ✗            |
+| `product_view`   | ✓            | ✓            |
+| `add_to_cart`    | ✓            | ✓            |
+| `checkout_start` | ✓            | ✓            |
+| `lead_submit`    | ✗            | ✓            |
+| `whatsapp_click` | ✓            | ✓            |
 
 ---
 
@@ -581,29 +615,29 @@ Applies to: `product_view`, `add_to_cart`, `checkout_start`, `whatsapp_click`
 
 ## 16. Security
 
-| Concern | Mitigation |
-|---|---|
-| XSS token theft | httpOnly cookies — JS cannot read |
-| CSRF | `X-Requested-With: XMLHttpRequest` on all state-changing requests |
-| Password storage | argon2 |
-| Token expiry | Access: 15 min / Refresh: 7d, rotated |
-| Brute force | rate-limit `/auth/login` — 10 req / 15 min / IP |
-| Checkout spam | rate-limit `/leads` — 5 req / 15 min / IP |
-| HTTP headers | `helmet` |
-| CORS | `https://app.minan.com` only, `credentials: true`, never `*` |
-| Password leak | Mongoose `toJSON` strips `password` |
-| Role escalation | Role from JWT only — never from request body |
+| Concern          | Mitigation                                                        |
+| ---------------- | ----------------------------------------------------------------- |
+| XSS token theft  | httpOnly cookies — JS cannot read                                 |
+| CSRF             | `X-Requested-With: XMLHttpRequest` on all state-changing requests |
+| Password storage | argon2                                                            |
+| Token expiry     | Access: 15 min / Refresh: 7d, replacement issued on refresh       |
+| Brute force      | rate-limit `/auth/login` — 10 req / 15 min / IP                   |
+| Checkout spam    | rate-limit `/leads` — 5 req / 15 min / IP                         |
+| HTTP headers     | `helmet`                                                          |
+| CORS             | `https://app.minan.com` only, `credentials: true`, never `*`      |
+| Password leak    | Mongoose `toJSON` strips `password`                               |
+| Role escalation  | Role from JWT only — never from request body                      |
 
 ---
 
 ## 17. Deployment & Env Vars
 
-| Service | Platform | Domain |
-|---|---|---|
-| Frontend | Vercel | `app.minan.com` |
-| Backend | Render (Node 24.16.0) | `api.minan.com` |
-| Database | MongoDB Atlas 8.3 — IP whitelist: Render IPs only | — |
-| Images | Cloudinary | — |
+| Service  | Platform                                          | Domain          |
+| -------- | ------------------------------------------------- | --------------- |
+| Frontend | Vercel                                            | `app.minan.com` |
+| Backend  | Render (Node 24.16.0)                             | `api.minan.com` |
+| Database | MongoDB Atlas 8.3 — IP whitelist: Render IPs only | —               |
+| Images   | Cloudinary                                        | —               |
 
 > Custom domains are required in production. `proxy.ts` cookie auth does not work on default `*.vercel.app` + `*.onrender.com` domains (no shared parent domain).
 
@@ -626,20 +660,26 @@ ALLOWED_ORIGIN=https://app.minan.com
 META_CAPI_TOKEN
 META_PIXEL_ID
 CLOUDINARY_URL
+CLOUDINARY_UPLOAD_FOLDER
+ADMIN_EMAIL
+ADMIN_PASSWORD
+ADMIN_ROLE
 NODE_ENV
 ```
+
+`seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`; use it intentionally in shared or production environments.
 
 ---
 
 ## 18. Admin Dashboard Metrics
 
-| Metric | Query | Access |
-|---|---|---|
-| Today's Leads | `leads` count by today | General + Premium |
-| This Month's Leads | `leads` count by month | General + Premium |
-| Most Viewed Product | `analytics_events` — `product_view` agg by `product_id` | General + Premium |
-| Top Category | `analytics_events` — `product_view` agg by `category_id` | General + Premium |
-| Traffic Source | `analytics_events` — agg by `utm_source` | General + Premium |
+| Metric              | Query                                                    | Access            |
+| ------------------- | -------------------------------------------------------- | ----------------- |
+| Today's Leads       | `leads` count by today                                   | General + Premium |
+| This Month's Leads  | `leads` count by month                                   | General + Premium |
+| Most Viewed Product | `analytics_events` — `product_view` agg by `product_id`  | General + Premium |
+| Top Category        | `analytics_events` — `product_view` agg by `category_id` | General + Premium |
+| Traffic Source      | `analytics_events` — agg by `utm_source`                 | General + Premium |
 
 ---
 
@@ -652,3 +692,82 @@ NODE_ENV
 - Coupons, Reviews, Recommendations
 - Marketing Automation (email/SMS)
 - Advanced Analytics, Order Tracking
+
+---
+
+## 20. Backend Folder Structure
+
+```
+apps/api/src/
+├── models/
+│   ├── Product.ts
+│   ├── Category.ts
+│   ├── AdminUser.ts
+│   └── Lead.ts
+│
+├── schemas/
+│   └── admin.schemas.ts          ← Zod: product/category create+update, lead update, admin create+update
+│
+├── lib/
+│   ├── cloudinary.ts             ← init from CLOUDINARY_URL; getUploadSignature(folder)
+│   └── slugify.ts                ← auto-generate slug from name; dup-key → 409
+│
+├── controllers/
+│   ├── dashboard.controller.ts
+│   └── admin/
+│       ├── products.controller.ts
+│       ├── categories.controller.ts
+│       ├── leads.controller.ts
+│       ├── admins.controller.ts
+│       └── uploads.controller.ts
+│
+├── services/
+│   ├── adminProducts.service.ts
+│   ├── adminCategories.service.ts
+│   ├── adminLeads.service.ts
+│   └── adminAdmins.service.ts    ← reuses AdminUser pre('save') hashing + toJSON password strip
+│
+├── middleware/
+│   ├── requireAuth.ts
+│   ├── requireRole.ts            ← requireRole(["premium"])
+│   └── csrf.ts                   ← requireCsrfHeader on all write routes
+│
+├── routes/
+│   └── admin.routes.ts           ← mounts all sub-routers with requireAuth + requireRole(premium) + CSRF on writes
+│
+└── utils/
+    ├── serializeProduct.ts
+    ├── serializeLead.ts
+    ├── serializeAdmin.ts         ← never leaks password field
+    └── serializeCategory.ts
+```
+
+**Backend rules:**
+
+- All admin write routes: `requireAuth` + `requireRole(["premium"])` + `requireCsrfHeader`
+- Dashboard (`GET /api/admin/dashboard`) stays accessible to `general + premium`
+- Zod validates all write request bodies in `schemas/admin.schemas.ts`
+- Slug auto-generated from name via `lib/slugify.ts`; duplicate slugs → `409 Conflict`
+- `serializeAdmin` strips `password` — never exposed in any API response
+
+---
+
+## 21. Cloudinary Image Upload Flow
+
+All admin image uploads use a **signed upload** pattern — Express generates the signature, the browser posts the file directly to Cloudinary, and only the resulting `secure_url` is stored in MongoDB.
+
+```mermaid
+sequenceDiagram
+    participant UI as Admin Form
+    participant API as Express
+    participant CL as Cloudinary
+    UI->>API: GET /api/admin/uploads/signature (Bearer)
+    API-->>UI: { timestamp, signature, apiKey, cloudName, folder }
+    UI->>CL: POST FormData + signature
+    CL-->>UI: { secure_url, ... }
+    UI->>API: POST/PATCH product|category { ..., images: [secure_url] }
+```
+
+**Frontend:** `lib/cloudinary/upload.ts` orchestrates the flow using `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`.
+**Backend:** `lib/cloudinary.ts` signs the upload using `CLOUDINARY_URL`; optional folder via `CLOUDINARY_UPLOAD_FOLDER`.
+**Storage:** Only `secure_url` strings are persisted in MongoDB — never local paths or base64.

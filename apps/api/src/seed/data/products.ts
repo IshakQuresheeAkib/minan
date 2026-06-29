@@ -7,7 +7,6 @@ export type ProductSeed = {
   sizes: string[];
   colors: string[];
   images: string[];
-  is_featured: boolean;
 };
 
 export const productSeeds: ProductSeed[] = [
@@ -20,7 +19,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L"],
     colors: ["Red", "Black"],
     images: ["https://picsum.photos/seed/floral-lace-elegance/600/800"],
-    is_featured: true,
   },
   {
     name: "Sleek Satin Glamour",
@@ -31,7 +29,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L"],
     colors: ["Gold", "Black"],
     images: ["https://picsum.photos/seed/sleek-satin-glamour/600/800"],
-    is_featured: true,
   },
   {
     name: "Premium Cotton Tee",
@@ -42,7 +39,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L", "XL"],
     colors: ["White", "Black"],
     images: ["https://picsum.photos/seed/premium-cotton-tee/600/800"],
-    is_featured: true,
   },
   {
     name: "Oxford Shirt",
@@ -53,7 +49,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L", "XL"],
     colors: ["White", "Blue"],
     images: ["https://picsum.photos/seed/oxford-shirt/600/800"],
-    is_featured: true,
   },
   {
     name: "Slim Fit Chinos",
@@ -64,7 +59,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L", "XL"],
     colors: ["Beige", "Navy"],
     images: ["https://picsum.photos/seed/slim-fit-chinos/600/800"],
-    is_featured: false,
   },
   {
     name: "Classic Loafers",
@@ -75,7 +69,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["40", "41", "42", "43"],
     colors: ["Brown", "Black"],
     images: ["https://picsum.photos/seed/classic-loafers/600/800"],
-    is_featured: false,
   },
   {
     name: "Leather Belt",
@@ -86,7 +79,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L"],
     colors: ["Brown", "Black"],
     images: ["https://picsum.photos/seed/leather-belt/600/800"],
-    is_featured: false,
   },
   {
     name: "Canvas Sneakers",
@@ -97,7 +89,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["40", "41", "42", "43"],
     colors: ["White", "Navy"],
     images: ["https://picsum.photos/seed/canvas-sneakers/600/800"],
-    is_featured: false,
   },
   {
     name: "Linen Summer Shirt",
@@ -108,7 +99,6 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L", "XL"],
     colors: ["White", "Sky Blue"],
     images: ["https://picsum.photos/seed/linen-summer-shirt/600/800"],
-    is_featured: false,
   },
   {
     name: "High-Waist Palazzo",
@@ -119,6 +109,5 @@ export const productSeeds: ProductSeed[] = [
     sizes: ["S", "M", "L"],
     colors: ["Black", "Maroon"],
     images: ["https://picsum.photos/seed/high-waist-palazzo/600/800"],
-    is_featured: false,
   },
 ];

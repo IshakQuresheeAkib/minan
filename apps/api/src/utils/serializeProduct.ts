@@ -26,7 +26,6 @@ export function serializeProduct(product: ProductDocument): ProductResponse {
     sizes: product.sizes,
     colors: product.colors,
     images: product.images,
-    is_featured: product.is_featured,
     is_active: product.is_active,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),

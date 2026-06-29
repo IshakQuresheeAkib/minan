@@ -1,11 +1,81 @@
-import { env } from "@/config/env";
+import { useAuthStore, type AdminRole } from "@/store/auth.store";
 
 type JsonBody = Record<string, unknown> | readonly unknown[];
+
+type AuthSessionResponse = {
+  accessToken: string;
+  role: AdminRole;
+};
 
 type ApiRequestOptions = Omit<RequestInit, "body"> & {
   accessToken?: string | null;
   body?: BodyInit | JsonBody | null;
+  _retrying?: boolean;
 };
+
+let refreshPromise: Promise<AuthSessionResponse> | null = null;
+
+function isAdminRole(value: unknown): value is AdminRole {
+  return value === "general" || value === "premium";
+}
+
+async function parseErrorMessage(response: Response): Promise<string> {
+  let message = response.statusText || "API request failed";
+
+  try {
+    const payload = (await response.json()) as { error?: string };
+    if (payload.error) {
+      message = payload.error;
+    }
+  } catch {
+    // Keep default message when body is not JSON.
+  }
+
+  return message;
+}
+
+async function refreshAccessToken(): Promise<AuthSessionResponse> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const response = await fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      if (!response.ok) {
+        const message = await parseErrorMessage(response);
+        throw new ApiError(message, response.status);
+      }
+
+      const session = (await response.json()) as {
+        accessToken?: unknown;
+        role?: unknown;
+      };
+
+      if (
+        typeof session.accessToken !== "string" ||
+        !isAdminRole(session.role)
+      ) {
+        throw new ApiError("Invalid refresh response", 500);
+      }
+
+      const nextSession: AuthSessionResponse = {
+        accessToken: session.accessToken,
+        role: session.role,
+      };
+
+      useAuthStore.getState().setSession(nextSession);
+      return nextSession;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -21,25 +91,36 @@ export async function apiRequest<TResponse>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
-  const headers = new Headers(options.headers);
-  const method = options.method ?? "GET";
-  let body = options.body;
+  const {
+    accessToken,
+    _retrying,
+    body: requestBody,
+    ...fetchOptions
+  } = options;
+  const headers = new Headers(fetchOptions.headers);
+  const method = fetchOptions.method ?? "GET";
+  let body = requestBody;
 
-  if (options.accessToken) {
-    headers.set("Authorization", `Bearer ${options.accessToken}`);
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
   if (method !== "GET") {
     headers.set("X-Requested-With", "XMLHttpRequest");
   }
 
-  if (body && typeof body === "object" && !(body instanceof FormData) && !(body instanceof Blob)) {
+  if (
+    body &&
+    typeof body === "object" &&
+    !(body instanceof FormData) &&
+    !(body instanceof Blob)
+  ) {
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${env.apiUrl}${path}`, {
-    ...options,
+  const response = await fetch(path, {
+    ...fetchOptions,
     method,
     headers,
     body,
@@ -47,7 +128,25 @@ export async function apiRequest<TResponse>(
   });
 
   if (!response.ok) {
-    throw new ApiError(response.statusText || "API request failed", response.status);
+    if (response.status === 401 && accessToken && !_retrying) {
+      try {
+        const session = await refreshAccessToken();
+        return apiRequest<TResponse>(path, {
+          ...options,
+          accessToken: session.accessToken,
+          _retrying: true,
+        });
+      } catch (refreshError) {
+        useAuthStore.getState().clearSession();
+        if (refreshError instanceof ApiError) {
+          throw refreshError;
+        }
+        throw new ApiError("Session expired", 401);
+      }
+    }
+
+    const message = await parseErrorMessage(response);
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) {

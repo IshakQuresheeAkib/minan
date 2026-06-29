@@ -6,19 +6,15 @@ import { serializeProduct } from "../utils/serializeProduct.js";
 
 export type ListProductsOptions = {
   categorySlug?: string;
-  featured?: boolean;
+  page?: number;
+  limit?: number;
 };
 
 export async function listProducts(options: ListProductsOptions = {}) {
   const filter: {
     is_active: boolean;
-    is_featured?: boolean;
     category_id?: Types.ObjectId;
   } = { is_active: true };
-
-  if (options.featured === true) {
-    filter.is_featured = true;
-  }
 
   if (options.categorySlug) {
     const category = await Category.findOne({
@@ -33,8 +29,17 @@ export async function listProducts(options: ListProductsOptions = {}) {
     filter.category_id = category._id;
   }
 
+  let query = Product.find(filter)
+    .populate("category_id")
+    .sort({ createdAt: -1 });
+
+  if (options.limit !== undefined && options.limit >= 1) {
+    const page = Math.max(1, options.page ?? 1);
+    query = query.skip((page - 1) * options.limit).limit(options.limit);
+  }
+
   const [products, total] = await Promise.all([
-    Product.find(filter).populate("category_id").sort({ createdAt: -1 }),
+    query,
     Product.countDocuments(filter),
   ]);
 

@@ -48,7 +48,6 @@ async function seed(): Promise<void> {
           sizes: product.sizes,
           colors: product.colors,
           images: product.images,
-          is_featured: product.is_featured,
           is_active: true,
         },
       },
