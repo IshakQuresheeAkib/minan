@@ -13,9 +13,8 @@ type ProductsSectionProps = {
 
 export function ProductsSection({ category }: ProductsSectionProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const { products, isLoading, isRefreshing, loadMore, hasMore } = useProducts({
-    category,
-  });
+  const { products, isLoading, isRefreshing, error, loadMore, hasMore } =
+    useProducts({ category });
 
   useEffect(() => {
     if (!hasMore) {
@@ -47,6 +46,8 @@ export function ProductsSection({ category }: ProductsSectionProps) {
     <section aria-label="All products" aria-busy={isLoading}>
       {isRefreshing ? (
         <ProductGridSkeleton />
+      ) : error ? (
+        <p className="py-10 text-center text-sm text-destructive">{error}</p>
       ) : (
         <ProductGrid products={cardProducts} />
       )}

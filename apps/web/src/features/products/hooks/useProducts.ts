@@ -18,6 +18,7 @@ export function useProducts(options: UseProductsOptions = {}) {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
   const fetchGenerationRef = useRef(0);
 
@@ -33,6 +34,7 @@ export function useProducts(options: UseProductsOptions = {}) {
 
       if (isFirstPage) {
         setIsRefreshing(true);
+        setError(null);
       }
       setIsLoading(true);
 
@@ -51,6 +53,14 @@ export function useProducts(options: UseProductsOptions = {}) {
         setPage(pageToFetch);
         setProducts((current) =>
           pageToFetch === 1 ? result.data : [...current, ...result.data],
+        );
+      } catch (err) {
+        if (generation !== fetchGenerationRef.current) {
+          return;
+        }
+
+        setError(
+          err instanceof Error ? err.message : "Failed to load products",
         );
       } finally {
         if (generation !== fetchGenerationRef.current) {
@@ -98,6 +108,7 @@ export function useProducts(options: UseProductsOptions = {}) {
     products,
     isLoading,
     isRefreshing,
+    error,
     loadMore,
     hasMore: products.length < total,
     total,

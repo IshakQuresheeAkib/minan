@@ -24,6 +24,7 @@ function getLoginRedirectUrl(): string {
 
 export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
   const router = useRouter();
+  const accessToken = useAuthStore((state) => state.accessToken);
   const setSession = useAuthStore((state) => state.setSession);
   const clearSession = useAuthStore((state) => state.clearSession);
   const [ready, setReady] = useState(false);
@@ -63,6 +64,12 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
       cancelled = true;
     };
   }, [clearSession, router, setSession]);
+
+  useEffect(() => {
+    if (ready && accessToken === null) {
+      router.replace(getLoginRedirectUrl());
+    }
+  }, [accessToken, ready, router]);
 
   if (!ready) {
     return (
