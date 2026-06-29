@@ -6,14 +6,21 @@ type AdminRole = "general" | "premium";
 
 const loginPath = "/admin/login";
 const dashboardPath = "/admin";
-const premiumOnlyPaths = ["/admin/products", "/admin/categories", "/admin/leads", "/admin/admins"] as const;
+const premiumOnlyPaths = [
+  "/admin/products",
+  "/admin/categories",
+  "/admin/leads",
+  "/admin/admins",
+] as const;
 
 function isAdminRole(value: unknown): value is AdminRole {
   return value === "general" || value === "premium";
 }
 
 function isPremiumOnlyPath(pathname: string) {
-  return premiumOnlyPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  return premiumOnlyPaths.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
 }
 
 function redirectToLogin(request: NextRequest) {
@@ -32,20 +39,38 @@ function redirectToDashboard(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  if (pathname === loginPath) {
-    return NextResponse.next();
-  }
-
   const token = request.cookies.get("access_token")?.value;
   const secret = process.env.JWT_ACCESS_SECRET;
+
+  if (pathname === loginPath) {
+    if (!token || !secret) {
+      return NextResponse.next();
+    }
+
+    try {
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(secret),
+      );
+      if (isAdminRole(payload.role)) {
+        return redirectToDashboard(request);
+      }
+    } catch {
+      // Invalid or expired token — show login page
+    }
+
+    return NextResponse.next();
+  }
 
   if (!token || !secret) {
     return redirectToLogin(request);
   }
 
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(secret),
+    );
     const role = payload.role;
 
     if (!isAdminRole(role)) {

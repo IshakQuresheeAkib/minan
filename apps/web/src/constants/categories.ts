@@ -5,6 +5,7 @@ export const productCategories = [
   "Footwear",
   "Accessories",
   "Women",
+  "Kids",
 ] as const;
 
 export type ProductCategory = (typeof productCategories)[number];
@@ -16,4 +17,5 @@ export const categorySlugByName: Record<ProductCategory, string> = {
   Footwear: "footwear",
   Accessories: "accessories",
   Women: "women",
+  Kids: "kids",
 };
