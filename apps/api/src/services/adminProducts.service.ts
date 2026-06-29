@@ -124,7 +124,11 @@ export async function updateAdminProduct(
   }
 
   if (input.slug !== undefined) {
-    product.slug = await resolveUniqueSlug(slugify(input.slug), id);
+    const baseSlug = slugify(input.slug);
+    if (!baseSlug) {
+      throw new AppError("Slug normalizes to an empty string", 400);
+    }
+    product.slug = await resolveUniqueSlug(baseSlug, id);
   }
 
   if (input.description !== undefined) {

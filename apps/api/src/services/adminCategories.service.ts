@@ -92,7 +92,11 @@ export async function updateAdminCategory(
   }
 
   if (input.slug !== undefined) {
-    category.slug = await resolveUniqueSlug(slugify(input.slug), id);
+    const baseSlug = slugify(input.slug);
+    if (!baseSlug) {
+      throw new AppError("Slug normalizes to an empty string", 400);
+    }
+    category.slug = await resolveUniqueSlug(baseSlug, id);
   }
 
   if (input.image_url !== undefined) {
