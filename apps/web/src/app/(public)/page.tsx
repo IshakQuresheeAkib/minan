@@ -9,7 +9,9 @@ export default function HomePage() {
     <>
       <SearchBar />
       <HeroCarousel />
-      <HomeCatalog />
+      <div className="lg:mx-auto lg:max-w-7xl lg:px-10 lg:py-12">
+        <HomeCatalog />
+      </div>
     </>
   );
 }

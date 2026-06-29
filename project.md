@@ -165,9 +165,9 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 
 ### Token Storage
 
-| Token         | Storage                          | TTL                          |
-| ------------- | -------------------------------- | ---------------------------- |
-| Access Token  | httpOnly cookie + Zustand memory | 15 min                       |
+| Token         | Storage                          | TTL                                   |
+| ------------- | -------------------------------- | ------------------------------------- |
+| Access Token  | httpOnly cookie + Zustand memory | 15 min                                |
 | Refresh Token | httpOnly cookie only             | 7 days, replacement issued on refresh |
 
 - Cookie → `proxy.ts` server-side read + admin layout boot refresh
@@ -551,7 +551,7 @@ Rate limit: 5 req / 15 min / IP on `POST /api/leads`.
 ## 13. MVP Features
 
 - Animated UI (GSAP), responsive, mobile-first
-- Product categories: T-Shirts, Shirts, Pants, Footwear, Accessories, Ladies' Bags
+- Product categories: T-Shirts, Shirts, Pants, Footwear, Accessories, Women, Kids
 - WhatsApp ordering: pre-filled message from PDP — fires Lead event to CAPI via `/api/whatsapp-click`, bypasses cart/checkout
 - Cart: Zustand memory only, no server-side cart
 - Checkout: lead form → MongoDB `leads` collection

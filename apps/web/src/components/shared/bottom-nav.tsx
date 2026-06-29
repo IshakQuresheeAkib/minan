@@ -28,7 +28,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-screen-sm items-center justify-around rounded-t-xl bg-background/80 px-4 py-3 pb-6 shadow-lg backdrop-blur-md lg:max-w-4xl"
+      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-screen-sm items-center justify-around rounded-t-xl bg-background/80 px-4 py-3 pb-6 shadow-lg backdrop-blur-md lg:hidden"
     >
       {navItems.map((item) => {
         const Icon = item.icon;

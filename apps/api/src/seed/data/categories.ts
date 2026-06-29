@@ -35,4 +35,9 @@ export const categorySeeds: CategorySeed[] = [
     slug: "women",
     image_url: "https://picsum.photos/seed/category-women/800/600",
   },
+  {
+    name: "Kids",
+    slug: "kids",
+    image_url: "https://picsum.photos/seed/category-kids/800/600",
+  },
 ];

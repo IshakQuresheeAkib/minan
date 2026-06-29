@@ -1,0 +1,82 @@
+import { z } from "zod";
+
+const adminRoleSchema = z.enum(["general", "premium"]);
+
+const leadStatusSchema = z.enum(["pending", "confirmed", "cancelled"]);
+
+export const productCreateSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  slug: z.string().trim().min(1).optional(),
+  description: z.string().trim().min(1, "Description is required"),
+  price: z.number().min(0, "Price must be at least 0"),
+  category_id: z.string().trim().min(1, "Category is required"),
+  sizes: z.array(z.string().trim().min(1)).default([]),
+  colors: z.array(z.string().trim().min(1)).default([]),
+  images: z.array(z.url("Each image must be a valid URL")).default([]),
+});
+
+export const productUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).optional(),
+    slug: z.string().trim().min(1).optional(),
+    description: z.string().trim().min(1).optional(),
+    price: z.number().min(0).optional(),
+    category_id: z.string().trim().min(1).optional(),
+    sizes: z.array(z.string().trim().min(1)).optional(),
+    colors: z.array(z.string().trim().min(1)).optional(),
+    images: z.array(z.url("Each image must be a valid URL")).optional(),
+    is_active: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
+export const categoryCreateSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  slug: z.string().trim().min(1).optional(),
+  image_url: z.url("Image must be a valid URL"),
+});
+
+export const categoryUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).optional(),
+    slug: z.string().trim().min(1).optional(),
+    image_url: z.url("Image must be a valid URL").optional(),
+    is_active: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
+export const leadUpdateSchema = z
+  .object({
+    status: leadStatusSchema.optional(),
+    notes: z.string().trim().max(500).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
+export const adminCreateSchema = z.object({
+  email: z.email("Enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: adminRoleSchema,
+});
+
+export const adminUpdateSchema = z
+  .object({
+    email: z.email("Enter a valid email address").optional(),
+    role: adminRoleSchema.optional(),
+    is_active: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
+export type ProductCreateInput = z.infer<typeof productCreateSchema>;
+export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
+export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
+export type CategoryUpdateInput = z.infer<typeof categoryUpdateSchema>;
+export type LeadUpdateInput = z.infer<typeof leadUpdateSchema>;
+export type AdminCreateInput = z.infer<typeof adminCreateSchema>;
+export type AdminUpdateInput = z.infer<typeof adminUpdateSchema>;
