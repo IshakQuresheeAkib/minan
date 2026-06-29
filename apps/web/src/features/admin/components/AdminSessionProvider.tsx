@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { refreshSession } from "@/features/admin/actions/auth.actions";
 import { publicRoutes } from "@/constants/routes";
+import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth.store";
 
 type AdminSessionProviderProps = {
@@ -43,8 +44,29 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
           accessToken: session.accessToken,
           role: session.role,
         });
-      } catch {
+      } catch (error) {
         if (cancelled) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status === 409) {
+          try {
+            const session = await refreshSession();
+            if (cancelled) {
+              return;
+            }
+
+            setSession({
+              accessToken: session.accessToken,
+              role: session.role,
+            });
+            setReady(true);
+          } catch {
+            if (!cancelled) {
+              clearSession();
+              router.replace(getLoginRedirectUrl());
+            }
+          }
           return;
         }
 

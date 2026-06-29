@@ -57,6 +57,7 @@ export async function loginAdmin(
   const refreshToken = signRefreshToken(payload);
 
   admin.refresh_token_hash = await argon2.hash(refreshToken);
+  admin.previous_refresh_token_hash = null;
   await admin.save();
 
   return {
@@ -108,10 +109,28 @@ export async function rotateTokens(refreshToken: string): Promise<{
       _id: admin._id,
       refresh_token_hash: previousRefreshTokenHash,
     },
-    { refresh_token_hash: nextRefreshTokenHash },
+    {
+      refresh_token_hash: nextRefreshTokenHash,
+      previous_refresh_token_hash: previousRefreshTokenHash,
+    },
   );
 
   if (!rotated) {
+    const freshAdmin = await AdminUser.findById(admin._id).select(
+      "+previous_refresh_token_hash",
+    );
+
+    if (freshAdmin?.previous_refresh_token_hash) {
+      const matchesPrevious = await argon2.verify(
+        freshAdmin.previous_refresh_token_hash,
+        refreshToken,
+      );
+
+      if (matchesPrevious) {
+        throw new AuthError("Concurrent token rotation", 409);
+      }
+    }
+
     throw new AuthError("Invalid refresh token");
   }
 
@@ -156,6 +175,6 @@ export async function logoutAdmin(
 
   await AdminUser.updateOne(
     { _id: admin._id, refresh_token_hash: admin.refresh_token_hash },
-    { refresh_token_hash: null },
+    { refresh_token_hash: null, previous_refresh_token_hash: null },
   );
 }

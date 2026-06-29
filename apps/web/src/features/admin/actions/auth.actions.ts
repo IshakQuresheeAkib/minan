@@ -1,6 +1,8 @@
 import { apiRequest } from "@/lib/api/client";
 import type { AuthSessionResponse } from "@/features/admin/types";
 
+let refreshPromise: Promise<AuthSessionResponse> | null = null;
+
 export async function loginAdmin(input: {
   email: string;
   password: string;
@@ -11,10 +13,16 @@ export async function loginAdmin(input: {
   });
 }
 
-export async function refreshSession(): Promise<AuthSessionResponse> {
-  return apiRequest<AuthSessionResponse>("/api/auth/refresh", {
-    method: "POST",
-  });
+export function refreshSession(): Promise<AuthSessionResponse> {
+  if (!refreshPromise) {
+    refreshPromise = apiRequest<AuthSessionResponse>("/api/auth/refresh", {
+      method: "POST",
+    }).finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
 }
 
 export async function logoutAdmin(): Promise<void> {

@@ -1,4 +1,3 @@
-import { env } from "@/config/env";
 import { useAuthStore, type AdminRole } from "@/store/auth.store";
 
 type JsonBody = Record<string, unknown> | readonly unknown[];
@@ -38,7 +37,7 @@ async function parseErrorMessage(response: Response): Promise<string> {
 async function refreshAccessToken(): Promise<AuthSessionResponse> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch(`${env.apiUrl}/api/auth/refresh`, {
+      const response = await fetch("/api/auth/refresh", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -120,7 +119,7 @@ export async function apiRequest<TResponse>(
     body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${env.apiUrl}${path}`, {
+  const response = await fetch(path, {
     ...fetchOptions,
     method,
     headers,

@@ -9,6 +9,7 @@ export interface AdminUserDocument extends Document {
   role: AdminRole;
   is_active: boolean;
   refresh_token_hash: string | null;
+  previous_refresh_token_hash: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +31,11 @@ const adminUserSchema = new Schema<AdminUserDocument>(
     },
     is_active: { type: Boolean, default: true },
     refresh_token_hash: { type: String, default: null, select: false },
+    previous_refresh_token_hash: {
+      type: String,
+      default: null,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -38,6 +44,7 @@ const adminUserSchema = new Schema<AdminUserDocument>(
         const {
           password: _password,
           refresh_token_hash: _refreshTokenHash,
+          previous_refresh_token_hash: _previousRefreshTokenHash,
           ...safe
         } = ret;
         return safe;
