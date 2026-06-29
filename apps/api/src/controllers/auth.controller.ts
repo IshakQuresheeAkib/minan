@@ -10,6 +10,7 @@ import {
 import {
   AuthError,
   loginAdmin,
+  logoutAdmin,
   rotateTokens,
 } from "../services/auth.service.js";
 
@@ -103,11 +104,15 @@ export async function refreshHandler(
 }
 
 export async function logoutHandler(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
+    const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE];
+    await logoutAdmin(
+      typeof refreshToken === "string" ? refreshToken : undefined,
+    );
     clearAuthCookies(res);
     res.status(204).send();
   } catch (error) {

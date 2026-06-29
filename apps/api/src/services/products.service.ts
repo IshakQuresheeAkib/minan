@@ -33,8 +33,8 @@ export async function listProducts(options: ListProductsOptions = {}) {
     .populate("category_id")
     .sort({ createdAt: -1 });
 
-  if (options.limit !== undefined) {
-    const page = options.page ?? 1;
+  if (options.limit !== undefined && options.limit >= 1) {
+    const page = Math.max(1, options.page ?? 1);
     query = query.skip((page - 1) * options.limit).limit(options.limit);
   }
 

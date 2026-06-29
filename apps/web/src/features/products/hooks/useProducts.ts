@@ -19,6 +19,7 @@ export function useProducts(options: UseProductsOptions = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(true);
   const loadingRef = useRef(false);
+  const fetchGenerationRef = useRef(0);
 
   const fetchPage = useCallback(
     async (pageToFetch: number) => {
@@ -27,6 +28,7 @@ export function useProducts(options: UseProductsOptions = {}) {
       }
 
       loadingRef.current = true;
+      const generation = fetchGenerationRef.current;
       const isFirstPage = pageToFetch === 1;
 
       if (isFirstPage) {
@@ -41,12 +43,20 @@ export function useProducts(options: UseProductsOptions = {}) {
           category,
         });
 
+        if (generation !== fetchGenerationRef.current) {
+          return;
+        }
+
         setTotal(result.total);
         setPage(pageToFetch);
         setProducts((current) =>
           pageToFetch === 1 ? result.data : [...current, ...result.data],
         );
       } finally {
+        if (generation !== fetchGenerationRef.current) {
+          return;
+        }
+
         loadingRef.current = false;
         if (isFirstPage) {
           setIsRefreshing(false);
@@ -70,6 +80,8 @@ export function useProducts(options: UseProductsOptions = {}) {
   }, [fetchPage, page, products.length, total]);
 
   useEffect(() => {
+    fetchGenerationRef.current += 1;
+
     async function refreshProducts() {
       setPage(0);
       setTotal(0);

@@ -1,3 +1,5 @@
+import argon2 from "argon2";
+
 import { AdminUser, verifyAdminPassword } from "../models/AdminUser.js";
 import {
   signAccessToken,
@@ -51,10 +53,16 @@ export async function loginAdmin(
   }
 
   const payload = toJwtPayload(admin);
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken(payload);
+
+  admin.refresh_token_hash = await argon2.hash(refreshToken);
+  await admin.save();
+
   return {
     payload,
-    accessToken: signAccessToken(payload),
-    refreshToken: signRefreshToken(payload),
+    accessToken,
+    refreshToken,
   };
 }
 
@@ -75,16 +83,79 @@ export async function rotateTokens(refreshToken: string): Promise<{
     _id: payload.id,
     email: payload.email,
     is_active: true,
-  });
+  }).select("+refresh_token_hash");
 
-  if (!admin) {
-    throw new AuthError("Admin account is inactive or missing");
+  if (!admin?.refresh_token_hash) {
+    throw new AuthError("Invalid refresh token");
+  }
+
+  const refreshTokenMatches = await argon2.verify(
+    admin.refresh_token_hash,
+    refreshToken,
+  );
+  if (!refreshTokenMatches) {
+    throw new AuthError("Invalid refresh token");
   }
 
   const nextPayload = toJwtPayload(admin);
+  const accessToken = signAccessToken(nextPayload);
+  const nextRefreshToken = signRefreshToken(nextPayload);
+  const nextRefreshTokenHash = await argon2.hash(nextRefreshToken);
+  const previousRefreshTokenHash = admin.refresh_token_hash;
+
+  const rotated = await AdminUser.findOneAndUpdate(
+    {
+      _id: admin._id,
+      refresh_token_hash: previousRefreshTokenHash,
+    },
+    { refresh_token_hash: nextRefreshTokenHash },
+  );
+
+  if (!rotated) {
+    throw new AuthError("Invalid refresh token");
+  }
+
   return {
     payload: nextPayload,
-    accessToken: signAccessToken(nextPayload),
-    refreshToken: signRefreshToken(nextPayload),
+    accessToken,
+    refreshToken: nextRefreshToken,
   };
+}
+
+export async function logoutAdmin(
+  refreshToken: string | undefined,
+): Promise<void> {
+  if (!refreshToken) {
+    return;
+  }
+
+  let payload: AdminJwtPayload;
+
+  try {
+    payload = verifyRefreshToken(refreshToken);
+  } catch {
+    return;
+  }
+
+  const admin = await AdminUser.findOne({
+    _id: payload.id,
+    email: payload.email,
+  }).select("+refresh_token_hash");
+
+  if (!admin?.refresh_token_hash) {
+    return;
+  }
+
+  const refreshTokenMatches = await argon2.verify(
+    admin.refresh_token_hash,
+    refreshToken,
+  );
+  if (!refreshTokenMatches) {
+    return;
+  }
+
+  await AdminUser.updateOne(
+    { _id: admin._id, refresh_token_hash: admin.refresh_token_hash },
+    { refresh_token_hash: null },
+  );
 }

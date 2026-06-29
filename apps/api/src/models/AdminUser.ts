@@ -8,6 +8,7 @@ export interface AdminUserDocument extends Document {
   password: string;
   role: AdminRole;
   is_active: boolean;
+  refresh_token_hash: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,12 +29,17 @@ const adminUserSchema = new Schema<AdminUserDocument>(
       required: true,
     },
     is_active: { type: Boolean, default: true },
+    refresh_token_hash: { type: String, default: null, select: false },
   },
   {
     timestamps: true,
     toJSON: {
       transform(_doc, ret) {
-        const { password: _password, ...safe } = ret;
+        const {
+          password: _password,
+          refresh_token_hash: _refreshTokenHash,
+          ...safe
+        } = ret;
         return safe;
       },
     },

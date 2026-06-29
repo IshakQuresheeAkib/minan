@@ -26,10 +26,26 @@ export async function listProductsHandler(
         ? Number.parseInt(limitParam, 10)
         : undefined;
 
+    if (
+      typeof pageParam === "string" &&
+      (page === undefined || Number.isNaN(page) || page < 1)
+    ) {
+      res.status(400).json({ error: "page must be a positive integer" });
+      return;
+    }
+
+    if (
+      typeof limitParam === "string" &&
+      (limit === undefined || Number.isNaN(limit) || limit < 1)
+    ) {
+      res.status(400).json({ error: "limit must be a positive integer" });
+      return;
+    }
+
     const result = await listProducts({
       categorySlug: category,
-      page: page !== undefined && !Number.isNaN(page) ? page : undefined,
-      limit: limit !== undefined && !Number.isNaN(limit) ? limit : undefined,
+      page,
+      limit,
     });
     res.json(result);
   } catch (error) {
