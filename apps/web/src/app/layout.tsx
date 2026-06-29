@@ -3,6 +3,7 @@ import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./globals.css";
+import "@/features/home/components/SearchBar.css";
 
 const manrope = Manrope({
   variable: "--font-display",

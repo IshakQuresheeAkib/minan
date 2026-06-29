@@ -14,6 +14,8 @@ export async function listProductsHandler(
   try {
     const category =
       typeof req.query.category === "string" ? req.query.category : undefined;
+    const search =
+      typeof req.query.search === "string" ? req.query.search : undefined;
 
     const pageParam = req.query.page;
     const limitParam = req.query.limit;
@@ -44,6 +46,7 @@ export async function listProductsHandler(
 
     const result = await listProducts({
       categorySlug: category,
+      search,
       page,
       limit,
     });

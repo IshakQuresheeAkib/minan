@@ -1,102 +1,206 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { useRouter } from "next/navigation";
-import styles from "./SearchBar.module.css";
-// import { getActiveProducts } from "@/features/products/services/product.service";
-// import type { Product } from "@/features/products/types";
+import Link from "next/link";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
+
+import type { Product } from "@/features/products/schemas/product.schema";
+import { getProducts } from "@/features/products/services/product.service";
 
 interface SearchBarProps {
   label?: string;
+  variant?: "default" | "navbar";
 }
 
-export function SearchBar({ label = "looking for something?" }: SearchBarProps) {
-  const router = useRouter();
+export function SearchBar({
+  label = "looking for something?",
+  variant = "default",
+}: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const requestIdRef = useRef(0);
 
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Product[]>([]);
   const [opened, setOpened] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [shrink, setShrink] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
-  // const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const results = query.trim()
-    // ? products.filter((product) =>
-    //     product.name.toLowerCase().includes(query.trim().toLowerCase()),
-    //   )
-    // : [];
+  const trimmedQuery = query.trim();
 
-  function resetToIdle(): void {
+  const resetToIdle = useCallback((): void => {
+    requestIdRef.current += 1;
     setSpinning(false);
     setOpened(false);
     setShrink(false);
     setResultsOpen(false);
     setQuery("");
-  }
-
-  async function ensureProductsLoaded(): Promise<void> {
-    if (hasFetched || loading) return;
-    setLoading(true);
+    setResults([]);
+    setLoading(false);
     setError(null);
-    try {
-      // const data = await getActiveProducts();
-      // setProducts(data);
-      setHasFetched(true);
-    } catch {
-      setError("Couldn't load products. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
+    setHasSearched(false);
+  }, []);
 
-  function handlePillClick(): void {
+  function handleWrapperClick(): void {
     if (opened) return;
     setOpened(true);
-    void ensureProductsLoaded();
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   function handleSubmit(): void {
-    if (!query.trim()) return;
+    if (!trimmedQuery) {
+      inputRef.current?.focus();
+      return;
+    }
+
     setOpened(false);
     setShrink(true);
     setSpinning(true);
     setResultsOpen(true);
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-    if (event.key === "Enter") {
+  function handleCloseKeyDown(event: KeyboardEvent<HTMLHeadingElement>): void {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      handleSubmit();
+      resetToIdle();
     }
   }
 
-  function handleResultClick(slug: string): void {
-    resetToIdle();
-    router.push(`/products/${slug}`);
+  function handlePanelClick(event: MouseEvent<HTMLDivElement>): void {
+    event.stopPropagation();
+  }
+
+  function handleQueryChange(event: ChangeEvent<HTMLInputElement>): void {
+    const nextQuery = event.target.value;
+    const nextTrimmedQuery = nextQuery.trim();
+
+    setQuery(nextQuery);
+    requestIdRef.current += 1;
+
+    if (!nextTrimmedQuery) {
+      setResults([]);
+      setLoading(false);
+      setError(null);
+      setHasSearched(false);
+      return;
+    }
+
+    setResults([]);
+    setLoading(true);
+    setError(null);
+    setHasSearched(false);
   }
 
   useEffect(() => {
     function handleEscape(event: globalThis.KeyboardEvent): void {
       if (event.key === "Escape") resetToIdle();
     }
+
     window.addEventListener("keyup", handleEscape);
     return () => window.removeEventListener("keyup", handleEscape);
-  }, []);
+  }, [resetToIdle]);
+
+  useEffect(() => {
+    if (!trimmedQuery) {
+      return;
+    }
+
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    const timeoutId = window.setTimeout(() => {
+      void getProducts({ search: trimmedQuery, page: 1, limit: 8 })
+        .then((response) => {
+          if (requestIdRef.current !== requestId) return;
+          setResults(response.data);
+          setHasSearched(true);
+        })
+        .catch(() => {
+          if (requestIdRef.current !== requestId) return;
+          setError("Couldn't load products. Try again.");
+          setResults([]);
+          setHasSearched(true);
+        })
+        .finally(() => {
+          if (requestIdRef.current !== requestId) return;
+          setLoading(false);
+        });
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [trimmedQuery]);
+
+  const isNavbar = variant === "navbar";
 
   return (
-    <>
-      <div className={`${styles.wrapper} ${shrink ? styles.shrink : ""}`}>
-        <h3 className={styles.label}>{label}</h3>
+    <section
+      className={`minan-search${isNavbar ? " minan-search--navbar" : ""}`}
+      aria-label="Product search"
+    >
+      <div
+        className={`exit ${resultsOpen ? "dark" : ""}`}
+        onClick={resetToIdle}
+        aria-hidden={!resultsOpen}
+      >
+        <div className="inner" onClick={handlePanelClick}>
+          <h4
+            role="button"
+            tabIndex={resultsOpen ? 0 : -1}
+            onClick={resetToIdle}
+            onKeyDown={handleCloseKeyDown}
+          >
+            Close
+          </h4>
+          <h1>Results</h1>
+          <p>
+            {loading && <span className="search-result">Searching...</span>}
+            {error && <span className="search-result">{error}</span>}
+            {!loading && !error && hasSearched && results.length === 0 && (
+              <span className="search-result">
+                No products matched &quot;{trimmedQuery}&quot;.
+              </span>
+            )}
+            {!loading &&
+              !error &&
+              results.map((product) => (
+                <span className="search-result" key={product._id}>
+                  <Link
+                    href={`/products/${product.slug}`}
+                    onClick={resetToIdle}
+                  >
+                    {product.name}
+                  </Link>
+                  {product.description}
+                  <strong>BDT {product.price}</strong>
+                </span>
+              ))}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className={`wrapper ${shrink ? "shrink" : ""}`}
+        onClick={handleWrapperClick}
+      >
+        {!isNavbar && label ? <h3>{label}</h3> : null}
         <div
-          className={`${styles.searchPill} ${opened ? styles.opened : ""} ${spinning ? styles.spin : ""}`}
-          onClick={handlePillClick}
+          className={`search ${opened ? "opened" : ""} ${spinning ? "spin" : ""}`}
         >
           <form
+            name="cse"
+            id="searchbox_demo"
+            className="searchform"
+            autoComplete="off"
             onSubmit={(event) => {
               event.preventDefault();
               handleSubmit();
@@ -104,55 +208,19 @@ export function SearchBar({ label = "looking for something?" }: SearchBarProps) 
           >
             <input
               ref={inputRef}
-              type="search"
+              type="text"
               size={40}
+              className="searchbox"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search products"
               aria-label="Search products"
-              className={styles.searchInput}
+              onChange={handleQueryChange}
             />
-            <input type="submit" value="Search" className={styles.submitButton} />
+            <input type="submit" name="sa" value="Search" />
           </form>
         </div>
       </div>
 
-      <div className={`${styles.overlay} ${resultsOpen ? styles.dark : ""}`}>
-        <div className={styles.panel}>
-          <button
-            type="button"
-            className={styles.closeButton}
-            onClick={resetToIdle}
-            aria-label="Close search results"
-          >
-            Close
-          </button>
-          <h1 className={styles.panelTitle}>Results for &ldquo;{query}&rdquo;</h1>
-
-          {loading && <p className={styles.emptyState}>Loading products...</p>}
-          {error && <p className={styles.emptyState}>{error}</p>}
-          {!loading && !error && hasFetched && results.length === 0 && (
-            <p className={styles.emptyState}>No products matched your search.</p>
-          )}
-          {/* {!loading &&
-            !error &&
-            results.map((product) => (
-              <a
-                key={product._id}
-                className={styles.resultRow}
-                onClick={(event) => {
-                  event.preventDefault();
-                  handleResultClick(product.slug);
-                }}
-                href={`/products/${product.slug}`}
-              >
-                <span className={styles.resultName}>{product.name}</span>
-                <span className={styles.resultPrice}>৳{product.price}</span>
-              </a>
-            ))} */}
-        </div>
-      </div>
-    </>
+      <div id="results" />
+    </section>
   );
 }

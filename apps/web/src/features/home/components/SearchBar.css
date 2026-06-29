@@ -1,0 +1,304 @@
+.minan-search {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 100%;
+  max-width: 100vw;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-family:
+    var(--font-display), var(--font-body), Arial, Helvetica, sans-serif;
+}
+
+.minan-search .exit {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transition: 0.4s ease-in-out;
+}
+
+.minan-search .exit .inner {
+  position: absolute;
+  width: 90%;
+  max-width: 500px;
+  left: 50%;
+  top: 50%;
+  background: #fff;
+  padding: 2em;
+  box-shadow: 0px 20px 20px -10px rgba(0, 0, 0, 0.1);
+  transform: translateX(-50%) translateY(350%) scale(0.5);
+  transition: 0.7s ease-out;
+  overflow: scroll;
+}
+
+.minan-search .exit .inner::-webkit-scrollbar {
+  width: 2px;
+  position: absolute;
+  right: 0;
+  z-index: -1;
+}
+
+.minan-search .exit .inner h4 {
+  position: absolute;
+  right: 10px;
+  top: -10px;
+  margin: 0;
+  background: #ff3300;
+  color: #fff;
+  padding: 1em 0.5em;
+  z-index: 2;
+  border-radius: 100%;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+
+.minan-search .exit .inner h4:hover {
+  transform: rotate(-10deg);
+}
+
+.minan-search .exit .inner .search-result {
+  display: block;
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.minan-search .exit .inner a {
+  color: #ff3300;
+  margin-right: 5px;
+  text-decoration: none;
+}
+
+.minan-search .exit .inner strong {
+  display: inline-block;
+  margin-left: 6px;
+  color: #555;
+  font-size: 0.9em;
+}
+
+.minan-search .exit.dark {
+  background: #00ffe0;
+  transition-delay: 0.25s;
+  z-index: 40;
+  pointer-events: auto;
+}
+
+.minan-search .exit.dark .inner {
+  transform: translateX(-50%) translateY(-50%) scale(1);
+  transition-delay: 0.25s;
+  height: 80%;
+}
+
+.minan-search .exit.dark .inner h1 {
+  margin-top: 0px;
+  position: relative;
+}
+
+.minan-search .exit.dark .inner h1::before {
+  content: "";
+  position: absolute;
+  width: 60%;
+  height: 0;
+  bottom: 0;
+  left: 0;
+  border-top: 2px solid #555;
+}
+
+.minan-search .wrapper {
+  height: 100px;
+  width: min(500px, calc(100vw - 2rem));
+  max-width: 500px;
+  position: relative;
+  z-index: 2;
+}
+
+.minan-search .wrapper::before {
+  content: "";
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  right: -10px;
+  bottom: 45px;
+  background: #00ffe0;
+  border-radius: 100%;
+  pointer-events: none;
+}
+
+.minan-search .wrapper .search {
+  display: block;
+  height: 40px;
+  width: 40px;
+  border-radius: 60% / 60% 60% 60% 60%;
+  box-shadow:
+    0px 0px 0px 2px #555,
+    0px 0px 0px 5px #fff,
+    0px 0px 0px 7px #555;
+  float: right;
+  position: relative;
+  z-index: 2;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    border-radius 0.2s ease-in-out,
+    width 0.3s ease-in-out;
+}
+
+.minan-search .wrapper .search.spin {
+  float: none;
+  margin: 0px auto;
+  animation-name: spin;
+  animation-iteration-count: 1;
+  animation-duration: 1s;
+  transform: scale(0);
+  background: transparent;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+    margin-top: 0px;
+  }
+  100% {
+    transform: rotate(360deg) scale(0);
+    margin-top: 300px;
+  }
+}
+
+.minan-search .wrapper .search .searchbox {
+  transition: 0.3s ease-in-out;
+  width: 0px;
+  height: 0px;
+  cursor: pointer;
+  color: transparent;
+  text-shadow: 0 0 0 #000;
+  opacity: 0;
+  border: 0px solid;
+  overflow: hidden;
+}
+
+.minan-search .wrapper .search .searchbox::-webkit-input-placeholder {
+  opacity: 0;
+  transition: 0.3s ease-in-out;
+}
+
+.minan-search .wrapper .search::before {
+  content: "";
+  position: absolute;
+  display: block;
+  width: 4px;
+  height: 30px;
+  background: #fff;
+  box-shadow:
+    0px -4px 0px 0px #fff,
+    0px 0px 0px 2px #555,
+    inset 0px -20px 0px #555;
+  z-index: -1;
+  bottom: -35px;
+  right: 5px;
+  transform: rotate(-20deg);
+  transition: 0.2s ease-in;
+  transition-delay: 0.15s;
+}
+
+.minan-search .wrapper .search.opened {
+  width: 100%;
+  border-radius: 5% / 60% 60% 60% 60%;
+}
+
+.minan-search .wrapper .search.opened::before {
+  transform: rotate(-90deg);
+  right: -25px;
+  bottom: 5px;
+  transition-delay: 0s;
+}
+
+.minan-search .wrapper .search.opened .searchbox {
+  position: absolute;
+  left: 20px;
+  height: 30px;
+  padding-top: 2.5px;
+  top: 2.5px;
+  width: 90%;
+  opacity: 1;
+  border: 0px solid;
+  color: transparent;
+  text-shadow: 0 0 0 #555;
+  font-size: 1.3em;
+  background: transparent;
+}
+
+.minan-search .wrapper .search.opened .searchbox::-webkit-input-placeholder {
+  font-size: 1em;
+  opacity: 1;
+  color: #00ffe0;
+}
+
+.minan-search .wrapper .search.opened .searchbox:focus {
+  outline: none;
+  background: #fff;
+}
+
+.minan-search input[type="submit"] {
+  display: none;
+}
+
+.minan-search h3 {
+  position: absolute;
+  color: #555;
+  margin: 0px;
+  right: 55px;
+  top: 5px;
+  z-index: -1;
+  padding-bottom: 14px;
+  transition: 0.2s ease-in-out;
+  transform-origin: 100% 50%;
+  white-space: nowrap;
+}
+
+.minan-search h3::after,
+.minan-search h3::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 7px;
+  width: 110%;
+  border-bottom: 2px solid #555;
+}
+
+.minan-search h3::before {
+  bottom: 0;
+  width: 100%;
+  left: 20px;
+  border-color: #00ffe0;
+}
+
+.minan-search .shrink::before {
+  opacity: 0;
+}
+
+.minan-search .shrink h3 {
+  transform: scaleX(0);
+}
+
+.minan-search #results {
+  display: none;
+}
+
+@media (max-width: 540px) {
+  .minan-search .wrapper {
+    width: calc(100vw - 3rem);
+  }
+
+  .minan-search h3 {
+    max-width: calc(100% - 72px);
+    text-overflow: ellipsis;
+  }
+
+  .minan-search .wrapper .search.opened .searchbox {
+    width: calc(100% - 44px);
+    font-size: 1.05em;
+  }
+}

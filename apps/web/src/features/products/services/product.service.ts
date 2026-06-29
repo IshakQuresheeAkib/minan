@@ -14,6 +14,7 @@ const productListSchema = z.object({
 
 type GetProductsOptions = {
   category?: string;
+  search?: string;
   page?: number;
   limit?: number;
 };
@@ -25,6 +26,10 @@ export async function getProducts(
 
   if (options.category) {
     params.set("category", options.category);
+  }
+
+  if (options.search) {
+    params.set("search", options.search);
   }
 
   if (options.page !== undefined) {

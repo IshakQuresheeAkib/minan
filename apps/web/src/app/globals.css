@@ -25,11 +25,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -38,55 +33,52 @@
 
 :root {
   --radius: 0.75rem;
+
+  /* Core palette — 8 named colors */
   --background: #fcf9f8;
   --foreground: #1b1c1c;
-  --card: #ffffff;
-  --card-foreground: #1b1c1c;
-  --popover: #ffffff;
-  --popover-foreground: #1b1c1c;
   --primary: #974822;
-  --primary-foreground: #ffffff;
   --secondary: #fed65b;
-  --secondary-foreground: #241a00;
-  --muted: #f0eded;
-  --muted-foreground: #55433c;
   --accent: #ffb597;
-  --accent-foreground: #360f00;
   --destructive: #ba1a1a;
+  --muted: #f0eded;
   --border: #dbc1b8;
-  --input: #e4e2e1;
-  --ring: #974822;
-  --chart-1: #974822;
-  --chart-2: #d97b51;
-  --chart-3: #735c00;
-  --chart-4: #fed65b;
-  --chart-5: #645d56;
+
+  /* Derived tokens */
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --primary-foreground: var(--background);
+  --secondary-foreground: var(--foreground);
+  --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+  --ring: var(--primary);
 }
 
 .dark {
+  /* Core palette — 8 named colors */
   --background: #1b1c1c;
   --foreground: #f3f0f0;
-  --card: #232323;
-  --card-foreground: #f3f0f0;
-  --popover: #232323;
-  --popover-foreground: #f3f0f0;
   --primary: #ffb597;
-  --primary-foreground: #561f02;
   --secondary: #574500;
-  --secondary-foreground: #ffe088;
-  --muted: #2a2826;
-  --muted-foreground: #d7c2b8;
   --accent: #974822;
-  --accent-foreground: #ffdbcd;
   --destructive: #ffb4ab;
+  --muted: #2a2826;
   --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: #ffb597;
-  --chart-1: #ffb597;
-  --chart-2: #d97b51;
-  --chart-3: #e9c349;
-  --chart-4: #fed65b;
-  --chart-5: #cec5bc;
+
+  /* Derived tokens */
+  --card: color-mix(in srgb, var(--foreground) 8%, var(--background));
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary-foreground: var(--background);
+  --secondary-foreground: var(--foreground);
+  --muted-foreground: color-mix(in srgb, var(--foreground) 60%, transparent);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+  --ring: var(--primary);
 }
 
 @layer base {
