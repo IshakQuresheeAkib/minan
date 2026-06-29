@@ -9,6 +9,8 @@ import type { AdminProduct } from "@/features/admin/types";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth.store";
 
+const PAGE_LIMIT = 20;
+
 export function AdminProducts() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -18,32 +20,49 @@ export function AdminProducts() {
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(
     null,
   );
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const reload = useCallback(async () => {
-    if (!accessToken) {
-      return;
-    }
-
-    const response = await fetchAdminProducts(accessToken);
-    setProducts(response.data);
-  }, [accessToken]);
-
-  useEffect(() => {
-    if (!accessToken) {
-      return;
-    }
-
-    const token = accessToken;
-    let cancelled = false;
-
-    async function loadProducts() {
+  const loadProducts = useCallback(
+    async (pageNum: number) => {
+      if (!accessToken) return;
       setLoading(true);
       setError(null);
-
       try {
-        const response = await fetchAdminProducts(token);
+        const response = await fetchAdminProducts(accessToken, pageNum);
+        setProducts(response.data);
+        setTotal(response.total);
+        setTotalPages(Math.max(1, Math.ceil(response.total / response.limit)));
+      } catch (loadError) {
+        setError(
+          loadError instanceof ApiError
+            ? loadError.message
+            : "Failed to load products.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [accessToken],
+  );
+
+  useEffect(() => {
+    if (!accessToken) return;
+
+    let cancelled = false;
+
+    async function run() {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetchAdminProducts(accessToken!, page);
         if (!cancelled) {
           setProducts(response.data);
+          setTotal(response.total);
+          setTotalPages(
+            Math.max(1, Math.ceil(response.total / response.limit)),
+          );
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -60,22 +79,22 @@ export function AdminProducts() {
       }
     }
 
-    void loadProducts();
+    void run();
 
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessToken, page]);
 
   const handleChanged = useCallback(() => {
-    void reload().catch((loadError: unknown) => {
+    void loadProducts(page).catch((loadError: unknown) => {
       setError(
         loadError instanceof ApiError
           ? loadError.message
           : "Failed to load products.",
       );
     });
-  }, [reload]);
+  }, [loadProducts, page]);
 
   return (
     <>
@@ -89,6 +108,11 @@ export function AdminProducts() {
         accessToken={accessToken ?? ""}
         products={products}
         loading={loading}
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={PAGE_LIMIT}
+        onPageChange={setPage}
         onChanged={handleChanged}
         onCreate={() => {
           setEditingProduct(null);

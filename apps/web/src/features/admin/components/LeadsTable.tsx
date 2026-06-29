@@ -1,6 +1,7 @@
 "use client";
 
 import type { AdminLead } from "@/features/admin/types";
+import { TablePagination } from "@/features/admin/components/TablePagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +16,11 @@ import {
 type LeadsTableProps = {
   leads: AdminLead[];
   loading: boolean;
+  page: number;
+  totalPages: number;
+  total: number;
+  limit: number;
+  onPageChange: (page: number) => void;
   onView: (lead: AdminLead) => void;
 };
 
@@ -27,7 +33,16 @@ const statusVariant: Record<
   cancelled: "destructive",
 };
 
-export function LeadsTable({ leads, loading, onView }: LeadsTableProps) {
+export function LeadsTable({
+  leads,
+  loading,
+  page,
+  totalPages,
+  total,
+  limit,
+  onPageChange,
+  onView,
+}: LeadsTableProps) {
   return (
     <div className="space-y-4">
       <div>
@@ -86,6 +101,15 @@ export function LeadsTable({ leads, loading, onView }: LeadsTableProps) {
           </Table>
         </div>
       )}
+
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={limit}
+        disabled={loading}
+        onPageChange={onPageChange}
+      />
     </div>
   );
 }

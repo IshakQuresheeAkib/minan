@@ -6,6 +6,7 @@ import {
   deactivateAdminProduct,
   updateAdminProduct,
 } from "@/features/admin/actions/products.actions";
+import { TablePagination } from "@/features/admin/components/TablePagination";
 import type { AdminProduct } from "@/features/admin/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,11 @@ type ProductsTableProps = {
   accessToken: string;
   products: AdminProduct[];
   loading: boolean;
+  page: number;
+  totalPages: number;
+  total: number;
+  limit: number;
+  onPageChange: (page: number) => void;
   onChanged: () => void;
   onCreate: () => void;
   onEdit: (product: AdminProduct) => void;
@@ -32,6 +38,11 @@ export function ProductsTable({
   accessToken,
   products,
   loading,
+  page,
+  totalPages,
+  total,
+  limit,
+  onPageChange,
   onChanged,
   onCreate,
   onEdit,
@@ -146,6 +157,15 @@ export function ProductsTable({
           </Table>
         </div>
       )}
+
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={limit}
+        disabled={loading}
+        onPageChange={onPageChange}
+      />
     </div>
   );
 }

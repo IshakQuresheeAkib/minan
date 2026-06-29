@@ -7,7 +7,7 @@ export function SearchBar() {
   const [query, setQuery] = useState("");
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 lg:hidden">
       <div className="flex items-center rounded-full border border-border bg-muted px-4 py-3 transition-colors focus-within:border-primary">
         <Search
           className="mr-3 size-5 shrink-0 text-muted-foreground"

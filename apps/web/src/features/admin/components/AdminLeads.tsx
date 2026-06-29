@@ -9,6 +9,8 @@ import type { AdminLead } from "@/features/admin/types";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth.store";
 
+const PAGE_LIMIT = 20;
+
 export function AdminLeads() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [leads, setLeads] = useState<AdminLead[]>([]);
@@ -16,32 +18,49 @@ export function AdminLeads() {
   const [error, setError] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<AdminLead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const reload = useCallback(async () => {
-    if (!accessToken) {
-      return;
-    }
-
-    const response = await fetchAdminLeads(accessToken);
-    setLeads(response.data);
-  }, [accessToken]);
-
-  useEffect(() => {
-    if (!accessToken) {
-      return;
-    }
-
-    const token = accessToken;
-    let cancelled = false;
-
-    async function loadLeads() {
+  const loadLeads = useCallback(
+    async (pageNum: number) => {
+      if (!accessToken) return;
       setLoading(true);
       setError(null);
-
       try {
-        const response = await fetchAdminLeads(token);
+        const response = await fetchAdminLeads(accessToken, pageNum);
+        setLeads(response.data);
+        setTotal(response.total);
+        setTotalPages(Math.max(1, Math.ceil(response.total / response.limit)));
+      } catch (loadError) {
+        setError(
+          loadError instanceof ApiError
+            ? loadError.message
+            : "Failed to load leads.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [accessToken],
+  );
+
+  useEffect(() => {
+    if (!accessToken) return;
+
+    let cancelled = false;
+
+    async function run() {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetchAdminLeads(accessToken!, page);
         if (!cancelled) {
           setLeads(response.data);
+          setTotal(response.total);
+          setTotalPages(
+            Math.max(1, Math.ceil(response.total / response.limit)),
+          );
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -58,22 +77,22 @@ export function AdminLeads() {
       }
     }
 
-    void loadLeads();
+    void run();
 
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessToken, page]);
 
   const handleSaved = useCallback(() => {
-    void reload().catch((loadError: unknown) => {
+    void loadLeads(page).catch((loadError: unknown) => {
       setError(
         loadError instanceof ApiError
           ? loadError.message
           : "Failed to load leads.",
       );
     });
-  }, [reload]);
+  }, [loadLeads, page]);
 
   return (
     <>
@@ -86,6 +105,11 @@ export function AdminLeads() {
       <LeadsTable
         leads={leads}
         loading={loading}
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={PAGE_LIMIT}
+        onPageChange={setPage}
         onView={(lead) => {
           setSelectedLead(lead);
           setDialogOpen(true);
