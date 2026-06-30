@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-import dns from "node:dns";
-
-
 
 /** Mongoose readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting */
 const READY_STATE_LABEL: Record<number, string> = {
@@ -10,9 +7,6 @@ const READY_STATE_LABEL: Record<number, string> = {
   2: "connecting",
   3: "disconnecting",
 };
-if (process.env.NODE_ENV === "development") {
-  dns.setServers(["8.8.8.8", "8.8.4.4"]);
-}
 /**
  * Pool/timeouts tuned for a single long-running Express instance on Render (OLTP).
  * Assumption: one API process, moderate MVP traffic — revisit after load testing.
