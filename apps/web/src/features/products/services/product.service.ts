@@ -50,13 +50,9 @@ export async function getProducts(
 const colorClassMap: Record<string, ProductCardData["colors"][number]> = {
   Black: "bg-foreground",
   White: "bg-secondary",
-  Red: "bg-chart-2",
-  Gold: "bg-chart-5",
   Blue: "bg-primary",
   Navy: "bg-primary",
   Beige: "bg-accent",
-  Brown: "bg-chart-5",
-  Maroon: "bg-chart-2",
   "Sky Blue": "bg-primary",
 };
 

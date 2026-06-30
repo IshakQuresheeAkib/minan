@@ -19,7 +19,6 @@ export const primaryNavItems: NavItem[] = [
     href: publicRoutes.products,
     icon: LayoutGrid,
   },
-  { id: "favourites", label: "Favourites", icon: Heart, disabled: true },
   {
     id: "cart",
     label: "My cart",

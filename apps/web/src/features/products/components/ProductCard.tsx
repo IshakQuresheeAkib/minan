@@ -20,15 +20,12 @@ type ProductColorClass =
   | "bg-accent"
   | "bg-muted-foreground"
   | "bg-foreground"
-  | "bg-chart-2"
-  | "bg-chart-5";
 
 type ProductCardProps = {
   product: ProductCardData;
 };
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
 
   return (
     <article className="rounded-2xl border border-border bg-card p-3 shadow-[0_8px_24px_rgba(151,72,34,0.04)]">
@@ -39,22 +36,11 @@ export function ProductCard({ product }: ProductCardProps) {
         />
         <Link
           href={`/products/${product.slug}`}
-          className="absolute bottom-2 left-1/2 flex -translate-x-1/2 cursor-pointer items-center gap-1 rounded-full bg-card/90 px-3 py-1.5 text-xs font-semibold text-card-foreground shadow-sm backdrop-blur-sm transition-opacity hover:opacity-90"
+          className="absolute bottom-2 right-2 flex cursor-pointer items-center gap-1 rounded-full bg-card/90 px-3 py-1.5 text-xs font-semibold text-card-foreground shadow-sm backdrop-blur-sm transition-opacity hover:opacity-90"
         >
           <ShoppingBag className="size-4 text-primary" aria-hidden="true" />
           Shop
         </Link>
-        <button
-          type="button"
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          onClick={() => setIsFavorite((current) => !current)}
-          className="absolute bottom-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-full bg-card/90 text-primary shadow-sm backdrop-blur-sm transition-colors hover:text-primary"
-        >
-          <Heart
-            className={cn("size-4", isFavorite && "fill-primary")}
-            aria-hidden="true"
-          />
-        </button>
       </div>
       <div>
         <h3 className="mb-1 truncate text-sm font-semibold text-foreground">
