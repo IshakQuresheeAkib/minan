@@ -3,7 +3,6 @@ import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./globals.css";
-import "@/features/home/components/SearchBar.css";
 
 const manrope = Manrope({
   variable: "--font-display",
@@ -38,7 +37,7 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${plusJakartaSans.variable}`}>
+      <body className={` ${manrope.variable} ${plusJakartaSans.variable}`}>
         {children}
       </body>
     </html>
