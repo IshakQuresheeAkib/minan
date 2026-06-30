@@ -14,6 +14,7 @@ const productListSchema = z.object({
 
 type GetProductsOptions = {
   category?: string;
+  search?: string;
   page?: number;
   limit?: number;
 };
@@ -25,6 +26,10 @@ export async function getProducts(
 
   if (options.category) {
     params.set("category", options.category);
+  }
+
+  if (options.search) {
+    params.set("search", options.search);
   }
 
   if (options.page !== undefined) {
@@ -45,13 +50,9 @@ export async function getProducts(
 const colorClassMap: Record<string, ProductCardData["colors"][number]> = {
   Black: "bg-foreground",
   White: "bg-secondary",
-  Red: "bg-chart-2",
-  Gold: "bg-chart-5",
   Blue: "bg-primary",
   Navy: "bg-primary",
   Beige: "bg-accent",
-  Brown: "bg-chart-5",
-  Maroon: "bg-chart-2",
   "Sky Blue": "bg-primary",
 };
 

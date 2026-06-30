@@ -6,15 +6,29 @@ import { serializeProduct } from "../utils/serializeProduct.js";
 
 export type ListProductsOptions = {
   categorySlug?: string;
+  search?: string;
   page?: number;
   limit?: number;
 };
 
+type SearchCondition = {
+  name?: { $regex: string; $options: "i" };
+  description?: { $regex: string; $options: "i" };
+  slug?: { $regex: string; $options: "i" };
+};
+
+type ProductFilter = {
+  is_active: boolean;
+  category_id?: Types.ObjectId;
+  $or?: SearchCondition[];
+};
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function listProducts(options: ListProductsOptions = {}) {
-  const filter: {
-    is_active: boolean;
-    category_id?: Types.ObjectId;
-  } = { is_active: true };
+  const filter: ProductFilter = { is_active: true };
 
   if (options.categorySlug) {
     const category = await Category.findOne({
@@ -27,6 +41,16 @@ export async function listProducts(options: ListProductsOptions = {}) {
     }
 
     filter.category_id = category._id;
+  }
+
+  const search = options.search?.trim();
+  if (search) {
+    const escapedSearch = escapeRegex(search);
+    filter.$or = [
+      { name: { $regex: escapedSearch, $options: "i" } },
+      { description: { $regex: escapedSearch, $options: "i" } },
+      { slug: { $regex: escapedSearch, $options: "i" } },
+    ];
   }
 
   let query = Product.find(filter)

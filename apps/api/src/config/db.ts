@@ -7,7 +7,6 @@ const READY_STATE_LABEL: Record<number, string> = {
   2: "connecting",
   3: "disconnecting",
 };
-
 /**
  * Pool/timeouts tuned for a single long-running Express instance on Render (OLTP).
  * Assumption: one API process, moderate MVP traffic — revisit after load testing.

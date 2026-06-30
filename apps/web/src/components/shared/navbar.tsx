@@ -1,22 +1,18 @@
 "use client";
 
-import { Search, ShoppingBag, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { primaryNavItems } from "@/constants/nav-items";
 import { publicRoutes } from "@/constants/routes";
+import { SearchBar } from "@/features/home/components/SearchBar";
 import { cn } from "@/lib/utils";
-
-const desktopLinks = [
-  { label: "Home", href: publicRoutes.home },
-  { label: "Products", href: publicRoutes.products },
-] as const;
 
 export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
@@ -36,89 +32,65 @@ export function Navbar() {
           : "bg-background lg:bg-transparent",
       )}
     >
-      {/* Logo */}
-      <Link
-        href={publicRoutes.home}
-        className="font-display text-3xl font-bold tracking-tight text-foreground"
-      >
-        MINAN
-      </Link>
+      <div className="flex w-full items-center gap-3 lg:grid lg:grid-cols-[auto_minmax(360px,1fr)_minmax(260px,340px)] lg:gap-8">
+        <Link
+          href={publicRoutes.home}
+          aria-label="MINAN — go to homepage"
+          className="shrink-0 transition-opacity duration-200 hover:opacity-85"
+        >
+          <Image
+            src="/logo.png"
+            alt="MINAN"
+            width={364}
+            height={353}
+            priority
+            className="h-14 w-auto lg:h-10"
+          />
+        </Link>
 
-      {/* Desktop center nav */}
-      <nav
-        aria-label="Main navigation"
-        className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 lg:flex"
-      >
-        {desktopLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cn(
-              "text-sm font-semibold tracking-wide transition-colors duration-200",
-              pathname === link.href
-                ? "text-primary"
-                : "text-foreground/70 hover:text-foreground",
-            )}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+        <nav
+          aria-label="Main navigation"
+          className="hidden items-center justify-center gap-6 lg:flex"
+        >
+          {primaryNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.href ? pathname === item.href : false;
 
-      {/* Desktop right: search + cart */}
-      <div className="hidden items-center gap-2 lg:flex">
-        <div className="flex items-center">
-          {searchOpen ? (
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-2 backdrop-blur-sm">
-              <Search
-                className="size-4 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                placeholder="Search products…"
-                autoFocus
-                aria-label="Search products"
-                className="w-44 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-              />
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                aria-label="Close search"
-                className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+            if (item.disabled || !item.href) {
+              return (
+                <span
+                  key={item.id}
+                  aria-disabled="true"
+                  className="flex cursor-not-allowed items-center gap-1.5 text-sm font-semibold tracking-wide text-foreground/35"
+                >
+                  <Icon className="size-4" aria-hidden="true" />
+                  {item.label}
+                </span>
+              );
+            }
+
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "relative flex items-center gap-1.5 text-sm font-semibold tracking-wide transition-colors duration-200 after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-200",
+                  isActive
+                    ? "text-primary after:scale-x-100"
+                    : "text-foreground/65 hover:text-foreground",
+                )}
               >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              aria-label="Open search"
-              className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-card/70 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-card hover:text-foreground"
-            >
-              <Search className="size-5" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-        <Link
-          href={publicRoutes.cart}
-          aria-label="Shopping bag"
-          className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-card/70 text-muted-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-foreground"
-        >
-          <ShoppingBag className="size-5" aria-hidden="true" />
-        </Link>
-      </div>
+                <Icon className="size-4" aria-hidden="true" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-      {/* Mobile right icons */}
-      <div className="flex items-center gap-3 lg:hidden">
-        <Link
-          href={publicRoutes.cart}
-          aria-label="Shopping bag"
-          className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-muted text-muted-foreground transition-opacity hover:opacity-80"
-        >
-          <ShoppingBag className="size-5" aria-hidden="true" />
-        </Link>
+        <div className="min-w-0 flex-1 lg:flex lg:justify-end">
+          <SearchBar />
+        </div>
       </div>
     </header>
   );

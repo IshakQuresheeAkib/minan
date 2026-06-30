@@ -1,12 +1,22 @@
 import { z } from "zod";
 
+import { slugify } from "../lib/slugify.js";
+
 const adminRoleSchema = z.enum(["general", "premium"]);
 
 const leadStatusSchema = z.enum(["pending", "confirmed", "cancelled"]);
 
+const slugStringSchema = z
+  .string()
+  .trim()
+  .min(1, "Slug must not be empty")
+  .refine((v) => slugify(v).length > 0, {
+    message: "Slug must contain at least one alphanumeric character",
+  });
+
 export const productCreateSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
-  slug: z.string().trim().min(1).optional(),
+  slug: slugStringSchema.optional(),
   description: z.string().trim().min(1, "Description is required"),
   price: z.number().min(0, "Price must be at least 0"),
   category_id: z.string().trim().min(1, "Category is required"),
@@ -18,7 +28,7 @@ export const productCreateSchema = z.object({
 export const productUpdateSchema = z
   .object({
     name: z.string().trim().min(1).optional(),
-    slug: z.string().trim().min(1).optional(),
+    slug: slugStringSchema.optional(),
     description: z.string().trim().min(1).optional(),
     price: z.number().min(0).optional(),
     category_id: z.string().trim().min(1).optional(),
@@ -33,14 +43,14 @@ export const productUpdateSchema = z
 
 export const categoryCreateSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
-  slug: z.string().trim().min(1).optional(),
+  slug: slugStringSchema.optional(),
   image_url: z.url("Image must be a valid URL"),
 });
 
 export const categoryUpdateSchema = z
   .object({
     name: z.string().trim().min(1).optional(),
-    slug: z.string().trim().min(1).optional(),
+    slug: slugStringSchema.optional(),
     image_url: z.url("Image must be a valid URL").optional(),
     is_active: z.boolean().optional(),
   })

@@ -1,26 +1,10 @@
 "use client";
 
-import { Heart, Home, Search, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { publicRoutes } from "@/constants/routes";
+import { primaryNavItems } from "@/constants/nav-items";
 import { cn } from "@/lib/utils";
-
-type NavItem = {
-  id: string;
-  label: string;
-  href?: string;
-  icon: typeof Home;
-  disabled?: boolean;
-};
-
-const navItems: NavItem[] = [
-  { id: "home", label: "Home", href: publicRoutes.home, icon: Home },
-  { id: "search", label: "Search", href: publicRoutes.products, icon: Search },
-  { id: "favorites", label: "Favorites", icon: Heart, disabled: true },
-  { id: "profile", label: "Profile", icon: User, disabled: true },
-];
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -30,7 +14,7 @@ export function BottomNav() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-screen-sm items-center justify-around rounded-t-xl bg-background/80 px-4 py-3 pb-6 shadow-lg backdrop-blur-md lg:hidden"
     >
-      {navItems.map((item) => {
+      {primaryNavItems.map((item) => {
         const Icon = item.icon;
         const isActive = item.href ? pathname === item.href : false;
 

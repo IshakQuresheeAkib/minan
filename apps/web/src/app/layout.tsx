@@ -37,7 +37,7 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${plusJakartaSans.variable}`}>
+      <body className={` ${manrope.variable} ${plusJakartaSans.variable}`}>
         {children}
       </body>
     </html>

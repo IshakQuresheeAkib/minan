@@ -1,5 +1,7 @@
 import { useAuthStore, type AdminRole } from "@/store/auth.store";
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
 type JsonBody = Record<string, unknown> | readonly unknown[];
 
 type AuthSessionResponse = {
@@ -37,7 +39,7 @@ async function parseErrorMessage(response: Response): Promise<string> {
 async function refreshAccessToken(): Promise<AuthSessionResponse> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch("/api/auth/refresh", {
+      const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -119,7 +121,7 @@ export async function apiRequest<TResponse>(
     body = JSON.stringify(body);
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(`${BASE_URL}${path}`, {
     ...fetchOptions,
     method,
     headers,
