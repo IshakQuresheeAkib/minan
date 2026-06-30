@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { ApiError, apiRequest } from "@/lib/api/client";
 import type { ApiList } from "@/types/api.types";
 import {
   productSchema,
@@ -55,6 +55,20 @@ const colorClassMap: Record<string, ProductCardData["colors"][number]> = {
   Beige: "bg-accent",
   "Sky Blue": "bg-primary",
 };
+
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  try {
+    const response = await apiRequest<{ data: Product }>(
+      `/api/products/${encodeURIComponent(slug)}`,
+    );
+    return productSchema.parse(response.data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
 
 export function mapProductToCard(product: Product): ProductCardData {
   return {

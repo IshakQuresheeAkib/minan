@@ -24,6 +24,7 @@ build/
 # Next.js
 .next/
 out/
+stitch/
 
 # TypeScript
 *.tsbuildinfo

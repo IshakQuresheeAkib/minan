@@ -15,7 +15,7 @@ export const primaryNavItems: NavItem[] = [
   { id: "home", label: "Home", href: publicRoutes.home, icon: Home },
   {
     id: "products",
-    label: "Products",
+    label: "Explore",
     href: publicRoutes.products,
     icon: LayoutGrid,
   },

@@ -50,7 +50,7 @@ export function BottomNav() {
             <Icon
               className="mb-1 size-5"
               aria-hidden="true"
-              fill={isActive ? "currentColor" : "none"}
+              color={isActive ? "white" : "black"}
             />
             <span className="text-[10px] font-semibold tracking-wide">
               {item.label}

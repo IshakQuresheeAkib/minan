@@ -25,7 +25,7 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 flex h-16 w-full items-center justify-between px-4 transition-all duration-300",
+        " top-0 z-40 flex h-20 pt-2 w-full items-center justify-between px-4 transition-all duration-300",
         "lg:fixed lg:left-0 lg:right-0 lg:top-0 lg:z-50 lg:h-20 lg:px-10",
         scrolled
           ? "bg-background/95 shadow-sm backdrop-blur-md"
@@ -44,7 +44,7 @@ export function Navbar() {
             width={364}
             height={353}
             priority
-            className="h-14 w-auto lg:h-10"
+            className="h-20 w-auto lg:h-10"
           />
         </Link>
 
@@ -88,7 +88,7 @@ export function Navbar() {
           })}
         </nav>
 
-        <div className="min-w-0 flex-1 lg:flex lg:justify-end">
+        <div className="min-w-0 w-fit flex-1 lg:flex lg:justify-end">
           <SearchBar />
         </div>
       </div>
