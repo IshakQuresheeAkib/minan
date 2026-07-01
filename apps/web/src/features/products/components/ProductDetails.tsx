@@ -163,7 +163,7 @@ export function ProductDetails({
         />
 
         <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-12 xl:gap-16">
-          <div ref={galleryRef} className="lg:sticky lg:top-24">
+          <div ref={galleryRef} className="lg:sticky lg:top-6">
             <ProductGallery
               images={product.images}
               name={product.name}

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
 import { primaryNavItems } from "@/constants/nav-items";
 import { publicRoutes } from "@/constants/routes";
@@ -12,24 +11,15 @@ import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > window.innerHeight * 0.75);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const isHome = pathname === publicRoutes.home;
 
   return (
     <header
       className={cn(
-        " top-0 z-40 flex h-20 pt-2 w-full items-center justify-between px-4 transition-all duration-300",
-        "lg:fixed lg:left-0 lg:right-0 lg:top-0 lg:z-50 lg:h-20 lg:px-10",
-        scrolled
-          ? "bg-background/95 shadow-sm backdrop-blur-md"
-          : "bg-background lg:bg-transparent",
+        "flex h-20 w-full items-center justify-between px-4 pt-2 lg:h-20 lg:px-10",
+        isHome
+          ? "border-b border-border/60 bg-background lg:absolute lg:inset-x-0 lg:top-0 lg:z-50 lg:border-b-0 lg:bg-transparent"
+          : "border-b border-border/60 bg-background",
       )}
     >
       <div className="flex w-full items-center gap-3 lg:grid lg:grid-cols-[auto_minmax(360px,1fr)_minmax(260px,340px)] lg:gap-8">

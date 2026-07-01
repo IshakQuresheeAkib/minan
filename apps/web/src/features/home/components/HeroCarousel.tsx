@@ -220,7 +220,7 @@ export function HeroCarousel() {
             </div>
 
             {/* Text content */}
-            <div className="absolute inset-0 flex items-center pt-20">
+            <div className="absolute inset-0 flex items-center lg:pt-20">
               <div className="mx-auto w-full max-w-7xl px-16">
                 <div className="max-w-xl">
                   <span

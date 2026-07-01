@@ -34,7 +34,7 @@ export function PublicChrome({ children }: PublicChromeProps) {
         <main
           className={cn(
             isProductDetail
-              ? "px-0 pb-0 pt-0 lg:pb-0 lg:pt-20"
+              ? "px-0 pb-0 pt-0 lg:pb-0 lg:pt-0"
               : "px-4 pb-28 pt-3 lg:px-0 lg:pb-0 lg:pt-0",
           )}
         >
