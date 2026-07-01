@@ -1,24 +1,38 @@
 "use client";
 
-import { ArrowLeft, Heart, Minus, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, Minus, Plus, Share2 } from "lucide-react";
+import gsap from "gsap";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { publicRoutes } from "@/constants/routes";
+import type { ProductCardData } from "@/features/products/components/ProductCard";
+import { ProductBreadcrumbs } from "@/features/products/components/ProductBreadcrumbs";
 import { ProductGallery } from "@/features/products/components/ProductGallery";
+import { RelatedProducts } from "@/features/products/components/RelatedProducts";
+import { SizeGuideModal } from "@/features/products/components/SizeGuideModal";
 import { SizeColorSelector } from "@/features/products/components/SizeColorSelector";
+import { TrustBadges } from "@/features/products/components/TrustBadges";
 import type { Product } from "@/features/products/schemas/product.schema";
+import { openWhatsAppOrder } from "@/lib/analytics/whatsapp";
 import { useCartStore } from "@/store/cart.store";
 
 const DESCRIPTION_PREVIEW_LENGTH = 120;
 
 type ProductDetailsProps = {
   product: Product;
+  relatedProducts: ProductCardData[];
 };
 
-export function ProductDetails({ product }: ProductDetailsProps) {
+export function ProductDetails({
+  product,
+  relatedProducts,
+}: ProductDetailsProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLDivElement>(null);
 
   const [selectedSize, setSelectedSize] = useState<string | null>(
     product.sizes[0] ?? null,
@@ -35,6 +49,39 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     expandedDescription || !shouldTruncate
       ? product.description
       : `${product.description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd()}…`;
+
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (!desktopQuery.matches || reducedMotion.matches) {
+      return;
+    }
+
+    const galleryEl = galleryRef.current;
+    const infoEl = infoRef.current;
+
+    if (!galleryEl || !infoEl) {
+      return;
+    }
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        galleryEl,
+        { opacity: 0, x: -24 },
+        { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" },
+      );
+      gsap.fromTo(
+        infoEl,
+        { opacity: 0, x: 24 },
+        { opacity: 1, x: 0, duration: 0.55, delay: 0.08, ease: "power2.out" },
+      );
+    });
+
+    return () => {
+      ctx.revert();
+    };
+  }, []);
 
   const handleShare = async () => {
     const shareData = {
@@ -74,116 +121,228 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     router.push(publicRoutes.cart);
   };
 
+  const handleWhatsAppOrder = () => {
+    void openWhatsAppOrder({
+      productId: product._id,
+      categoryId: product.category_id,
+      productName: product.name,
+      productUrl: window.location.href,
+      size: selectedSize ?? undefined,
+      color: selectedColor ?? undefined,
+    });
+  };
+
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-x-hidden font-sans text-foreground">
-      <header className="sticky top-0 z-50 flex items-center justify-between bg-background px-6 pb-4 pt-14">
+    <div className="relative flex min-h-dvh flex-col overflow-x-hidden font-sans text-foreground lg:min-h-0">
+      <header className="sticky top-0 z-40 flex items-center justify-between bg-background/95 px-4 pb-3 pt-3 backdrop-blur-md lg:hidden">
         <button
           type="button"
           aria-label="Go back"
           onClick={() => router.back()}
-          className="flex size-12 items-center justify-center rounded-full bg-card shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-transform active:scale-95"
+          className="flex size-11 items-center justify-center rounded-full bg-card shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-transform active:scale-95"
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </button>
 
-        <h1 className="font-display text-xl font-bold tracking-tight">
-          Details
-        </h1>
-
-        <div className="flex h-12 items-center gap-4 rounded-full bg-card px-4 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
-          <button
-            type="button"
-            aria-label="Share product"
-            onClick={() => {
-              void handleShare();
-            }}
-            className="transition-transform active:scale-95"
-          >
-            <Share2 className="size-5" aria-hidden="true" />
-          </button>
-        </div>
-      </header>
-
-      <div className="flex-1 px-6 pb-32">
-        <ProductGallery
-          images={product.images}
-          name={product.name}
-          price={product.price}
-        />
-
-        <section aria-label="Product information">
-          <h2 className="mb-2 text-[22px] font-bold leading-tight tracking-tight">
-            {product.name}
-          </h2>
-
-          <p className="mb-6 text-lg font-bold text-foreground">
-            BDT {product.price.toLocaleString("en-BD")}
-          </p>
-
-          <SizeColorSelector
-            sizes={product.sizes}
-            colors={product.colors}
-            selectedSize={selectedSize}
-            selectedColor={selectedColor}
-            onSizeChange={setSelectedSize}
-            onColorChange={setSelectedColor}
-          />
-
-          <div className="mt-8">
-            <h3 className="mb-3 text-[17px] font-bold text-foreground">
-              Description
-            </h3>
-            <p className="text-[15px] leading-relaxed text-foreground/80">
-              {description}{" "}
-              {shouldTruncate ? (
-                <button
-                  type="button"
-                  onClick={() => setExpandedDescription((current) => !current)}
-                  className="font-semibold text-foreground hover:underline"
-                >
-                  {expandedDescription ? "Read Less" : "Read More"}
-                </button>
-              ) : null}
-            </p>
-          </div>
-        </section>
-      </div>
-
-      <footer className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-[430px] items-center gap-4 bg-background/80 px-6 pb-8 pt-4 backdrop-blur-md">
-        <div className="flex h-14 items-center gap-3 rounded-full border border-black/5 bg-card px-2 shadow-sm">
-          <button
-            type="button"
-            aria-label="Decrease quantity"
-            disabled={quantity <= 1}
-            onClick={() => setQuantity((current) => Math.max(1, current - 1))}
-            className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors active:bg-muted disabled:opacity-40"
-          >
-            <Minus className="size-4" aria-hidden="true" />
-          </button>
-          <span className="w-4 text-center text-[17px] font-semibold">
-            {quantity}
-          </span>
-          <button
-            type="button"
-            aria-label="Increase quantity"
-            onClick={() => setQuantity((current) => current + 1)}
-            className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform active:scale-95"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-          </button>
-        </div>
-
         <button
           type="button"
-          onClick={handleAddToCart}
-          className="h-14 flex-1 rounded-full bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_8px_20px_rgba(151,72,34,0.25)] transition-transform active:scale-95"
+          aria-label="Share product"
+          onClick={() => {
+            void handleShare();
+          }}
+          className="flex size-11 items-center justify-center rounded-full bg-card shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-transform active:scale-95"
         >
-          Add to Cart
+          <Share2 className="size-5" aria-hidden="true" />
         </button>
+      </header>
+
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-36 lg:px-8 lg:pb-16 lg:pt-6">
+        <ProductBreadcrumbs
+          category={product.category}
+          productName={product.name}
+        />
+
+        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-12 xl:gap-16">
+          <div ref={galleryRef} className="lg:sticky lg:top-24">
+            <ProductGallery
+              images={product.images}
+              name={product.name}
+              price={product.price}
+            />
+          </div>
+
+          <div ref={infoRef}>
+            <section aria-label="Product information">
+              <div className="mb-4 hidden items-start justify-between gap-4 lg:flex">
+                <div>
+                  <h1 className="text-3xl font-semibold tracking-normal text-foreground">
+                    {product.name}
+                  </h1>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    BDT {product.price.toLocaleString("en-BD")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Share product"
+                  onClick={() => {
+                    void handleShare();
+                  }}
+                  className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-card transition-colors hover:bg-muted"
+                >
+                  <Share2 className="size-4" aria-hidden="true" />
+                </button>
+              </div>
+
+              <h2 className="mb-2 text-[22px] font-bold leading-tight tracking-tight lg:hidden">
+                {product.name}
+              </h2>
+
+              <p className="mb-6 text-lg font-bold text-foreground lg:hidden">
+                BDT {product.price.toLocaleString("en-BD")}
+              </p>
+
+              <div className="mb-4 flex items-center justify-end lg:justify-start">
+                <SizeGuideModal />
+              </div>
+
+              <SizeColorSelector
+                sizes={product.sizes}
+                colors={product.colors}
+                selectedSize={selectedSize}
+                selectedColor={selectedColor}
+                onSizeChange={setSelectedSize}
+                onColorChange={setSelectedColor}
+              />
+
+              <div className="mt-8 hidden items-center gap-3 lg:flex">
+                <span className="text-sm font-semibold text-foreground">
+                  Quantity
+                </span>
+                <div className="flex h-12 items-center gap-3 rounded-full border border-border bg-card px-2">
+                  <button
+                    type="button"
+                    aria-label="Decrease quantity"
+                    disabled={quantity <= 1}
+                    onClick={() =>
+                      setQuantity((current) => Math.max(1, current - 1))
+                    }
+                    className="flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-muted disabled:opacity-40"
+                  >
+                    <Minus className="size-4" aria-hidden="true" />
+                  </button>
+                  <span className="w-4 text-center text-base font-semibold">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Increase quantity"
+                    onClick={() => setQuantity((current) => current + 1)}
+                    className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-6 hidden lg:block">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 w-full cursor-pointer rounded-full"
+                  onClick={handleWhatsAppOrder}
+                >
+                  <MessageCircle className="size-4" aria-hidden="true" />
+                  Order on WhatsApp
+                </Button>
+              </div>
+
+              <TrustBadges />
+
+              <div className="mt-8">
+                <h3 className="mb-3 text-[17px] font-bold text-foreground lg:text-lg">
+                  Description
+                </h3>
+                <p className="text-[15px] leading-relaxed text-foreground/80 lg:text-base">
+                  {description}{" "}
+                  {shouldTruncate ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedDescription((current) => !current)
+                      }
+                      className="cursor-pointer font-semibold text-foreground hover:underline"
+                    >
+                      {expandedDescription ? "Read Less" : "Read More"}
+                    </button>
+                  ) : null}
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <RelatedProducts products={relatedProducts} />
+      </div>
+
+      <footer className="fixed inset-x-0 bottom-0 z-50 flex flex-col gap-3 bg-background/80 px-4 pb-8 pt-4 backdrop-blur-md lg:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full cursor-pointer rounded-full"
+          onClick={handleWhatsAppOrder}
+        >
+          <MessageCircle className="size-4" aria-hidden="true" />
+          Order on WhatsApp
+        </Button>
+
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 items-center gap-3 rounded-full border border-black/5 bg-card px-2 shadow-sm">
+            <button
+              type="button"
+              aria-label="Decrease quantity"
+              disabled={quantity <= 1}
+              onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+              className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors active:bg-muted disabled:opacity-40"
+            >
+              <Minus className="size-4" aria-hidden="true" />
+            </button>
+            <span className="w-4 text-center text-[17px] font-semibold">
+              {quantity}
+            </span>
+            <button
+              type="button"
+              aria-label="Increase quantity"
+              onClick={() => setQuantity((current) => current + 1)}
+              className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform active:scale-95"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="h-14 flex-1 rounded-full bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_8px_20px_rgba(151,72,34,0.25)] transition-transform active:scale-95"
+          >
+            Add to Cart
+          </button>
+        </div>
       </footer>
 
+      <div className="fixed bottom-6 right-6 z-50 hidden lg:block">
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleAddToCart}
+          className="h-14 cursor-pointer rounded-full px-8 text-base font-semibold shadow-[0_8px_24px_rgba(151,72,34,0.35)]"
+        >
+          Add to Cart
+        </Button>
+      </div>
+
       <div
-        className="pointer-events-none fixed bottom-2 left-0 right-0 z-60 flex justify-center"
+        className="pointer-events-none fixed bottom-2 left-0 right-0 z-60 flex justify-center lg:hidden"
         aria-hidden="true"
       >
         <div className="h-[5px] w-[134px] rounded-full bg-foreground" />

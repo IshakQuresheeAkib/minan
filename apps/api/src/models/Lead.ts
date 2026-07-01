@@ -19,11 +19,11 @@ export type CartSnapshot = {
 export interface LeadDocument extends Document {
   name: string;
   phone_number: string;
-  email?: string;
+  email: string;
   address: string;
   notes?: string;
   bkash_txn_id?: string;
-  cart_snapshot?: CartSnapshot;
+  cart_snapshot: CartSnapshot;
   status: LeadStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -53,11 +53,11 @@ const leadSchema = new Schema<LeadDocument>(
   {
     name: { type: String, required: true, trim: true },
     phone_number: { type: String, required: true, trim: true },
-    email: { type: String, trim: true },
+    email: { type: String, required: true, trim: true },
     address: { type: String, required: true, trim: true },
     notes: { type: String, trim: true },
     bkash_txn_id: { type: String, trim: true },
-    cart_snapshot: { type: cartSnapshotSchema },
+    cart_snapshot: { type: cartSnapshotSchema, required: true },
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled"] satisfies LeadStatus[],

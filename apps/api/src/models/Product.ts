@@ -1,11 +1,13 @@
 import mongoose, { type Document, Schema, type Types } from "mongoose";
 
+import type { CategoryDocument } from "./Category.js";
+
 export interface ProductDocument extends Document {
   name: string;
   slug: string;
   description: string;
   price: number;
-  category_id: Types.ObjectId;
+  category_id: Types.ObjectId | CategoryDocument;
   sizes: string[];
   colors: string[];
   images: string[];

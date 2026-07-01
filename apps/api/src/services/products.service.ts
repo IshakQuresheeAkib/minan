@@ -9,6 +9,7 @@ export type ListProductsOptions = {
   search?: string;
   page?: number;
   limit?: number;
+  excludeSlug?: string;
 };
 
 type SearchCondition = {
@@ -20,6 +21,7 @@ type SearchCondition = {
 type ProductFilter = {
   is_active: boolean;
   category_id?: Types.ObjectId;
+  slug?: { $ne: string };
   $or?: SearchCondition[];
 };
 
@@ -41,6 +43,10 @@ export async function listProducts(options: ListProductsOptions = {}) {
     }
 
     filter.category_id = category._id;
+  }
+
+  if (options.excludeSlug) {
+    filter.slug = { $ne: options.excludeSlug };
   }
 
   const search = options.search?.trim();

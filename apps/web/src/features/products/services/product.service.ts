@@ -17,6 +17,7 @@ type GetProductsOptions = {
   search?: string;
   page?: number;
   limit?: number;
+  exclude?: string;
 };
 
 export async function getProducts(
@@ -38,6 +39,10 @@ export async function getProducts(
 
   if (options.limit !== undefined) {
     params.set("limit", String(options.limit));
+  }
+
+  if (options.exclude) {
+    params.set("exclude", options.exclude);
   }
 
   const query = params.toString();
@@ -68,6 +73,23 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     }
     throw error;
   }
+}
+
+export async function getRelatedProducts(
+  product: Product,
+  limit = 4,
+): Promise<Product[]> {
+  if (!product.category) {
+    return [];
+  }
+
+  const { data } = await getProducts({
+    category: product.category.slug,
+    exclude: product.slug,
+    limit,
+  });
+
+  return data;
 }
 
 export function mapProductToCard(product: Product): ProductCardData {

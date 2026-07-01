@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ProductDetails } from "@/features/products/components/ProductDetails";
-import { getProductBySlug } from "@/features/products/services/product.service";
+import {
+  getProductBySlug,
+  getRelatedProducts,
+  mapProductToCard,
+} from "@/features/products/services/product.service";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -36,5 +40,12 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  return <ProductDetails product={product} />;
+  const relatedProducts = await getRelatedProducts(product, 4);
+
+  return (
+    <ProductDetails
+      product={product}
+      relatedProducts={relatedProducts.map(mapProductToCard)}
+    />
+  );
 }
