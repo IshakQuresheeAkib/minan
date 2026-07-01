@@ -21,12 +21,12 @@ export function Navbar({ overlay = false }: NavbarProps) {
       {overlay ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 z-40 hidden h-[120px] bg-linear-to-b from-black/60 to-transparent lg:block"
+          className="pointer-events-none absolute inset-x-0 top-0 z-40 hidden h-[150px] bg-linear-to-b from-black/50 via-black/30 to-transparent lg:block"
         />
       ) : null}
       <header
         className={cn(
-          "flex h-20 w-full items-center justify-between px-4 pt-2 lg:h-20 lg:px-10",
+          "flex w-full items-center justify-between px-4 py-1 lg:px-10",
           overlay
             ? "relative z-50 border-b border-border/60 bg-background lg:absolute lg:inset-x-0 lg:top-0 lg:border-b-0 lg:bg-transparent"
             : "relative border-b border-border/60 bg-background",
@@ -44,7 +44,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
               width={364}
               height={353}
               priority
-              className="h-20 w-auto lg:h-10"
+              className="h-16 w-auto"
             />
           </Link>
 
