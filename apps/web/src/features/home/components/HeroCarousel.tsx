@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 
+import { Navbar } from "@/components/shared/navbar";
 import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
@@ -129,7 +130,8 @@ export function HeroCarousel() {
   };
 
   return (
-    <section aria-label="Promotions">
+    <section aria-label="Promotions" className="relative">
+      <Navbar overlay />
       {/* ── Mobile: horizontal scroll cards ── */}
       <div className="-mx-4 mb-12 overflow-x-auto px-4 lg:hidden hide-scrollbar">
         <div className="flex min-w-max gap-4">

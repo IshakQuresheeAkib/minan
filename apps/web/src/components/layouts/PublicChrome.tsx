@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { BottomNav } from "@/components/shared/bottom-nav";
 import { Navbar } from "@/components/shared/navbar";
 import { Toaster } from "@/components/ui/sonner";
+import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 type PublicChromeProps = {
@@ -19,6 +20,7 @@ function isProductDetailPath(pathname: string): boolean {
 export function PublicChrome({ children }: PublicChromeProps) {
   const pathname = usePathname();
   const isProductDetail = isProductDetailPath(pathname);
+  const isHome = pathname === publicRoutes.home;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -30,14 +32,8 @@ export function PublicChrome({ children }: PublicChromeProps) {
             : "max-w-screen-sm lg:max-w-none lg:shadow-none",
         )}
       >
-        <Navbar />
-        <main
-          className={cn(
-            isProductDetail
-              ? "px-0 pb-0 pt-0 lg:pb-0 lg:pt-0"
-              : "px-4 pb-28 pt-3 lg:px-0 lg:pb-0 lg:pt-0",
-          )}
-        >
+        {!isHome ? <Navbar /> : null}
+        <main>
           {children}
         </main>
         {!isProductDetail ? <BottomNav /> : null}
