@@ -16,6 +16,7 @@ function formatCurrency(value: number): string {
 
 export function CheckoutClient() {
   const items = useCartStore((state) => state.items);
+  const hasHydrated = useCartStore((state) => state.hasHydrated);
   const clearCart = useCartStore((state) => state.clearCart);
   const [submitted, setSubmitted] = useState(false);
 
@@ -52,6 +53,39 @@ export function CheckoutClient() {
         <Button className="mt-6" asChild>
           <Link href={publicRoutes.products}>Continue shopping</Link>
         </Button>
+      </section>
+    );
+  }
+
+  if (!hasHydrated) {
+    return (
+      <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
+        <div>
+          <div className="h-9 w-36 animate-pulse rounded-md bg-muted" />
+          <div className="mt-3 h-5 w-full max-w-xl animate-pulse rounded-md bg-muted" />
+          <div className="mt-8 grid gap-5">
+            {[0, 1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-12 animate-pulse rounded-md bg-muted"
+              />
+            ))}
+            <div className="h-28 animate-pulse rounded-md bg-muted" />
+          </div>
+        </div>
+
+        <aside className="h-fit rounded-lg border bg-card p-5 shadow-sm">
+          <div className="h-6 w-36 animate-pulse rounded-md bg-muted" />
+          <div className="mt-5 grid gap-4">
+            {[0, 1].map((item) => (
+              <div key={item} className="flex justify-between gap-4">
+                <div className="h-10 flex-1 animate-pulse rounded-md bg-muted" />
+                <div className="h-5 w-20 animate-pulse rounded-md bg-muted" />
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 h-5 w-full animate-pulse rounded-md bg-muted" />
+        </aside>
       </section>
     );
   }

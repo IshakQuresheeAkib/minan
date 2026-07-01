@@ -398,7 +398,7 @@ Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requi
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
 - `lib/analytics/pixel.ts` contains client-side Meta Pixel helpers only. CAPI is Express-only.
 - `store/auth.store.ts` keeps access token and role in memory only.
-- `store/cart.store.ts` keeps cart items in memory only.
+- `store/cart.store.ts` keeps cart items in Zustand and persists selected cart lines to browser `localStorage`.
 
 ---
 
@@ -422,7 +422,7 @@ Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requi
 - Animated UI with GSAP, responsive, mobile-first
 - Product categories: T-Shirts, Shirts, Pants, Footwear, Accessories, Women, Kids
 - WhatsApp ordering from PDP with pre-filled message and `/api/whatsapp-click`
-- Cart stored in Zustand memory only
+- Cart stored in Zustand and persisted to browser `localStorage`
 - Checkout lead form writes to MongoDB `leads`
 - Role-gated admin CRUD for products, categories, leads, and admins
 - Dashboard screen exists; real metric aggregation is planned
