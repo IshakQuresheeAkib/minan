@@ -103,7 +103,7 @@ export function SearchBar({ className }: SearchBarProps) {
   return (
     <div
       ref={containerRef}
-      className={cn("relative w-full max-w-sm", className)}
+      className={cn("relative w-full max-w-[200px] ml-auto", className)}
     >
       <form
         role="search"

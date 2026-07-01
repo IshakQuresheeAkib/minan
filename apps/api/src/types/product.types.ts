@@ -1,3 +1,8 @@
+export type ProductCategorySummary = {
+  name: string;
+  slug: string;
+};
+
 export type ProductResponse = {
   _id: string;
   name: string;
@@ -5,6 +10,7 @@ export type ProductResponse = {
   description: string;
   price: number;
   category_id: string;
+  category: ProductCategorySummary | null;
   sizes: string[];
   colors: string[];
   images: string[];

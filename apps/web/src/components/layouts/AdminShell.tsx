@@ -6,34 +6,12 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { logoutAdmin } from "@/features/admin/actions/auth.actions";
+import { getVisibleAdminLinks } from "@/constants/admin-nav";
 import { adminRoutes, publicRoutes } from "@/constants/routes";
+import { logoutAdmin } from "@/features/admin/actions/auth.actions";
+import { AdminMobileNav } from "@/features/admin/components/AdminMobileNav";
 import { cn } from "@/lib/utils";
-import { useAuthStore, type AdminRole } from "@/store/auth.store";
-
-const allAdminLinks = [
-  {
-    href: adminRoutes.dashboard,
-    label: "Dashboard",
-    roles: ["general", "premium"] as const,
-  },
-  {
-    href: adminRoutes.products,
-    label: "Products",
-    roles: ["premium"] as const,
-  },
-  {
-    href: adminRoutes.categories,
-    label: "Categories",
-    roles: ["premium"] as const,
-  },
-  { href: adminRoutes.leads, label: "Leads", roles: ["premium"] as const },
-  { href: adminRoutes.admins, label: "Admins", roles: ["premium"] as const },
-] as const;
-
-function canAccessLink(role: AdminRole | null, roles: readonly AdminRole[]) {
-  return role !== null && roles.includes(role);
-}
+import { useAuthStore } from "@/store/auth.store";
 
 type AdminShellProps = {
   children: ReactNode;
@@ -45,9 +23,7 @@ export function AdminShell({ children }: AdminShellProps) {
   const clearSession = useAuthStore((state) => state.clearSession);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const visibleLinks = allAdminLinks.filter((link) =>
-    canAccessLink(role, link.roles),
-  );
+  const visibleLinks = getVisibleAdminLinks(role);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -71,7 +47,7 @@ export function AdminShell({ children }: AdminShellProps) {
         >
           MINAN Admin
         </Link>
-        <nav className="mt-8 grid gap-1">
+        <nav aria-label="Admin navigation" className="mt-8 grid gap-1">
           {visibleLinks.map((link) => (
             <Link
               key={link.href}
@@ -89,12 +65,22 @@ export function AdminShell({ children }: AdminShellProps) {
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 border-b bg-background/90 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
-            <Link
-              href={adminRoutes.dashboard}
-              className="text-sm font-semibold lg:hidden"
-            >
-              MINAN Admin
-            </Link>
+            <div className="flex min-w-0 items-center gap-2 lg:hidden">
+              <AdminMobileNav
+                visibleLinks={visibleLinks}
+                role={role}
+                loggingOut={loggingOut}
+                onLogout={() => {
+                  void handleLogout();
+                }}
+              />
+              <Link
+                href={adminRoutes.dashboard}
+                className="truncate text-sm font-semibold"
+              >
+                MINAN Admin
+              </Link>
+            </div>
             <div className="ml-auto flex items-center gap-3">
               <p className="text-xs font-medium uppercase text-muted-foreground">
                 {role ?? "admin"}
@@ -107,6 +93,7 @@ export function AdminShell({ children }: AdminShellProps) {
                 size="sm"
                 type="button"
                 variant="outline"
+                className="hidden lg:inline-flex"
               >
                 {loggingOut ? "Signing out..." : "Logout"}
               </Button>

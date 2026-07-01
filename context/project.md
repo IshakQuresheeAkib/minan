@@ -1,9 +1,10 @@
 # MINAN Project Documentation
 
-**Scope:** Marketing-focused commerce platform (Lead Gen/Conversion). No payment processing in MVP.
+**Scope:** Marketing-focused commerce platform for lead generation and conversion.
 **Market:** Bangladesh, mobile-first, 3G/4G, Facebook Ads.
-**Supabase:** NOT used. Replaced by MongoDB Atlas + custom JWT auth.
-**Route Handlers:** NONE in Next.js. All data ops go through Express API on Render.
+**Supabase:** Not used.
+**Database:** Data persistence is MongoDB Atlas through the Express API.
+**Next.js Route Handlers:** Not used for app data operations. All data operations go through Express.
 
 ---
 
@@ -11,19 +12,19 @@
 
 | Property  | Value                                       |
 | --------- | ------------------------------------------- |
-| Framework | Next.js 16                                  |
+| Framework | Next.js 16.2.7 App Router                   |
 | Phase     | MVP v1                                      |
 | Market    | Bangladesh (Sylhet)                         |
 | Traffic   | Facebook Ads                                |
-| Payment   | Not in MVP — bKash TX ID collected manually |
+| Payment   | Not in MVP - bKash TX ID collected manually |
 
 ---
 
 ## 2. Business Goals
 
 - Premium brand experience
-- Lead collection via checkout — first-party database
-- Meta Pixel + CAPI with event deduplication
+- Lead collection through checkout into first-party MongoDB data
+- Meta Pixel + CAPI infrastructure with event deduplication
 - Role-based admin dashboard
 - Supports future e-commerce migration
 - Facebook custom audience retargeting
@@ -32,26 +33,21 @@
 
 ## 3. Coding Principles
 
-- Always follow the patterns and decisions defined in the documentation. suggest alternatives if any technology is not mentioned or if you think the alternative technology should be obviously used.
-- Follow Next.js 16 conventions: use proxy.ts not middleware.ts.
-- Always strictly maintain best practices and follow the best performance-optimized way. Must ensure the principles, coding style, and syntax of the latest versions of Next.js 16, Tailwind version 4, and React 19 and always use latest versions
-- All code must be production-ready and working. No placeholders, no TODO stubs.
-- When generating code, stay consistent with the existing architecture described in the docs.
-- For animations, use GSAP only. Do not suggest Framer Motion.
-- For the global state, use Zustand only.
-- Keep responses concise. Skip basic explanations. Use code blocks.
-- TypeScript strict mode everywhere — `no any`, no type casting with `as unknown`
-- `use cache` directive for SSR data caching — requires `dynamicIO: true` in `next.config.ts`. Do NOT use `fetch()` cache options; do not mix caching models
-- No Next.js Route Handlers (`app/api/route.ts`) — all API calls go to Express
-- No Next.js Server Actions (`"use server"`) — `*.actions.ts` files are plain async functions that call Express, not Next.js Server Actions
-- GSAP only for animations — no Framer Motion
-- React Hook Form + Zod only for forms — no uncontrolled inputs
-- Do not target Radix UI internal DOM nodes with GSAP
-- Tailwind v4 utility classes only — no arbitrary CSS-in-JS
-- All Zod schemas defined in `features/<domain>/schemas/` — frontend uses them directly; backend maintains its own copies (not shared across repos)
-- `next/image` for all images — never raw `<img>` tags
-- `next/link` for all internal links/routes — never `<a>` tags.
-- Cloudinary URLs stored in DB — never local image paths
+- Follow this documentation and the existing repo patterns before introducing new patterns.
+- Follow Next.js 16 conventions: use `proxy.ts`, not `middleware.ts`.
+- Production-ready code only. No placeholders or TODO stubs.
+- TypeScript strict mode everywhere: no `any`, no `as unknown` casting.
+- No Next.js Route Handlers under `app/api/` for data operations.
+- No Next.js Server Actions: `*.actions.ts` files are plain async functions that call Express.
+- GSAP only for animations. Do not use or suggest Framer Motion.
+- Zustand only for global client state.
+- React Hook Form + Zod for forms.
+- Do not target Radix UI internal DOM nodes with GSAP.
+- Tailwind v4 utility classes only. No arbitrary CSS-in-JS.
+- Frontend Zod schemas live in `features/<domain>/schemas/`; backend keeps independent equivalent schemas.
+- `next/image` for images. Never raw `<img>` tags.
+- `next/link` for internal routes. Never raw `<a>` tags for internal navigation.
+- Cloudinary URLs are the production image-storage target. Seed data may use temporary remote placeholder URLs.
 - BD phone validation regex: `/^(?:\+?88)?01[3-9]\d{8}$/`
 
 ---
@@ -60,56 +56,57 @@
 
 ### Frontend
 
-| Technology      | Version                              |
-| --------------- | ------------------------------------ |
-| Next.js         | 16 (App Router, `proxy.ts`)          |
-| React           | 19 (Compiler enabled)                |
-| TypeScript      | 5.1+ (strict, no `any`)              |
-| Tailwind CSS    | v4                                   |
-| shadcn/ui       | Latest                               |
-| Zustand         | Latest                               |
-| React Hook Form | Latest                               |
-| Zod             | Latest                               |
-| GSAP            | Latest                               |
-| Cloudinary      | via `next/image` + blur placeholders |
+| Technology      | Version / Rule                         |
+| --------------- | -------------------------------------- |
+| Next.js         | 16.2.7 (App Router, `proxy.ts`)        |
+| React           | 19.2.7 (Compiler enabled)              |
+| TypeScript      | 6.0.3, strict                          |
+| Tailwind CSS    | 4.3.0                                  |
+| shadcn/ui       | via `shadcn` package                   |
+| Zustand         | 5.x                                    |
+| React Hook Form | 7.x                                    |
+| Zod             | 4.x                                    |
+| GSAP            | 3.x                                    |
+| Cloudinary      | via signed uploads + `next/image`      |
 
 ### Backend
 
-| Technology         | Version |
-| ------------------ | ------- |
-| Node.js            | 24.16.0 |
-| Express.js         | 5.2.1   |
-| MongoDB            | 8.3     |
-| Mongoose           | 8.x     |
-| jsonwebtoken       | Latest  |
-| argon2             | Latest  |
-| cookie-parser      | Latest  |
-| cors               | Latest  |
-| express-rate-limit | Latest  |
-| helmet             | Latest  |
-| Zod                | Latest  |
+| Technology         | Version / Rule                 |
+| ------------------ | ------------------------------ |
+| Node.js            | 24.16.0                        |
+| Express.js         | 5.2.1                          |
+| MongoDB Atlas      | 8.3 managed cluster target     |
+| MongoDB driver     | 7.4.0                          |
+| Mongoose           | 9.7.3                          |
+| jsonwebtoken       | 9.x                            |
+| argon2             | 0.44.x                         |
+| cookie-parser      | 1.4.x                          |
+| cors               | 2.8.x                          |
+| express-rate-limit | 8.x                            |
+| helmet             | 8.x                            |
+| Zod                | 4.x                            |
 
 ### Infrastructure
 
-| Service           | Role                             |
-| ----------------- | -------------------------------- |
-| Vercel            | Frontend (Next.js)               |
-| Render            | Backend (Express) — Node 24.16.0 |
-| MongoDB Atlas     | Managed MongoDB 8.3              |
-| Cloudinary        | Image storage + CDN              |
-| Meta Pixel + CAPI | Client + server-side ad events   |
-| GA4               | Traffic + behavior               |
-| Microsoft Clarity | Session recordings + heatmaps    |
+| Service           | Role                                      | Status             |
+| ----------------- | ----------------------------------------- | ------------------ |
+| Vercel            | Frontend                                  | Target             |
+| Render            | Express API, Node 24.16.0                 | Target             |
+| MongoDB Atlas     | Managed MongoDB 8.3                       | Target             |
+| Cloudinary        | Image storage + CDN                       | Implemented        |
+| Meta Pixel + CAPI | Client helpers + server CAPI              | Partial            |
+| GA4               | Traffic + behavior                        | Planned            |
+| Microsoft Clarity | Session recordings + heatmaps             | Planned            |
 
 ---
 
 ## 5. Architecture
 
 ```
-Browser → Next.js (Vercel) → Express API (Render) → MongoDB Atlas
+Browser -> Next.js (Vercel) -> Express API (Render) -> MongoDB Atlas
 ```
 
-### Auth Cookie Strategy — Cross-Domain Requirement
+### Auth Cookie Strategy - Cross-Domain Requirement
 
 Both frontend and backend must run on subdomains of the same parent domain so cookies are readable by `proxy.ts`:
 
@@ -118,86 +115,91 @@ Both frontend and backend must run on subdomains of the same parent domain so co
 | Frontend (Vercel) | `app.minan.com` |
 | Backend (Render)  | `api.minan.com` |
 
-Express sets auth cookies with `Domain=.minan.com`. This allows the browser to send the cookie on page requests to `app.minan.com`, which means `proxy.ts` can read the access token cookie server-side before admin pages render.
+Express sets auth cookies with `Domain=.minan.com`. This lets the browser send the access token cookie on page requests to `app.minan.com`, so `proxy.ts` can verify admin auth before protected pages render.
 
-**Without this setup, `proxy.ts` cookie check does not work in production.** Custom domains must be configured before any admin auth is tested in a deployed environment.
+**Production admin auth requires custom domains.** It will not work correctly across default `*.vercel.app` and `*.onrender.com` domains because they do not share a parent domain.
 
 ### Request Layers
 
 | Layer              | Role                                                                   |
 | ------------------ | ---------------------------------------------------------------------- |
 | `proxy.ts`         | Reads httpOnly access token cookie, verifies JWT, redirects if invalid |
-| Next.js Client     | Sends `Authorization: Bearer <token>` from Zustand on every API call   |
-| Express Middleware | Verifies Bearer token independently on every protected route           |
+| Next.js Client     | Sends `Authorization: Bearer <token>` from Zustand on API calls        |
+| Express Middleware | Verifies Bearer token independently on protected routes                |
 | Express Routes     | Business logic, DB ops, CAPI, rate limiting                            |
 | Mongoose           | Persistence                                                            |
 
-### `proxy.ts` Clarification
+### `proxy.ts`
 
-`proxy.ts` is placed at `src/proxy.ts` and exports the standard Next.js Proxy function plus a static `config.matcher`. It does not need registration in `next.config.ts`.
+`proxy.ts` is placed at `apps/web/src/proxy.ts` and exports the standard Next.js proxy function plus static `config.matcher`. It does not need registration in `next.config.ts`.
 
-### Admin Boot Flow (Zustand Hydration After Reload)
+### Admin Boot Flow
 
-On load of any admin route, the admin layout (`app/(admin)/admin/layout.tsx`) calls `POST /api/auth/refresh` on mount to:
+`app/(admin)/admin/layout.tsx` wraps protected admin routes in `AdminSessionProvider`. On mount, `AdminSessionProvider` calls `POST /api/auth/refresh` to:
 
-1. Exchange the valid refresh token cookie for a new access token
-2. Repopulate `auth.store.ts` with the new access token in Zustand memory
+1. Exchange a valid refresh token cookie for new tokens
+2. Repopulate `auth.store.ts` with the new access token and role
 
-If the refresh call fails (cookie expired or missing), redirect to `/admin/login`. This ensures API calls work immediately after a browser refresh.
+If refresh fails, the client clears Zustand and redirects to `/admin/login`.
 
 ### CORS
 
 | Option        | Value                                            |
 | ------------- | ------------------------------------------------ |
-| `origin`      | `https://app.minan.com` from env var — never `*` |
+| `origin`      | `ALLOWED_ORIGIN`, production value `https://app.minan.com` |
 | `credentials` | `true`                                           |
+
+Never use `*` for CORS origin.
 
 ---
 
 ## 6. Authentication
 
 **Scope:** Admin-only. No public user auth in MVP.
-**Pattern:** Two-token JWT (access + refresh).
-
-### Why httpOnly for Access Token
-
-`proxy.ts` is server-side — cannot read Zustand or localStorage. Access token in httpOnly cookie lets `proxy.ts` verify JWT before page renders. 15-min TTL limits exposure.
+**Pattern:** Two-token JWT with server-side refresh-token hash rotation.
 
 ### Token Storage
 
-| Token         | Storage                          | TTL                          |
-| ------------- | -------------------------------- | ---------------------------- |
-| Access Token  | httpOnly cookie + Zustand memory | 15 min                       |
-| Refresh Token | httpOnly cookie only             | 7 days, replacement issued on refresh |
+| Token         | Storage                          | TTL    |
+| ------------- | -------------------------------- | ------ |
+| Access Token  | httpOnly cookie + Zustand memory | 15 min |
+| Refresh Token | httpOnly cookie + hashed in DB   | 7 days |
 
-- Cookie → `proxy.ts` server-side read + admin layout boot refresh
-- Zustand → `Authorization: Bearer` header for API calls
+- Cookie access token -> `proxy.ts` server-side admin guard
+- Zustand access token -> `Authorization: Bearer` header for Express API calls
+- Refresh token hash -> `admin_users.refresh_token_hash`
+- Previous refresh token hash -> `admin_users.previous_refresh_token_hash` for concurrent refresh detection
 
 ### Cookie Config
 
-| Flag       | Value                                                    |
+| Flag       | Production Value                                         |
 | ---------- | -------------------------------------------------------- |
 | `httpOnly` | `true`                                                   |
 | `secure`   | `true`                                                   |
-| `sameSite` | `none` (cross-origin: `app.minan.com` ↔ `api.minan.com`) |
+| `sameSite` | `none` (cross-origin: `app.minan.com` <-> `api.minan.com`) |
 | `domain`   | `.minan.com`                                             |
 | `path`     | `/`                                                      |
 
+Local development uses `secure: false`, `sameSite: "lax"`, and no cookie domain.
+
 ### Auth Flow
 
-1. `POST /api/auth/login` → argon2 verify → issue access (15min) + refresh (7d) as httpOnly cookies with `Domain=.minan.com` + access token in response body
-2. Next.js stores access token in Zustand (`auth.store.ts`)
-3. Admin layout calls `POST /api/auth/refresh` on mount to rehydrate Zustand after page reload
-4. `proxy.ts` reads httpOnly cookie → blocks unauthenticated admin renders
-5. API calls send `Authorization: Bearer` from Zustand
-6. 401 → `POST /api/auth/refresh` → Express issues replacement access + refresh JWTs → returns new access token in body
-7. `POST /api/auth/logout` → Express clears cookies → Zustand cleared
+1. `POST /api/auth/login` -> argon2 verify -> issue access + refresh cookies and return access token + role in the response body
+2. Express stores `argon2.hash(refreshToken)` on the admin user and clears `previous_refresh_token_hash`
+3. Next.js stores access token and role in `auth.store.ts`
+4. `proxy.ts` reads the access token cookie and blocks unauthenticated admin renders
+5. API calls send `Authorization: Bearer <accessToken>` from Zustand
+6. 401 -> `POST /api/auth/refresh` -> Express atomically rotates refresh-token hash and returns a new access token + role
+7. Concurrent refresh with the immediately previous token returns `409 Concurrent token rotation`
+8. `POST /api/auth/logout` clears cookies and nulls refresh-token hashes
+
+Only the refresh token whose hash matches `refresh_token_hash` is accepted, with a narrow previous-token check for concurrent rotation. Replay of older refresh JWTs fails after rotation. Deactivated admins fail login and refresh.
 
 ### CSRF Mitigation
 
-- `X-Requested-With: XMLHttpRequest` required on all state-changing requests
-- Browsers block third-party sites from setting custom headers
-- Refresh requests issue a replacement refresh JWT. MVP tokens are stateless, so an older refresh JWT remains valid until its own 7-day expiry unless the admin account is deactivated.
+- `X-Requested-With: XMLHttpRequest` is required on all state-changing requests
+- Browser form posts from third-party sites cannot set this custom header
+- Refresh-token rotation limits replay after a successful refresh
 
 ---
 
@@ -206,36 +208,36 @@ If the refresh call fails (cookie expired or missing), redirect to `/admin/login
 | Role      | Access                                          |
 | --------- | ----------------------------------------------- |
 | `general` | Dashboard read-only                             |
-| `premium` | Full CRUD — products, categories, leads, admins |
+| `premium` | Full CRUD - products, categories, leads, admins |
 
 ### Permission Matrix
 
 | Feature                     | general | premium |
 | --------------------------- | ------- | ------- |
-| View Dashboard + Traffic    | ✓       | ✓       |
-| Product CRUD                | ✗       | ✓       |
-| Category CRUD               | ✗       | ✓       |
-| Lead Read / Create / Update | ✗       | ✓       |
-| Admin CRUD                  | ✗       | ✓       |
+| View Dashboard + Traffic    | yes     | yes     |
+| Product CRUD                | no      | yes     |
+| Category CRUD               | no      | yes     |
+| Lead Read / Create / Update | no      | yes     |
+| Admin CRUD                  | no      | yes     |
 
 ### Enforcement
 
 - Role in JWT payload: `{ id, email, role }`
-- Express middleware checks role per route — never from request body
-- `proxy.ts` reads role from JWT cookie for server-side nav rendering
+- Express middleware checks role per route, never from request body
+- `proxy.ts` reads role from JWT cookie only for server-side admin route gating
 - Role change requires token refresh to take effect
 
 ### Self-Guard Rule
 
 A premium admin cannot demote or deactivate their own account:
 
-- `PATCH /api/admin/admins/:id` — rejected with `400` if the requesting admin's `id === :id` and the payload demotes `role` or sets `is_active` to `false`
-- `PATCH /api/admin/admins/:id/deactivate` — rejected with `400` if `req.admin.id === :id`
-- Enforced in the admins service/controller, not in middleware
+- `PATCH /api/admin/admins/:id` rejects self role changes and self `is_active: false`
+- `PATCH /api/admin/admins/:id/deactivate` rejects self-deactivation
+- Enforcement lives in the admins service/controller, not middleware
 
 ---
 
-## 8. Database — MongoDB 8.3 (Mongoose 8.x)
+## 8. Database - MongoDB Atlas 8.3, Mongoose 9.x
 
 ### `products`
 
@@ -247,74 +249,76 @@ A premium admin cannot demote or deactivate their own account:
 | `description`             | String                     | required                      |
 | `price`                   | Number                     | required, min: 0              |
 | `category_id`             | ObjectId (ref: `Category`) | required                      |
-| `sizes`                   | [String]                   | `["S","M","L","XL"]`          |
-| `colors`                  | [String]                   | `["Red","Black"]`             |
-| `images`                  | [String]                   | Cloudinary URLs               |
-| `is_active`               | Boolean                    | default: `true` (soft delete) |
-| `createdAt` / `updatedAt` | Date                       | auto via `timestamps: true`   |
+| `sizes`                   | [String]                   | default `[]`                  |
+| `colors`                  | [String]                   | default `[]`                  |
+| `images`                  | [String]                   | remote image URLs             |
+| `is_active`               | Boolean                    | default `true`                |
+| `createdAt` / `updatedAt` | Date                       | timestamps                    |
 
 ### `categories`
 
-| Field                     | Type     | Notes                         |
-| ------------------------- | -------- | ----------------------------- |
-| `_id`                     | ObjectId | PK                            |
-| `name`                    | String   | required                      |
-| `slug`                    | String   | required, unique              |
-| `image_url`               | String   | Cloudinary URL                |
-| `is_active`               | Boolean  | default: `true` (soft delete) |
-| `createdAt` / `updatedAt` | Date     | auto                          |
+| Field                     | Type     | Notes              |
+| ------------------------- | -------- | ------------------ |
+| `_id`                     | ObjectId | PK                 |
+| `name`                    | String   | required           |
+| `slug`                    | String   | required, unique   |
+| `image_url`               | String   | remote image URL   |
+| `is_active`               | Boolean  | default `true`     |
+| `createdAt` / `updatedAt` | Date     | timestamps         |
 
 ### `leads`
 
-| Field                     | Type     | Notes                                                                                                                                                                    |
-| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `_id`                     | ObjectId | PK                                                                                                                                                                       |
-| `name`                    | String   | required                                                                                                                                                                 |
-| `phone_number`            | String   | required                                                                                                                                                                 |
-| `email`                   | String   | required                                                                                                                                                                 |
-| `address`                 | String   | required                                                                                                                                                                 |
-| `notes`                   | String   | optional                                                                                                                                                                 |
-| `bkash_txn_id`            | String   | optional                                                                                                                                                                 |
-| `cart_snapshot`           | Object   | embedded cart at checkout — shape: `{ items: Array<{ product_id: string, name: string, price: number, size: string, color: string, quantity: number }>, total: number }` |
-| `status`                  | String   | enum: `pending \| confirmed \| cancelled`, default: `pending`                                                                                                            |
-| `createdAt` / `updatedAt` | Date     | auto                                                                                                                                                                     |
+| Field                     | Type     | Notes |
+| ------------------------- | -------- | ----- |
+| `_id`                     | ObjectId | PK |
+| `name`                    | String   | required |
+| `phone_number`            | String   | required, BD format |
+| `email`                   | String   | required |
+| `address`                 | String   | required |
+| `notes`                   | String   | optional |
+| `bkash_txn_id`            | String   | optional |
+| `cart_snapshot`           | Object   | `{ items: Array<{ product_id, name, price, size, color, quantity }>, total }` |
+| `status`                  | String   | `pending | confirmed | cancelled`, default `pending` |
+| `createdAt` / `updatedAt` | Date     | timestamps |
 
 ### `analytics_events`
 
-| Field          | Type                       | Notes                                                                                               |
-| -------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
-| `_id`          | ObjectId                   | PK                                                                                                  |
-| `event_type`   | String                     | enum: `page_view \| product_view \| add_to_cart \| checkout_start \| lead_submit \| whatsapp_click` |
-| `event_id`     | String                     | `crypto.randomUUID()` — used for Meta CAPI deduplication; stored for audit                          |
-| `product_id`   | ObjectId (ref: `Product`)  | optional                                                                                            |
-| `category_id`  | ObjectId (ref: `Category`) | optional                                                                                            |
-| `session_id`   | String                     | required                                                                                            |
-| `utm_source`   | String                     | optional                                                                                            |
-| `utm_medium`   | String                     | optional                                                                                            |
-| `utm_campaign` | String                     | optional                                                                                            |
-| `createdAt`    | Date                       | auto                                                                                                |
+| Field          | Type                       | Notes |
+| -------------- | -------------------------- | ----- |
+| `_id`          | ObjectId                   | PK |
+| `event_type`   | String                     | `page_view | product_view | add_to_cart | checkout_start | lead_submit | whatsapp_click` |
+| `event_id`     | String                     | UUID, unique, CAPI dedup key |
+| `product_id`   | ObjectId (ref: `Product`)  | optional |
+| `category_id`  | ObjectId (ref: `Category`) | optional |
+| `session_id`   | String                     | required |
+| `utm_source`   | String                     | optional |
+| `utm_medium`   | String                     | optional |
+| `utm_campaign` | String                     | optional |
+| `createdAt`    | Date                       | timestamp only |
 
-> `analytics_events` uses `{ timestamps: { createdAt: true, updatedAt: false } }` — events are immutable, `updatedAt` is not applicable.
+`analytics_events` uses `{ timestamps: { createdAt: true, updatedAt: false } }`.
 
 ### `admin_users`
 
-| Field                     | Type     | Notes                                 |
-| ------------------------- | -------- | ------------------------------------- |
-| `_id`                     | ObjectId | PK                                    |
-| `email`                   | String   | required, unique, lowercase           |
-| `password`                | String   | argon2 hashed — never in API response |
-| `role`                    | String   | enum: `general \| premium`, required  |
-| `is_active`               | Boolean  | default: `true` (soft disable)        |
-| `createdAt` / `updatedAt` | Date     | auto                                  |
+| Field                         | Type        | Notes |
+| ----------------------------- | ----------- | ----- |
+| `_id`                         | ObjectId    | PK |
+| `email`                       | String      | required, unique, lowercase |
+| `password`                    | String      | argon2 hashed, never in API response |
+| `role`                        | String      | `general | premium` |
+| `is_active`                   | Boolean     | default `true` |
+| `refresh_token_hash`          | String/null | selected only when needed |
+| `previous_refresh_token_hash` | String/null | selected only when needed, concurrent rotation guard |
+| `createdAt` / `updatedAt`     | Date        | timestamps |
 
 ### Mongoose Patterns
 
-- `timestamps: true` on all schemas except `analytics_events` (uses `{ timestamps: { createdAt: true, updatedAt: false } }`)
-- Soft deletes via `is_active` — no hard deletes on products, categories, or admins
-- `populate('category_id')` on product queries when category data needed
-- Indexes: `slug` unique on products + categories; `email` unique on admin_users; compound `{ event_type, createdAt }` on analytics_events
-- `pre('save')` on admin_users → argon2 hash password
-- `toJSON` transform on admin_users → strip `password`
+- `timestamps: true` on all schemas except `analytics_events`
+- Soft deletes through `is_active`; no hard deletes for products, categories, or admins
+- `populate("category_id")` on product queries when category data is needed
+- Indexes: product/category `slug`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
+- `pre("save")` on admin users hashes passwords
+- `toJSON` transform on admin users strips password and refresh-token hashes
 
 ---
 
@@ -322,42 +326,42 @@ A premium admin cannot demote or deactivate their own account:
 
 ### Public
 
-| Method | Route                 | Description                                             |
-| ------ | --------------------- | ------------------------------------------------------- |
-| GET    | `/api/products`       | List active products (filterable by category, featured) |
-| GET    | `/api/products/:slug` | Single product by slug                                  |
-| GET    | `/api/categories`     | List active categories                                  |
-| POST   | `/api/leads`          | Submit checkout lead — rate-limited 5 req/15 min/IP     |
-| POST   | `/api/analytics`      | Log analytics event + forward to Meta CAPI              |
-| POST   | `/api/whatsapp-click` | Log WhatsApp click + forward to Meta CAPI               |
-| POST   | `/api/auth/login`     | Admin login — rate-limited 10 req/15 min/IP             |
-| POST   | `/api/auth/refresh`   | Rotate tokens                                           |
-| POST   | `/api/auth/logout`    | Clear auth cookies                                      |
+| Method | Route                 | Description |
+| ------ | --------------------- | ----------- |
+| GET    | `/api/products`       | List active products. Query params: `category`, `search`, `page`, `limit`, `exclude` |
+| GET    | `/api/products/:slug` | Single active product by slug |
+| POST   | `/api/leads`          | Submit checkout lead, rate-limited 5 req/15 min/IP |
+| POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI |
+| POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI |
+| POST   | `/api/auth/login`     | Admin login, rate-limited 10 req/15 min/IP |
+| POST   | `/api/auth/refresh`   | Rotate tokens |
+| POST   | `/api/auth/logout`    | Clear auth cookies and refresh-token hashes |
 
-### Protected (Bearer token required)
+There is no public `GET /api/categories` route. Public category navigation currently comes from frontend constants and seed data.
 
-| Method | Route                                  | Role              | Description                         |
-| ------ | -------------------------------------- | ----------------- | ----------------------------------- |
-| GET    | `/api/admin/dashboard`                 | general + premium | Metrics summary                     |
-| GET    | `/api/admin/leads`                     | premium           | List leads                          |
-| GET    | `/api/admin/leads/:id`                 | premium           | Get single lead                     |
-| PATCH  | `/api/admin/leads/:id`                 | premium           | Update lead status + notes          |
-| GET    | `/api/admin/products`                  | premium           | List all products (incl. inactive)  |
-| POST   | `/api/admin/products`                  | premium           | Create product                      |
-| PATCH  | `/api/admin/products/:id`              | premium           | Update product                      |
-| PATCH  | `/api/admin/products/:id/deactivate`   | premium           | Soft delete                         |
-| PATCH  | `/api/admin/products/:id/reactivate`   | premium           | Reactivate product                  |
-| GET    | `/api/admin/categories`                | premium           | List all categories                 |
-| POST   | `/api/admin/categories`                | premium           | Create category                     |
-| PATCH  | `/api/admin/categories/:id`            | premium           | Update category                     |
-| PATCH  | `/api/admin/categories/:id/deactivate` | premium           | Soft delete                         |
-| PATCH  | `/api/admin/categories/:id/reactivate` | premium           | Reactivate category                 |
-| GET    | `/api/admin/admins`                    | premium           | List admins                         |
-| POST   | `/api/admin/admins`                    | premium           | Create admin                        |
-| PATCH  | `/api/admin/admins/:id`                | premium           | Update admin                        |
-| PATCH  | `/api/admin/admins/:id/deactivate`     | premium           | Soft disable                        |
-| PATCH  | `/api/admin/admins/:id/reactivate`     | premium           | Reactivate admin                    |
+### Protected Admin
+
+| Method | Route                                  | Role              | Description |
+| ------ | -------------------------------------- | ----------------- | ----------- |
+| GET    | `/api/admin/dashboard`                 | general + premium | Placeholder metrics response |
+| GET    | `/api/admin/leads`                     | premium           | List leads |
+| GET    | `/api/admin/leads/:id`                 | premium           | Get single lead |
+| PATCH  | `/api/admin/leads/:id`                 | premium           | Update lead status + notes |
+| GET    | `/api/admin/products`                  | premium           | List all products, including inactive |
+| POST   | `/api/admin/products`                  | premium           | Create product |
+| PATCH  | `/api/admin/products/:id`              | premium           | Update product, including `is_active: true` reactivation |
+| PATCH  | `/api/admin/products/:id/deactivate`   | premium           | Soft delete |
+| GET    | `/api/admin/categories`                | premium           | List all categories |
+| POST   | `/api/admin/categories`                | premium           | Create category |
+| PATCH  | `/api/admin/categories/:id`            | premium           | Update category, including `is_active: true` reactivation |
+| PATCH  | `/api/admin/categories/:id/deactivate` | premium           | Soft delete, blocked when active products reference the category |
+| GET    | `/api/admin/admins`                    | premium           | List admins |
+| POST   | `/api/admin/admins`                    | premium           | Create admin |
+| PATCH  | `/api/admin/admins/:id`                | premium           | Update admin, including `is_active: true` reactivation |
+| PATCH  | `/api/admin/admins/:id/deactivate`     | premium           | Soft disable |
 | GET    | `/api/admin/uploads/signature`         | premium           | Get Cloudinary signed upload params |
+
+Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requireCsrfHeader`.
 
 ---
 
@@ -377,309 +381,184 @@ A premium admin cannot demote or deactivate their own account:
 | `/admin/leads`      | Lead Management     | Premium           |
 | `/admin/admins`     | Admin Management    | Premium           |
 
+`/admin/login` lives under the public route group at `app/(public)/admin/login/page.tsx`. Protected admin routes live under `app/(admin)/admin/`.
+
 ---
 
-## 11. Frontend Folder Structure
+## 11. Frontend Structure Rules
 
-```
-src/
-├── app/
-│   ├── (public)/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── products/
-│   │   │   ├── page.tsx
-│   │   │   └── [slug]/page.tsx
-│   │   ├── cart/page.tsx
-│   │   └── checkout/page.tsx
-│   │
-│   ├── (admin)/
-│   │   └── admin/
-│   │       ├── layout.tsx          ← calls POST /api/auth/refresh on mount to rehydrate Zustand
-│   │       ├── login/page.tsx
-│   │       ├── page.tsx            ← dashboard (maps to /admin)
-│   │       ├── products/page.tsx
-│   │       ├── categories/page.tsx
-│   │       ├── leads/page.tsx
-│   │       └── admins/page.tsx
-│   │
-│   ├── layout.tsx
-│   ├── error.tsx
-│   ├── not-found.tsx
-│   ├── loading.tsx
-│   └── globals.css
-│
-├── features/
-│   ├── home/
-│   │   ├── components/
-│   │   │   ├── HeroCarousel.tsx
-│   │   └── hooks/
-│   │
-│   ├── products/
-│   │   ├── components/
-│   │   │   ├── ProductCard.tsx
-│   │   │   ├── ProductGrid.tsx
-│   │   │   ├── ProductGallery.tsx
-│   │   │   └── SizeColorSelector.tsx
-│   │   ├── actions/product.actions.ts
-│   │   ├── services/product.service.ts
-│   │   ├── hooks/useProducts.ts
-│   │   ├── schemas/product.schema.ts
-│   │   └── types.ts
-│   │
-│   ├── cart/
-│   │   ├── components/
-│   │   │   └── CartItem.tsx
-│   │   ├── hooks/useCart.ts        ← thin hook over cart.store.ts
-│   │   └── types.ts
-│   │
-│   ├── checkout/
-│   │   ├── components/LeadForm.tsx
-│   │   ├── actions/checkout.actions.ts
-│   │   ├── schemas/lead.schema.ts
-│   │   └── types.ts
-│   │
-│   ├── categories/
-│   │   ├── components/
-│   │   ├── actions/category.actions.ts
-│   │   ├── services/category.service.ts
-│   │   ├── schemas/category.schema.ts
-│   │   └── types.ts
-│   │
-│   └── admin/
-│       ├── components/
-│       │   ├── MetricsCard.tsx
-│       │   ├── ProductsTable.tsx
-│       │   ├── ProductForm.tsx
-│       │   ├── CategoriesTable.tsx
-│       │   ├── CategoryForm.tsx
-│       │   ├── LeadsTable.tsx
-│       │   ├── LeadDetailDialog.tsx   ← status select + notes update
-│       │   ├── AdminsTable.tsx
-│       │   ├── AdminForm.tsx          ← role select (general/premium)
-│       │   └── ImageUploader.tsx      ← Cloudinary signed upload
-│       ├── actions/
-│       │   ├── products.actions.ts
-│       │   ├── categories.actions.ts
-│       │   ├── leads.actions.ts
-│       │   ├── admins.actions.ts
-│       │   └── uploads.actions.ts    ← fetch Cloudinary signature
-│       ├── schemas/                  ← RHF + Zod schemas for admin forms
-│       │   ├── product.schema.ts
-│       │   ├── category.schema.ts
-│       │   ├── lead-update.schema.ts
-│       │   └── admin.schema.ts
-│       └── hooks/
-│           ├── useAdminProducts.ts
-│           ├── useAdminCategories.ts
-│           ├── useAdminLeads.ts
-│           └── useAdminAdmins.ts
-│
-├── components/
-│   ├── ui/               ← shadcn/ui output only — do not edit manually
-│   ├── shared/
-│   │   ├── Navbar.tsx
-│   │   ├── Footer.tsx
-│   │   └── WhatsAppButton.tsx
-│   └── layouts/
-│       ├── PublicLayout.tsx
-│       └── AdminLayout.tsx
-│
-├── lib/
-│   ├── api/
-│   │   └── client.ts     ← fetch wrapper — base URL = NEXT_PUBLIC_API_URL (not axios)
-│   ├── cloudinary/
-│   │   ├── config.ts
-│   │   └── upload.ts     ← get signature → POST FormData to Cloudinary → return secure_url
-│   ├── analytics/
-│   │   └── pixel.ts      ← Meta Pixel client-side only. CAPI fired from Express, not here.
-│   └── utils.ts
-│
-├── store/
-│   ├── auth.store.ts     ← access token in memory (string | null) — never persisted to localStorage
-│   ├── cart.store.ts     ← cart items in memory. features/cart/hooks/useCart.ts wraps this store
-│   └── ui.store.ts
-│
-├── hooks/
-│   ├── useAnalytics.ts
-│   └── useDebounce.ts
-│
-├── types/
-│   ├── api.types.ts
-│   └── global.types.ts
-│
-├── constants/
-│   ├── categories.ts
-│   └── routes.ts
-│
-├── config/
-│   └── site.config.ts
-│
-└── proxy.ts
-```
-
-**Folder rules:**
-
-- `features/<domain>/` — all domain logic colocated: components, hooks, actions, services, schemas, types
-- `features/<domain>/actions/*.actions.ts` — plain async functions calling Express. NOT Next.js Server Actions. No `"use server"` directive.
-- `components/ui/` — shadcn/ui output only, never manually edited
-- `lib/api/client.ts` — fetch wrapper, not axios
-- `lib/analytics/pixel.ts` — Meta Pixel client-side events only. CAPI is Express-only.
-- `store/auth.store.ts` — access token string in memory. Never persisted to localStorage.
-- `store/cart.store.ts` — cart state. `features/cart/hooks/useCart.ts` wraps this.
-- No `lib/supabase/` — Supabase is not used
-- No `app/api/` route handlers — all API calls go to Express on Render
-- Zod schemas in `features/<domain>/schemas/` — frontend source of truth. Backend maintains equivalent schemas independently (separate repos — no shared package).
+- `app/(public)/` contains storefront routes.
+- `app/(admin)/admin/` contains protected admin routes and the admin shell layout.
+- `app/(public)/admin/login/page.tsx` is public so unauthenticated admins can reach it.
+- Public layout chrome is `components/layouts/PublicChrome.tsx`.
+- Admin layout chrome is `components/layouts/AdminShell.tsx`.
+- `features/<domain>/` colocates domain components, hooks, actions, services, schemas, and types.
+- `features/<domain>/actions/*.actions.ts` are plain async functions calling Express. No `"use server"`.
+- `components/ui/` is shadcn/ui output.
+- `lib/api/client.ts` is the fetch wrapper. Do not use axios.
+- `lib/analytics/pixel.ts` contains client-side Meta Pixel helpers only. CAPI is Express-only.
+- `store/auth.store.ts` keeps access token and role in memory only.
+- `store/cart.store.ts` keeps cart items in memory only.
 
 ---
 
 ## 12. Checkout / Lead Form
 
-| Field          | Type     | Required | Notes                                               |
-| -------------- | -------- | -------- | --------------------------------------------------- |
-| `name`         | text     | yes      |                                                     |
-| `phone_number` | text     | yes      | BD format — Zod regex: `/^(?:\+?88)?01[3-9]\d{8}$/` |
-| `email`        | email    | yes      |                                                     |
-| `address`      | textarea | yes      |                                                     |
-| `notes`        | textarea | no       |                                                     |
-| `bkash_txn_id` | text     | no       | Manual admin verification                           |
+| Field          | Type     | Required | Notes |
+| -------------- | -------- | -------- | ----- |
+| `name`         | text     | yes      | min 2, max 80 |
+| `phone_number` | text     | yes      | BD regex `/^(?:\+?88)?01[3-9]\d{8}$/` |
+| `email`        | email    | yes      | valid email |
+| `address`      | textarea | yes      | min 8, max 400 |
+| `notes`        | textarea | no       | max 500 |
+| `bkash_txn_id` | text     | no       | manual admin verification, max 80 |
 
-Rate limit: 5 req / 15 min / IP on `POST /api/leads`.
+`POST /api/leads` is rate-limited to 5 req / 15 min / IP.
 
 ---
 
 ## 13. MVP Features
 
-- Animated UI (GSAP), responsive, mobile-first
-- Product categories: T-Shirts, Shirts, Pants, Footwear, Accessories, Ladies' Bags
-- WhatsApp ordering: pre-filled message from PDP — fires Lead event to CAPI via `/api/whatsapp-click`, bypasses cart/checkout
-- Cart: Zustand memory only, no server-side cart
-- Checkout: lead form → MongoDB `leads` collection
-- Admin dashboard + CRUD (role-gated)
+- Animated UI with GSAP, responsive, mobile-first
+- Product categories: T-Shirts, Shirts, Pants, Footwear, Accessories, Women, Kids
+- WhatsApp ordering from PDP with pre-filled message and `/api/whatsapp-click`
+- Cart stored in Zustand memory only
+- Checkout lead form writes to MongoDB `leads`
+- Role-gated admin CRUD for products, categories, leads, and admins
+- Dashboard screen exists; real metric aggregation is planned
 
 ---
 
 ## 14. Analytics & Tracking
 
+Analytics is partially implemented. Keep current/live behavior separate from planned wiring.
+
 ### Tool Matrix
 
-| Tool               | Fires From     | Role                                                |
-| ------------------ | -------------- | --------------------------------------------------- |
-| Meta Pixel         | Next.js client | page_view, ViewContent, AddToCart, InitiateCheckout |
-| Meta CAPI          | Express only   | Server-side mirror — dedup via `event_id`           |
-| GA4                | Next.js client | Traffic, behavior, conversions                      |
-| Microsoft Clarity  | Next.js client | Session recordings + heatmaps                       |
-| `analytics_events` | Express        | First-party MongoDB log                             |
+| Tool               | Fires From     | Role                                      | Status |
+| ------------------ | -------------- | ----------------------------------------- | ------ |
+| Meta Pixel helpers | Next.js client | `fbq("track")` helpers                    | Partial - helpers exist, no global bootstrap script |
+| Meta CAPI          | Express        | Server-side mapped events                 | Implemented for events posted to analytics endpoints |
+| GA4                | Next.js client | Traffic and conversion analytics          | Planned |
+| Microsoft Clarity  | Next.js client | Session recordings and heatmaps           | Planned |
+| `analytics_events` | Express        | First-party MongoDB analytics log         | Implemented |
 
-### Deduplication Flow
+### Current Event Status
 
-Applies to: `product_view`, `add_to_cart`, `checkout_start`, `whatsapp_click`
+| Event            | Client Pixel | Express CAPI | Status |
+| ---------------- | ------------ | ------------ | ------ |
+| `page_view`      | planned      | no           | Planned |
+| `product_view`   | helper-ready | endpoint-ready | Planned wiring |
+| `add_to_cart`    | helper-ready | endpoint-ready | Planned wiring |
+| `checkout_start` | helper-ready | endpoint-ready | Planned wiring |
+| `lead_submit`    | no           | backend-ready | Not fired by `POST /api/leads` yet |
+| `whatsapp_click` | yes          | yes          | Live |
 
-1. Client generates `event_id` via `crypto.randomUUID()`
+### Deduplication Pattern
+
+For deduped events:
+
+1. Client generates `event_id` with `crypto.randomUUID()`
 2. Client fires Meta Pixel with `event_id`
-3. Client POSTs to Express `/api/analytics` (or `/api/whatsapp-click`) with same `event_id`
-4. Express writes to `analytics_events` + forwards to Meta CAPI with identical `event_id`
+3. Client POSTs to Express with the same `event_id`
+4. Express writes `analytics_events` and forwards to Meta CAPI
 5. Meta deduplicates on matching `event_id`
 
-### Non-Dedup Events
-
-| Event         | Fired By                             | Notes                                                           |
-| ------------- | ------------------------------------ | --------------------------------------------------------------- |
-| `page_view`   | Client Pixel only                    | No CAPI mirror — not needed for dedup                           |
-| `lead_submit` | Express only (via `POST /api/leads`) | No client Pixel event — server creates this after lead is saved |
-
-### Tracked Events
-
-| Event            | Client Pixel | Express CAPI |
-| ---------------- | ------------ | ------------ |
-| `page_view`      | ✓            | ✗            |
-| `product_view`   | ✓            | ✓            |
-| `add_to_cart`    | ✓            | ✓            |
-| `checkout_start` | ✓            | ✓            |
-| `lead_submit`    | ✗            | ✓            |
-| `whatsapp_click` | ✓            | ✓            |
+Current end-to-end live path: `whatsapp_click`.
 
 ---
 
 ## 15. Performance
 
-- Sub 3s load on 3G/4G
-- Cloudinary CDN — `next/image` with blur placeholders
-- `use cache` directive for SSR product + category fetches — requires `dynamicIO: true` in `next.config.ts`
+- Mobile-first, optimized for Bangladesh 3G/4G users
+- Public catalog/product pages currently use `export const dynamic = "force-dynamic"` for fresh Express-backed data
+- Do not document `use cache` / `dynamicIO` as current behavior until the app explicitly adopts that caching model
 - Turbopack in development
-- MongoDB indexes: `slug` (unique), `email` (unique), compound `{ event_type, createdAt }`
-- GSAP: `transform` + `opacity` only — no layout-triggering properties
-- Render cold start mitigation: configure a keep-alive ping (e.g. UptimeRobot) to prevent Render free-tier spin-down
+- MongoDB indexes: product/category `slug`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
+- GSAP animation should stay on `transform` and `opacity`
+- Render cold start mitigation can use a keep-alive ping if on free-tier instances
 
 ---
 
 ## 16. Security
 
-| Concern          | Mitigation                                                        |
-| ---------------- | ----------------------------------------------------------------- |
-| XSS token theft  | httpOnly cookies — JS cannot read                                 |
-| CSRF             | `X-Requested-With: XMLHttpRequest` on all state-changing requests |
-| Password storage | argon2                                                            |
-| Token expiry     | Access: 15 min / Refresh: 7d, replacement issued on refresh       |
-| Brute force      | rate-limit `/auth/login` — 10 req / 15 min / IP                   |
-| Checkout spam    | rate-limit `/leads` — 5 req / 15 min / IP                         |
-| HTTP headers     | `helmet`                                                          |
-| CORS             | `https://app.minan.com` only, `credentials: true`, never `*`      |
-| Password leak    | Mongoose `toJSON` strips `password`                               |
-| Role escalation  | Role from JWT only — never from request body                      |
+| Concern          | Mitigation |
+| ---------------- | ---------- |
+| XSS token theft  | httpOnly cookies for browser-stored tokens |
+| CSRF             | `X-Requested-With: XMLHttpRequest` on state-changing requests |
+| Password storage | argon2 |
+| Refresh replay   | server-side refresh-token hash rotation |
+| Token expiry     | Access: 15 min; Refresh: 7 days |
+| Brute force      | rate-limit `/api/auth/login` |
+| Checkout spam    | rate-limit `/api/leads` |
+| HTTP headers     | `helmet` |
+| CORS             | specific `ALLOWED_ORIGIN`, credentials enabled, never `*` |
+| Password leak    | Mongoose `toJSON` strips `password` |
+| Role escalation  | Role from JWT only, never request body |
 
 ---
 
 ## 17. Deployment & Env Vars
 
-| Service  | Platform                                          | Domain          |
-| -------- | ------------------------------------------------- | --------------- |
-| Frontend | Vercel                                            | `app.minan.com` |
-| Backend  | Render (Node 24.16.0)                             | `api.minan.com` |
-| Database | MongoDB Atlas 8.3 — IP whitelist: Render IPs only | —               |
-| Images   | Cloudinary                                        | —               |
+| Service  | Platform              | Domain          |
+| -------- | --------------------- | --------------- |
+| Frontend | Vercel                | `app.minan.com` |
+| Backend  | Render, Node 24.16.0  | `api.minan.com` |
+| Database | MongoDB Atlas 8.3     | -               |
+| Images   | Cloudinary            | -               |
 
-> Custom domains are required in production. `proxy.ts` cookie auth does not work on default `*.vercel.app` + `*.onrender.com` domains (no shared parent domain).
+Custom domains are required for production admin cookie auth.
 
 ### Frontend `.env.local`
 
-```
+```env
 NEXT_PUBLIC_API_URL=https://api.minan.com
-NEXT_PUBLIC_META_PIXEL_ID
-NEXT_PUBLIC_GA4_ID
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+API_PROXY_TARGET=https://api.minan.com
+JWT_ACCESS_SECRET=<same value as API>
+NEXT_PUBLIC_META_PIXEL_ID=
+NEXT_PUBLIC_GA4_ID=
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 ```
+
+- `NEXT_PUBLIC_API_URL` is used by `lib/api/client.ts`.
+- `API_PROXY_TARGET` is used by `next.config.ts` rewrites for `/api/:path*`.
+- `JWT_ACCESS_SECRET` is required by `proxy.ts` to verify access-token cookies.
 
 ### Backend `.env`
 
-```
-MONGODB_URI
-JWT_ACCESS_SECRET
-JWT_REFRESH_SECRET
+```env
+MONGODB_URI=
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
 ALLOWED_ORIGIN=https://app.minan.com
-META_CAPI_TOKEN
-META_PIXEL_ID
-CLOUDINARY_URL
-CLOUDINARY_UPLOAD_FOLDER
-ADMIN_EMAIL
-ADMIN_PASSWORD
-ADMIN_ROLE
-NODE_ENV
+META_CAPI_TOKEN=
+META_PIXEL_ID=
+CLOUDINARY_URL=
+CLOUDINARY_UPLOAD_FOLDER=
+ADMIN_EMAIL=
+ADMIN_PASSWORD=
+ADMIN_ROLE=
+NODE_ENV=
 ```
 
-`seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`; use it intentionally in shared or production environments.
+`seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`.
 
 ---
 
-## 18. Admin Dashboard Metrics
+## 18. Planned Admin Dashboard Metrics
 
-| Metric              | Query                                                    | Access            |
-| ------------------- | -------------------------------------------------------- | ----------------- |
-| Today's Leads       | `leads` count by today                                   | General + Premium |
-| This Month's Leads  | `leads` count by month                                   | General + Premium |
-| Most Viewed Product | `analytics_events` — `product_view` agg by `product_id`  | General + Premium |
-| Top Category        | `analytics_events` — `product_view` agg by `category_id` | General + Premium |
-| Traffic Source      | `analytics_events` — agg by `utm_source`                 | General + Premium |
+`GET /api/admin/dashboard` currently returns placeholder zeros/nulls. The intended future metrics are:
+
+| Metric              | Intended Query |
+| ------------------- | -------------- |
+| Today's Leads       | `leads` count by current day |
+| This Month's Leads  | `leads` count by current month |
+| Most Viewed Product | `analytics_events` product_view aggregation by `product_id` |
+| Top Category        | `analytics_events` product_view aggregation by `category_id` |
+| Traffic Source      | `analytics_events` aggregation by `utm_source` |
+
+Do not treat these aggregations as implemented until `dashboard.controller.ts` is updated.
 
 ---
 
@@ -695,66 +574,28 @@ NODE_ENV
 
 ---
 
-## 20. Backend Folder Structure
+## 20. Backend Structure Rules
 
-```
-apps/api/src/
-├── models/
-│   ├── Product.ts
-│   ├── Category.ts
-│   ├── AdminUser.ts
-│   └── Lead.ts
-│
-├── schemas/
-│   └── admin.schemas.ts          ← Zod: product/category create+update, lead update, admin create+update
-│
-├── lib/
-│   ├── cloudinary.ts             ← init from CLOUDINARY_URL; getUploadSignature(folder)
-│   └── slugify.ts                ← auto-generate slug from name; dup-key → 409
-│
-├── controllers/
-│   ├── dashboard.controller.ts
-│   └── admin/
-│       ├── products.controller.ts
-│       ├── categories.controller.ts
-│       ├── leads.controller.ts
-│       ├── admins.controller.ts
-│       └── uploads.controller.ts
-│
-├── services/
-│   ├── adminProducts.service.ts
-│   ├── adminCategories.service.ts
-│   ├── adminLeads.service.ts
-│   └── adminAdmins.service.ts    ← reuses AdminUser pre('save') hashing + toJSON password strip
-│
-├── middleware/
-│   ├── requireAuth.ts
-│   ├── requireRole.ts            ← requireRole(["premium"])
-│   └── csrf.ts                   ← requireCsrfHeader on all write routes
-│
-├── routes/
-│   └── admin.routes.ts           ← mounts all sub-routers with requireAuth + requireRole(premium) + CSRF on writes
-│
-└── utils/
-    ├── serializeProduct.ts
-    ├── serializeLead.ts
-    ├── serializeAdmin.ts         ← never leaks password field
-    └── serializeCategory.ts
-```
-
-**Backend rules:**
-
-- All admin write routes: `requireAuth` + `requireRole(["premium"])` + `requireCsrfHeader`
-- Dashboard (`GET /api/admin/dashboard`) stays accessible to `general + premium`
-- Zod validates all write request bodies in `schemas/admin.schemas.ts`
-- Slug auto-generated from name via `lib/slugify.ts`; duplicate slugs → `409 Conflict`
-- `serializeAdmin` strips `password` — never exposed in any API response
+- `apps/api/src/models/` contains Mongoose models: products, categories, leads, analytics events, admins.
+- `apps/api/src/schemas/` contains backend Zod schemas. Backend schemas are independent from frontend schemas.
+- `apps/api/src/services/` owns business logic and DB access.
+- `apps/api/src/controllers/` owns Express request/response handling.
+- `apps/api/src/routes/` declares route wiring and middleware order.
+- `apps/api/src/middleware/` owns auth, role, CSRF, and error middleware.
+- `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
+- `apps/api/src/utils/` owns response serializers.
+- Public routers: products, leads, analytics, whatsapp-click, auth.
+- Admin router is mounted at `/api/admin`.
+- Dashboard stays accessible to `general` and `premium`.
+- All admin writes require auth, premium role, and CSRF header.
+- Slugs are generated through `lib/slugify.ts`; duplicate slugs resolve with suffixes in current admin services.
+- Admin serializers and model transforms must never expose password or refresh-token hashes.
 
 ---
 
 ## 21. Cloudinary Image Upload Flow
 
-All admin image uploads use a **signed upload** pattern — Express generates the signature, the browser posts the file directly to Cloudinary, and only the resulting `secure_url` is stored in MongoDB.
+Admin image uploads use a signed upload pattern: Express generates the signature, the browser posts the file directly to Cloudinary, and only the resulting `secure_url` is stored in MongoDB.
 
 ```mermaid
 sequenceDiagram
@@ -770,4 +611,4 @@ sequenceDiagram
 
 **Frontend:** `lib/cloudinary/upload.ts` orchestrates the flow using `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`.
 **Backend:** `lib/cloudinary.ts` signs the upload using `CLOUDINARY_URL`; optional folder via `CLOUDINARY_UPLOAD_FOLDER`.
-**Storage:** Only `secure_url` strings are persisted in MongoDB — never local paths or base64.
+**Storage:** Only remote URL strings are persisted in MongoDB. Never store local paths or base64.

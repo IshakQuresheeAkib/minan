@@ -44,11 +44,15 @@ export async function listProductsHandler(
       return;
     }
 
+    const exclude =
+      typeof req.query.exclude === "string" ? req.query.exclude : undefined;
+
     const result = await listProducts({
       categorySlug: category,
       search,
       page,
       limit,
+      excludeSlug: exclude,
     });
     res.json(result);
   } catch (error) {

@@ -24,6 +24,7 @@ build/
 # Next.js
 .next/
 out/
+stitch/
 
 # TypeScript
 *.tsbuildinfo
@@ -44,6 +45,7 @@ Thumbs.db
 # Vercel
 .vercel/
 .cursor/
+.worktrees/
 
 # Logs
 logs

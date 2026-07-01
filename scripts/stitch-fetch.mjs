@@ -1,7 +1,7 @@
 import { stitch } from "@google/stitch-sdk";
 
 const PROJECT_ID = "13355773345746508246";
-const SCREEN_ID = "cb5f564524b14658a970694ce45725cc";
+const SCREEN_ID = "2d52c1fcfe7a4ae0ae62e84bfef2369e";
 
 const project = stitch.project(PROJECT_ID);
 const screen = await project.getScreen(SCREEN_ID);

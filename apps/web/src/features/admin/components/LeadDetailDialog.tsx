@@ -50,6 +50,10 @@ type LeadDetailFieldsProps = {
   onClose: () => void;
 };
 
+function formatCurrency(value: number): string {
+  return `BDT ${value.toLocaleString("en-BD")}`;
+}
+
 function LeadDetailFields({
   accessToken,
   lead,
@@ -101,6 +105,34 @@ function LeadDetailFields({
           </div>
         ) : null}
       </dl>
+
+      {lead.cart_snapshot ? (
+        <section className="mt-5 rounded-lg border bg-muted/30 p-4">
+          <h3 className="text-sm font-semibold">Order Items</h3>
+          <div className="mt-3 grid gap-3">
+            {lead.cart_snapshot.items.map((item) => (
+              <div
+                key={`${item.product_id}-${item.size}-${item.color}`}
+                className="flex justify-between gap-4 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium">{item.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.size} / {item.color} x {item.quantity}
+                  </p>
+                </div>
+                <span className="shrink-0 font-semibold">
+                  {formatCurrency(item.price * item.quantity)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-between border-t pt-3 text-sm font-semibold">
+            <span>Total</span>
+            <span>{formatCurrency(lead.cart_snapshot.total)}</span>
+          </div>
+        </section>
+      ) : null}
 
       <Form {...form}>
         <form

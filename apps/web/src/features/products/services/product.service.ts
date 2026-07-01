@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { ApiError, apiRequest } from "@/lib/api/client";
 import type { ApiList } from "@/types/api.types";
 import {
   productSchema,
@@ -17,6 +17,7 @@ type GetProductsOptions = {
   search?: string;
   page?: number;
   limit?: number;
+  exclude?: string;
 };
 
 export async function getProducts(
@@ -40,6 +41,10 @@ export async function getProducts(
     params.set("limit", String(options.limit));
   }
 
+  if (options.exclude) {
+    params.set("exclude", options.exclude);
+  }
+
   const query = params.toString();
   const path = query ? `/api/products?${query}` : "/api/products";
 
@@ -55,6 +60,37 @@ const colorClassMap: Record<string, ProductCardData["colors"][number]> = {
   Beige: "bg-accent",
   "Sky Blue": "bg-primary",
 };
+
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  try {
+    const response = await apiRequest<{ data: Product }>(
+      `/api/products/${encodeURIComponent(slug)}`,
+    );
+    return productSchema.parse(response.data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function getRelatedProducts(
+  product: Product,
+  limit = 4,
+): Promise<Product[]> {
+  if (!product.category) {
+    return [];
+  }
+
+  const { data } = await getProducts({
+    category: product.category.slug,
+    exclude: product.slug,
+    limit,
+  });
+
+  return data;
+}
 
 export function mapProductToCard(product: Product): ProductCardData {
   return {

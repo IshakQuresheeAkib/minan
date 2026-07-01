@@ -11,7 +11,12 @@ import {
 } from "./config/db.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { adminRouter } from "./routes/admin.routes.js";
+import {
+  analyticsRouter,
+  whatsappClickRouter,
+} from "./routes/analytics.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
+import { leadsRouter } from "./routes/leads.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
 const app = express();
@@ -39,6 +44,9 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/products", productsRouter);
+app.use("/api/leads", leadsRouter);
+app.use("/api/analytics", analyticsRouter);
+app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use(errorHandler);
