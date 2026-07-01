@@ -45,6 +45,7 @@ Thumbs.db
 # Vercel
 .vercel/
 .cursor/
+.worktrees/
 
 # Logs
 logs
