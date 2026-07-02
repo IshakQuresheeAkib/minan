@@ -98,6 +98,7 @@ export function mapProductToCard(product: Product): ProductCardData {
     name: product.name,
     description: product.description,
     price: product.price,
+    imageUrl: product.images[0],
     colors: product.colors.map(
       (color) => colorClassMap[color] ?? "bg-muted-foreground",
     ),

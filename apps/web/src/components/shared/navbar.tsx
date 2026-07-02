@@ -29,7 +29,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
             : "relative border-b border-border/60 bg-background",
         )}
       >
-        <div className="grid w-full grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 lg:grid-cols-[auto_minmax(360px,1fr)_auto] lg:gap-8">
+        <div className="grid w-full grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 lg:grid-cols-[auto_minmax(360px,1fr)_300px] lg:gap-8">
           <Link
             href={publicRoutes.home}
             aria-label="MINAN — go to homepage"
@@ -49,7 +49,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
             <NavPill variant={overlay ? "overlay" : "default"} />
           </div>
 
-          <div className="col-span-2 w-full min-w-0 lg:col-span-1 lg:flex lg:justify-end">
+          <div className="w-full min-w-0 justify-self-end lg:flex lg:w-[300px] lg:justify-end">
             <SearchBar />
           </div>
         </div>

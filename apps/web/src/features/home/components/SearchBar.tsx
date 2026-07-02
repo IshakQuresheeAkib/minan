@@ -26,6 +26,7 @@ export function SearchBar({ className }: SearchBarProps) {
   const resultsId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const queryRef = useRef("");
   const requestIdRef = useRef(0);
   const debounceRef = useRef<number | null>(null);
 
@@ -38,6 +39,7 @@ export function SearchBar({ className }: SearchBarProps) {
   const [hasSearched, setHasSearched] = useState(false);
 
   const trimmedQuery = query.trim();
+  const showSuggestions = expanded && open && trimmedQuery.length > 0;
 
   const reset = useCallback((): void => {
     if (debounceRef.current !== null) {
@@ -45,6 +47,7 @@ export function SearchBar({ className }: SearchBarProps) {
       debounceRef.current = null;
     }
     requestIdRef.current += 1;
+    queryRef.current = "";
     setQuery("");
     setExpanded(false);
     setResults([]);
@@ -83,7 +86,7 @@ export function SearchBar({ className }: SearchBarProps) {
     function handlePointerDown(event: MouseEvent): void {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
-        if (!query.trim()) {
+        if (!queryRef.current.trim()) {
           setExpanded(false);
         }
       }
@@ -102,7 +105,7 @@ export function SearchBar({ className }: SearchBarProps) {
         window.clearTimeout(debounceRef.current);
       }
     };
-  }, [query, reset]);
+  }, [reset]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -129,23 +132,25 @@ export function SearchBar({ className }: SearchBarProps) {
   return (
     <div
       ref={containerRef}
-      className={cn("relative flex w-full justify-end", className)}
+      className={cn(
+        "relative flex w-full max-w-[300px] justify-end",
+        showSuggestions && "z-[80]",
+        className,
+      )}
     >
       <form
         role="search"
         aria-label="Product search"
         onSubmit={handleSubmit}
         className={cn(
-          "relative h-12 w-full lg:w-12 lg:transition-[width] lg:duration-500 lg:ease-[cubic-bezier(0,0.11,0.35,2)]",
-          expanded && "lg:w-[300px]",
+          "relative z-10 h-12 w-12 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
+          expanded && "w-full",
         )}
       >
         <Search
           className={cn(
             "pointer-events-none absolute top-1/2 right-4 z-2 size-5 -translate-y-1/2 transition-colors duration-200",
-            expanded
-              ? "text-primary-foreground lg:text-foreground"
-              : "text-primary-foreground",
+            expanded ? "text-foreground" : "text-primary-foreground",
           )}
           aria-hidden="true"
         />
@@ -175,16 +180,16 @@ export function SearchBar({ className }: SearchBarProps) {
           aria-controls={resultsId}
           autoComplete="off"
           className={cn(
-            "h-12 w-full rounded-full border-0 bg-primary pr-12 pl-4 text-base text-primary-foreground shadow-sm outline-none transition-all duration-500 ease-in-out placeholder:text-primary-foreground/60 focus-visible:ring-2 focus-visible:ring-ring/50",
-            "lg:w-12 lg:pl-0 lg:text-transparent lg:placeholder:text-transparent",
+            "h-12 w-12 rounded-full border-0 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-ring/50",
             expanded &&
-              "lg:w-[300px] lg:rounded-none lg:border-b lg:border-foreground/40 lg:bg-transparent lg:pl-4 lg:text-foreground lg:shadow-none lg:placeholder:text-muted-foreground lg:focus-visible:ring-0",
+              "w-full rounded-full border border-primary/70 bg-transparent pl-2 text-foreground placeholder:text-muted-foreground focus-visible:ring-0",
           )}
           onChange={(event) => {
             const nextQuery = event.target.value;
             const nextTrimmedQuery = nextQuery.trim();
 
             setQuery(nextQuery);
+            queryRef.current = nextQuery;
             setExpanded(true);
 
             if (!nextTrimmedQuery) {
@@ -202,6 +207,9 @@ export function SearchBar({ className }: SearchBarProps) {
             }
 
             setOpen(true);
+            setLoading(true);
+            setError(null);
+            setHasSearched(false);
             if (debounceRef.current !== null) {
               window.clearTimeout(debounceRef.current);
             }
@@ -216,25 +224,27 @@ export function SearchBar({ className }: SearchBarProps) {
         />
       </form>
 
-      {open && trimmedQuery && (
+      {showSuggestions && (
         <div
           id={resultsId}
           role="listbox"
           aria-label="Search results"
-          className="absolute top-[calc(100%+0.5rem)] right-0 left-0 z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-popover p-2 shadow-md lg:left-auto lg:w-[300px]"
+          className="absolute top-full right-0 z-90 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-popover/95 p-1.5 text-popover-foreground shadow-foreground/10 backdrop-blur"
         >
           {loading && (
-            <p className="px-2 py-3 text-sm text-muted-foreground">
+            <p className="rounded-md px-3 py-3 text-sm text-muted-foreground">
               Searching...
             </p>
           )}
 
           {error && (
-            <p className="px-2 py-3 text-sm text-destructive">{error}</p>
+            <p className="rounded-md px-3 py-3 text-sm text-destructive">
+              {error}
+            </p>
           )}
 
           {!loading && !error && hasSearched && results.length === 0 && (
-            <p className="px-2 py-3 text-sm text-muted-foreground">
+            <p className="rounded-md px-3 py-3 text-sm text-muted-foreground">
               No products matched &quot;{trimmedQuery}&quot;.
             </p>
           )}
@@ -247,12 +257,17 @@ export function SearchBar({ className }: SearchBarProps) {
                 href={`/products/${product.slug}`}
                 role="option"
                 onClick={reset}
-                className="block rounded-md px-2 py-2 transition-colors hover:bg-muted"
+                className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
               >
-                <span className="block text-sm font-medium text-foreground">
-                  {product.name}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {product.name}
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {product.category?.name ?? "Product"}
+                  </span>
                 </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
+                <span className="shrink-0 text-xs font-semibold text-foreground">
                   BDT {product.price}
                 </span>
               </Link>

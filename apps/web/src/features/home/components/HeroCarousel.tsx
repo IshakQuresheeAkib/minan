@@ -291,8 +291,8 @@ export function HeroCarousel() {
                     className={cn(
                       "hero-reveal mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md md:mb-5",
                       index === 0
-                        ? "border border-primary/30 bg-primary/10 text-primary"
-                        : "border border-secondary-foreground/20 bg-secondary/30 text-secondary-foreground",
+                        ? "border border-primary/30 bg-primary/10"
+                        : "border border-secondary-foreground/20 bg-secondary/30",
                     )}
                   >
                     {slide.tag}

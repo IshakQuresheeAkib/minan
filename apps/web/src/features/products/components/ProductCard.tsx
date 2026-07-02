@@ -1,6 +1,7 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export type ProductCardData = {
@@ -8,6 +9,7 @@ export type ProductCardData = {
   name: string;
   description: string;
   price: number;
+  imageUrl?: string;
   colors: readonly ProductColorClass[];
 };
 
@@ -23,17 +25,34 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product }: ProductCardProps) {
+  const productHref = `/products/${product.slug}`;
 
   return (
     <article className="rounded-2xl border border-border bg-card p-3 shadow-[0_8px_24px_rgba(151,72,34,0.04)]">
       <div className="relative mb-3 aspect-4/5 overflow-hidden rounded-xl bg-muted">
-        <div
-          className="absolute inset-0 bg-linear-to-b from-muted to-input"
-          aria-hidden="true"
-        />
+        {product.imageUrl ? (
+          <Link
+            href={productHref}
+            aria-label={`View details for ${product.name}`}
+            className="group absolute inset-0 cursor-pointer"
+          >
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+              className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
+            />
+          </Link>
+        ) : (
+          <div
+            className="absolute inset-0 bg-linear-to-b from-muted to-input"
+            aria-hidden="true"
+          />
+        )}
         <Link
-          href={`/products/${product.slug}`}
-          className="absolute bottom-2 right-2 flex cursor-pointer items-center gap-1 rounded-full bg-card/90 px-3 py-1.5 text-xs font-semibold text-card-foreground shadow-sm backdrop-blur-sm transition-opacity hover:opacity-90"
+          href={productHref}
+          className="absolute right-2 bottom-2 z-10 flex cursor-pointer items-center gap-1 rounded-full bg-card/90 px-3 py-1.5 text-xs font-semibold text-card-foreground shadow-sm backdrop-blur-sm transition-opacity hover:opacity-90"
         >
           <ShoppingBag className="size-4 text-primary" aria-hidden="true" />
           Shop
