@@ -23,17 +23,17 @@ export function Navbar({ overlay = false }: NavbarProps) {
       ) : null}
       <header
         className={cn(
-          "flex w-full items-center justify-between px-4 py-1 lg:px-10",
+          "flex w-full items-center justify-between px-4 py-2 lg:px-10",
           overlay
             ? "relative z-50 border-b border-border/60 bg-background lg:absolute lg:inset-x-0 lg:top-0 lg:border-b-0 lg:bg-transparent"
             : "relative border-b border-border/60 bg-background",
         )}
       >
-        <div className="flex w-full items-center gap-3 lg:grid lg:grid-cols-[auto_minmax(360px,1fr)_auto] lg:gap-8">
+        <div className="grid w-full grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 lg:grid-cols-[auto_minmax(360px,1fr)_auto] lg:gap-8">
           <Link
             href={publicRoutes.home}
             aria-label="MINAN — go to homepage"
-            className="shrink-0 transition-opacity duration-200 hover:opacity-85"
+            className="w-fit shrink-0 transition-opacity duration-200 hover:opacity-85"
           >
             <Image
               src="/logo.png"
@@ -45,11 +45,11 @@ export function Navbar({ overlay = false }: NavbarProps) {
             />
           </Link>
 
-          <div className="flex justify-center">
+          <div className="hidden justify-center lg:flex">
             <NavPill variant={overlay ? "overlay" : "default"} />
           </div>
 
-          <div className="min-w-0 shrink-0 lg:flex lg:justify-end">
+          <div className="col-span-2 w-full min-w-0 lg:col-span-1 lg:flex lg:justify-end">
             <SearchBar />
           </div>
         </div>

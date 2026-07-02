@@ -1,10 +1,7 @@
 "use client";
 
-import { Heart, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-
-import { cn } from "@/lib/utils";
 
 export type ProductCardData = {
   slug: string;
@@ -17,8 +14,9 @@ export type ProductCardData = {
 type ProductColorClass =
   | "bg-primary"
   | "bg-secondary"
+  | "bg-accent"
   | "bg-muted-foreground"
-  | "bg-foreground"
+  | "bg-foreground";
 
 type ProductCardProps = {
   product: ProductCardData;

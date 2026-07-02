@@ -2,15 +2,17 @@
 
 import { Search } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
 } from "react";
 
-import { Input } from "@/components/ui/input";
+import { publicRoutes } from "@/constants/routes";
 import type { Product } from "@/features/products/schemas/product.schema";
 import { getProducts } from "@/features/products/services/product.service";
 import { cn } from "@/lib/utils";
@@ -20,11 +22,15 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ className }: SearchBarProps) {
+  const router = useRouter();
+  const resultsId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
   const debounceRef = useRef<number | null>(null);
 
   const [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState(false);
   const [results, setResults] = useState<Product[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,6 +46,7 @@ export function SearchBar({ className }: SearchBarProps) {
     }
     requestIdRef.current += 1;
     setQuery("");
+    setExpanded(false);
     setResults([]);
     setOpen(false);
     setLoading(false);
@@ -76,6 +83,9 @@ export function SearchBar({ className }: SearchBarProps) {
     function handlePointerDown(event: MouseEvent): void {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
+        if (!query.trim()) {
+          setExpanded(false);
+        }
       }
     }
 
@@ -92,43 +102,90 @@ export function SearchBar({ className }: SearchBarProps) {
         window.clearTimeout(debounceRef.current);
       }
     };
-  }, [reset]);
+  }, [query, reset]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (!trimmedQuery) return;
-    setOpen(true);
+    setExpanded(true);
+
+    if (!trimmedQuery) {
+      inputRef.current?.focus();
+      return;
+    }
+
+    const params = new URLSearchParams({ search: trimmedQuery });
+    router.push(`${publicRoutes.products}?${params.toString()}`);
+    setOpen(false);
+  }
+
+  function expandAndFocus(): void {
+    setExpanded(true);
+    inputRef.current?.focus();
+    if (trimmedQuery) {
+      setOpen(true);
+    }
   }
 
   return (
     <div
       ref={containerRef}
-      className={cn("relative w-full max-w-[200px] ml-auto", className)}
+      className={cn("relative flex w-full justify-end", className)}
     >
       <form
         role="search"
         aria-label="Product search"
         onSubmit={handleSubmit}
-        className="relative"
+        className={cn(
+          "relative h-12 w-full lg:w-12 lg:transition-[width] lg:duration-500 lg:ease-[cubic-bezier(0,0.11,0.35,2)]",
+          expanded && "lg:w-[300px]",
+        )}
       >
         <Search
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          className={cn(
+            "pointer-events-none absolute top-1/2 right-4 z-2 size-5 -translate-y-1/2 transition-colors duration-200",
+            expanded
+              ? "text-primary-foreground lg:text-foreground"
+              : "text-primary-foreground",
+          )}
           aria-hidden="true"
         />
-        <Input
+        <button
+          type="submit"
+          aria-label={
+            trimmedQuery ? "Submit product search" : "Open product search"
+          }
+          className="absolute top-0 right-0 z-3 flex size-12 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          onClick={() => {
+            if (!trimmedQuery) {
+              expandAndFocus();
+            }
+          }}
+          onMouseEnter={expandAndFocus}
+        />
+        <input
+          ref={inputRef}
           type="search"
+          role="combobox"
           value={query}
-          placeholder="Search products"
+          placeholder="Type to search..."
           aria-label="Search products"
+          aria-autocomplete="list"
           aria-expanded={open && trimmedQuery.length > 0}
-          aria-controls="search-results"
+          aria-haspopup="listbox"
+          aria-controls={resultsId}
           autoComplete="off"
-          className="h-10 bg-background/80 pl-9"
+          className={cn(
+            "h-12 w-full rounded-full border-0 bg-primary pr-12 pl-4 text-base text-primary-foreground shadow-sm outline-none transition-all duration-500 ease-in-out placeholder:text-primary-foreground/60 focus-visible:ring-2 focus-visible:ring-ring/50",
+            "lg:w-12 lg:pl-0 lg:text-transparent lg:placeholder:text-transparent",
+            expanded &&
+              "lg:w-[300px] lg:rounded-none lg:border-b lg:border-foreground/40 lg:bg-transparent lg:pl-4 lg:text-foreground lg:shadow-none lg:placeholder:text-muted-foreground lg:focus-visible:ring-0",
+          )}
           onChange={(event) => {
             const nextQuery = event.target.value;
             const nextTrimmedQuery = nextQuery.trim();
 
             setQuery(nextQuery);
+            setExpanded(true);
 
             if (!nextTrimmedQuery) {
               if (debounceRef.current !== null) {
@@ -153,6 +210,7 @@ export function SearchBar({ className }: SearchBarProps) {
             }, 250);
           }}
           onFocus={() => {
+            setExpanded(true);
             if (trimmedQuery) setOpen(true);
           }}
         />
@@ -160,10 +218,10 @@ export function SearchBar({ className }: SearchBarProps) {
 
       {open && trimmedQuery && (
         <div
-          id="search-results"
+          id={resultsId}
           role="listbox"
           aria-label="Search results"
-          className="absolute top-[calc(100%+0.5rem)] right-0 left-0 z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-popover p-2 shadow-md"
+          className="absolute top-[calc(100%+0.5rem)] right-0 left-0 z-50 max-h-72 overflow-y-auto rounded-md border border-border bg-popover p-2 shadow-md lg:left-auto lg:w-[300px]"
         >
           {loading && (
             <p className="px-2 py-3 text-sm text-muted-foreground">

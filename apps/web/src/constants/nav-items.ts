@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Heart, Home, LayoutGrid, ShoppingBag } from "lucide-react";
+import { Home, LayoutGrid, ShoppingBag } from "lucide-react";
 
 import { publicRoutes } from "@/constants/routes";
 
