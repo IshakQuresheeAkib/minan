@@ -1,16 +1,24 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 
 import { Navbar } from "@/components/shared/navbar";
 import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
-const SLIDE_INTERVAL = 5000;
+const SLIDE_INTERVAL = 2000;
 const ANIM_DURATION = 0.65;
+const DRAG_THRESHOLD = 56;
 
 const slides = [
   {
@@ -20,9 +28,11 @@ const slides = [
     body: "Discover our exclusive collection at unbeatable prices. Fresh styles, bold looks.",
     cta: "Shop Now",
     href: publicRoutes.products,
-    // Mobile card data
-    mobileLines: ["40%", "Off, Shop", "Fashion Now!"],
-    mobileVariant: "primary" as const,
+    imageSrc: "/hero/limited-offer.jfif",
+    imageAlt: "Golden fashion editorial look from MINAN",
+    accent: "from-[#ff724b]/35 via-[#f5b836]/20 to-background",
+    panel: "bg-[#f5b836]/30",
+    stat: "2k+ looks",
   },
   {
     id: "promo-new",
@@ -31,10 +41,15 @@ const slides = [
     body: "Be the first to explore styles fresh from our latest drops this week.",
     cta: "Explore",
     href: publicRoutes.products,
-    mobileLines: ["New", "Arrivals", "This Week"],
-    mobileVariant: "secondary" as const,
+    imageSrc: "/hero/new-arrivals.jpg",
+    imageAlt: "New season fashion arrivals styled for MINAN",
+    accent: "from-[#fed65b]/40 via-[#ff724b]/15 to-background",
+    panel: "bg-[#ff724b]/25",
+    stat: "Fresh drop",
   },
 ] as const;
+
+type Direction = "next" | "prev";
 
 export function HeroCarousel() {
   const [current, setCurrent] = useState(0);
@@ -42,21 +57,31 @@ export function HeroCarousel() {
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isAnimatingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dragRef = useRef({
+    pointerId: -1,
+    startX: 0,
+    currentX: 0,
+    isDragging: false,
+  });
 
-  // Initialise slides: first visible, rest hidden
   useEffect(() => {
-    slideRefs.current.forEach((el, i) => {
+    slideRefs.current.forEach((el, index) => {
       if (!el) return;
+
       gsap.set(el, {
-        opacity: i === 0 ? 1 : 0,
+        opacity: index === 0 ? 1 : 0,
         x: 0,
-        zIndex: i === 0 ? 10 : 0,
+        zIndex: index === 0 ? 10 : 0,
+      });
+      gsap.set(el.querySelectorAll(".hero-reveal"), {
+        y: index === 0 ? 0 : 22,
+        opacity: index === 0 ? 1 : 0,
       });
     });
   }, []);
 
   const goTo = useCallback(
-    (nextIndex: number, dir: "next" | "prev" = "next") => {
+    (nextIndex: number, direction: Direction = "next") => {
       if (isAnimatingRef.current) return;
       if (nextIndex === currentRef.current) return;
 
@@ -66,10 +91,13 @@ export function HeroCarousel() {
 
       isAnimatingRef.current = true;
 
-      const xOut = dir === "next" ? -70 : 70;
-      const xIn = dir === "next" ? 70 : -70;
+      const xOut = direction === "next" ? -70 : 70;
+      const xIn = direction === "next" ? 70 : -70;
+      const outgoingItems = outEl.querySelectorAll(".hero-reveal");
+      const incomingItems = inEl.querySelectorAll(".hero-reveal");
 
       gsap.set(inEl, { x: xIn, opacity: 0, zIndex: 10 });
+      gsap.set(incomingItems, { y: 26, opacity: 0 });
 
       gsap.to(outEl, {
         x: xOut,
@@ -79,15 +107,40 @@ export function HeroCarousel() {
         onComplete: () => gsap.set(outEl, { zIndex: 0 }),
       });
 
-      gsap.to(inEl, {
-        x: 0,
-        opacity: 1,
-        duration: ANIM_DURATION,
-        ease: "power2.inOut",
+      gsap.to(outgoingItems, {
+        y: direction === "next" ? -16 : 16,
+        opacity: 0,
+        duration: ANIM_DURATION * 0.45,
+        ease: "power2.out",
+      });
+
+      const tl = gsap.timeline({
         onComplete: () => {
+          gsap.set(outgoingItems, { y: 22, opacity: 0 });
           isAnimatingRef.current = false;
         },
       });
+
+      tl.to(
+        inEl,
+        {
+          x: 0,
+          opacity: 1,
+          duration: ANIM_DURATION,
+          ease: "power2.inOut",
+        },
+        0,
+      ).to(
+        incomingItems,
+        {
+          y: 0,
+          opacity: 1,
+          duration: ANIM_DURATION * 0.75,
+          ease: "power3.out",
+          stagger: 0.08,
+        },
+        0.18,
+      );
 
       currentRef.current = nextIndex;
       setCurrent(nextIndex);
@@ -97,92 +150,100 @@ export function HeroCarousel() {
 
   const resetInterval = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+
     intervalRef.current = setInterval(() => {
       const next = (currentRef.current + 1) % slides.length;
       goTo(next, "next");
     }, SLIDE_INTERVAL);
   }, [goTo]);
 
-  // Auto-slide
   useEffect(() => {
     resetInterval();
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [resetInterval]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     const prev = (currentRef.current - 1 + slides.length) % slides.length;
     goTo(prev, "prev");
     resetInterval();
-  };
+  }, [goTo, resetInterval]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     const next = (currentRef.current + 1) % slides.length;
     goTo(next, "next");
     resetInterval();
-  };
+  }, [goTo, resetInterval]);
 
   const handleDot = (index: number) => {
-    const dir = index > currentRef.current ? "next" : "prev";
-    goTo(index, dir);
+    const direction: Direction = index > currentRef.current ? "next" : "prev";
+    goTo(index, direction);
     resetInterval();
   };
 
-  return (
-    <section
-      aria-label="Promotions"
-      className="relative overflow-x-clip lg:overflow-visible"
-    >
-      <Navbar overlay />
-      {/* ── Mobile: horizontal scroll cards ── */}
-      <div className="mt-4 mb-12 w-full overflow-x-auto overscroll-x-contain px-4 hide-scrollbar lg:hidden">
-        <div className="flex min-w-max gap-4">
-          {slides.map((slide) => (
-            <article
-              key={slide.id}
-              className={cn(
-                "relative h-48 w-80 overflow-hidden rounded-3xl",
-                slide.mobileVariant === "primary"
-                  ? "bg-accent"
-                  : "bg-secondary/60",
-              )}
-            >
-              <div
-                className={cn(
-                  "absolute inset-0 z-10 flex w-2/3 flex-col justify-center p-6",
-                  slide.mobileVariant === "primary"
-                    ? "bg-linear-to-r from-accent/90 to-transparent"
-                    : "bg-linear-to-r from-secondary/80 to-transparent",
-                )}
-              >
-                {/* <h2 className="mb-2 font-display text-3xl font-bold leading-tight text-primary">
-                  {slide.mobileLines.map((line) => (
-                    <span key={line} className="block">
-                      {line}
-                    </span>
-                  ))}
-                </h2>
-                <Link
-                  href={slide.href}
-                  className="w-max cursor-pointer rounded-full bg-card px-4 py-2 text-sm font-semibold text-card-foreground transition-opacity hover:opacity-90"
-                >
-                  {slide.cta}
-                </Link> */}
-              </div>
-              <div
-                className="absolute right-0 top-0 h-full w-2/3 bg-muted"
-                aria-hidden="true"
-              />
-            </article>
-          ))}
-        </div>
-      </div>
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (
+      event.target instanceof Element &&
+      event.target.closest("a, button")
+    ) {
+      return;
+    }
 
-      {/* ── Desktop: full-screen GSAP carousel ── */}
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      currentX: event.clientX,
+      isDragging: true,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.isDragging) return;
+
+    dragRef.current.currentX = event.clientX;
+  };
+
+  const endDrag = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (
+        !dragRef.current.isDragging ||
+        dragRef.current.pointerId !== event.pointerId
+      ) {
+        return;
+      }
+
+      const distance = dragRef.current.currentX - dragRef.current.startX;
+      dragRef.current.isDragging = false;
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      if (Math.abs(distance) < DRAG_THRESHOLD) return;
+
+      if (distance < 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    },
+    [handleNext, handlePrev],
+  );
+
+  return (
+    <section aria-label="Promotions" className="relative overflow-hidden">
+      <Navbar overlay />
+
       <div
-        className="relative hidden w-full overflow-hidden lg:block"
-        style={{ height: "90svh" }}
+        className="relative h-[680px] min-h-[640px] w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing lg:h-[90svh]"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       >
         {slides.map((slide, index) => (
           <div
@@ -193,44 +254,42 @@ export function HeroCarousel() {
             className="absolute inset-0"
             aria-hidden={index !== current}
           >
-            {/* Background gradient layer */}
             <div
-              className={cn(
-                "absolute inset-0",
-                index === 0
-                  ? "bg-linear-to-br from-accent/35 via-primary/10 to-background"
-                  : "bg-linear-to-br from-secondary/40 via-accent/15 to-background",
-              )}
+              className={cn("absolute inset-0 bg-linear-to-br", slide.accent)}
             />
-
-            {/* Right decorative panel */}
-            <div className="absolute right-0 top-0 h-full w-[52%] overflow-hidden">
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
+            <div className="absolute right-0 top-0 hidden h-full w-[56%] overflow-hidden md:block">
               <div
                 className={cn(
-                  "h-full w-full",
-                  index === 0 ? "bg-accent/25" : "bg-secondary/25",
-                  "[clip-path:polygon(12%_0%,100%_0%,100%_100%,0%_100%)]",
+                  "h-full w-full [clip-path:polygon(12%_0%,100%_0%,100%_100%,0%_100%)]",
+                  slide.panel,
                 )}
               />
             </div>
 
-            {/* Placeholder image frame — swap src with Cloudinary URL */}
-            <div
-              aria-hidden="true"
-              className="absolute right-[6%] top-1/2 flex h-[68%] w-[36%] -translate-y-1/2 items-center justify-center overflow-hidden rounded-3xl border border-border/20 bg-muted/50 shadow-xl backdrop-blur-xs"
-            >
-              <span className="select-none font-display text-xs font-medium uppercase tracking-widest text-muted-foreground/30">
-                Hero Image
-              </span>
+            <div className="absolute inset-x-4 top-6 h-[300px] overflow-hidden rounded-[2rem] border border-white/25 bg-muted shadow-2xl shadow-foreground/10 md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
+              <Image
+                src={slide.imageSrc}
+                alt={slide.imageAlt}
+                fill
+                priority={index === 0}
+                sizes="(min-width: 1024px) 38vw, (min-width: 768px) 42vw, 100vw"
+                className="object-cover"
+                draggable={false}
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-black/35 via-transparent to-white/10" />
+              <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-white/30 bg-background/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground shadow-lg backdrop-blur-md">
+                <Sparkles className="size-3.5 text-primary" aria-hidden="true" />
+                {slide.stat}
+              </div>
             </div>
 
-            {/* Text content */}
-            <div className="absolute inset-0 flex items-center lg:pt-20">
-              <div className="mx-auto w-full max-w-7xl px-16">
+            <div className="absolute inset-x-0 bottom-24 top-[350px] flex items-start md:inset-0 md:items-center md:pb-0 md:pt-20">
+              <div className="mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
                 <div className="max-w-xl">
                   <span
                     className={cn(
-                      "mb-5 inline-block rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest",
+                      "hero-reveal mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md md:mb-5",
                       index === 0
                         ? "border border-primary/30 bg-primary/10 text-primary"
                         : "border border-secondary-foreground/20 bg-secondary/30 text-secondary-foreground",
@@ -238,20 +297,20 @@ export function HeroCarousel() {
                   >
                     {slide.tag}
                   </span>
-                  <h2 className="mb-5 font-display text-[clamp(3.5rem,6vw,5.5rem)] font-bold leading-[0.95] tracking-tight text-foreground">
+                  <h2 className="hero-reveal mb-4 font-display text-[clamp(3.1rem,10vw,5.5rem)] font-bold leading-[0.92] text-foreground md:mb-5 md:text-[clamp(3.5rem,6vw,5.5rem)]">
                     {slide.heading.map((line) => (
                       <span key={line} className="block">
                         {line}
                       </span>
                     ))}
                   </h2>
-                  <p className="mb-9 max-w-md text-base leading-relaxed text-muted-foreground">
+                  <p className="hero-reveal mb-6 max-w-md text-sm leading-relaxed text-muted-foreground md:mb-9 md:text-base">
                     {slide.body}
                   </p>
                   <Link
                     href={slide.href}
                     className={cn(
-                      "inline-flex cursor-pointer items-center gap-2 rounded-full px-8 py-4 text-sm font-bold tracking-wide transition-all duration-200 hover:shadow-lg",
+                      "hero-reveal inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg md:px-8 md:py-4",
                       index === 0
                         ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/25"
                         : "bg-secondary-foreground text-secondary hover:bg-secondary-foreground/90 hover:shadow-foreground/10",
@@ -266,29 +325,26 @@ export function HeroCarousel() {
           </div>
         ))}
 
-        {/* Left arrow */}
         <button
           type="button"
           onClick={handlePrev}
           aria-label="Previous slide"
-          className="absolute left-6 top-1/2 z-20 flex size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-card/75 text-foreground shadow-md backdrop-blur-sm transition-all hover:bg-card hover:shadow-lg"
+          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:left-6"
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </button>
 
-        {/* Right arrow */}
         <button
           type="button"
           onClick={handleNext}
           aria-label="Next slide"
-          className="absolute right-6 top-1/2 z-20 flex size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-card/75 text-foreground shadow-md backdrop-blur-sm transition-all hover:bg-card hover:shadow-lg"
+          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:right-6"
         >
           <ChevronRight className="size-5" aria-hidden="true" />
         </button>
 
-        {/* Dot navigation */}
         <div
-          className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2"
+          className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/35 bg-background/65 px-3 py-2 shadow-lg shadow-foreground/5 backdrop-blur-md"
           role="group"
           aria-label="Slide navigation"
         >
@@ -300,12 +356,21 @@ export function HeroCarousel() {
               aria-label={`Go to slide ${index + 1}`}
               aria-current={index === current ? "true" : undefined}
               className={cn(
-                "cursor-pointer rounded-full transition-all duration-300",
+                "relative h-2.5 cursor-pointer overflow-hidden rounded-full transition-all duration-300",
                 index === current
-                  ? "h-2.5 w-8 bg-primary"
-                  : "size-2.5 bg-foreground/20 hover:bg-foreground/40",
+                  ? "w-10 bg-foreground/15"
+                  : "w-2.5 bg-foreground/20 hover:bg-foreground/40",
               )}
-            />
+            >
+              <span
+                className={cn(
+                  "absolute inset-y-0 left-0 rounded-full bg-primary",
+                  index === current
+                    ? "animate-[hero-dot-progress_2s_linear_forwards]"
+                    : "w-0",
+                )}
+              />
+            </button>
           ))}
         </div>
       </div>

@@ -105,3 +105,13 @@
     scrollbar-width: none;
   }
 }
+
+@keyframes hero-dot-progress {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
+}
