@@ -1,10 +1,9 @@
 "use client";
 
 import { CheckCircle2, ShoppingBag } from "lucide-react";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { LeadForm } from "@/features/checkout/components/LeadForm";
 import type { CartSnapshot } from "@/features/checkout/types";
@@ -50,9 +49,11 @@ export function CheckoutClient() {
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           MINAN will contact you to confirm availability, delivery, and payment.
         </p>
-        <Button className="mt-6" asChild>
-          <Link href={publicRoutes.products}>Continue shopping</Link>
-        </Button>
+        <Button
+          className="mt-6"
+          href={publicRoutes.products}
+          text="Continue shopping"
+        />
       </section>
     );
   }
@@ -102,9 +103,7 @@ export function CheckoutClient() {
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           Add products to your cart before sharing delivery details.
         </p>
-        <Button className="mt-6" asChild>
-          <Link href={publicRoutes.products}>Browse products</Link>
-        </Button>
+        <Button className="mt-6" href={publicRoutes.products} text="Browse products" />
       </section>
     );
   }

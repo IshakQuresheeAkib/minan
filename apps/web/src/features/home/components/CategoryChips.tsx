@@ -110,10 +110,10 @@ export function CategoryChips({
                 type="button"
                 onClick={() => onChipChange(chip)}
                 className={cn(
-                  "shrink-0 cursor-pointer whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold tracking-wide transition-colors duration-200",
+                  "shrink-0 cursor-pointer whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold tracking-wide transition-colors duration-300",
                   isActive
                     ? "bg-foreground text-primary"
-                    : "border border-primary text-foreground shadow-md shadow-primary/30 hover:border-foreground hover:text-foreground",
+                    : "border border-primary text-foreground shadow-md shadow-primary/30 hover:bg-foreground hover:text-primary hover:shadow-primary/70",
                 )}
               >
                 {chip}

@@ -12,6 +12,7 @@ import {
   type FormEvent,
 } from "react";
 
+import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import type { Product } from "@/features/products/schemas/product.schema";
 import { getProducts } from "@/features/products/services/product.service";
@@ -150,16 +151,18 @@ export function SearchBar({ className }: SearchBarProps) {
         <Search
           className={cn(
             "pointer-events-none absolute top-1/2 right-4 z-2 size-5 -translate-y-1/2 transition-colors duration-200",
-            expanded ? "text-foreground" : "text-primary-foreground",
+            expanded ? "text-primary" : "text-primary",
           )}
           aria-hidden="true"
         />
-        <button
+        <Button
           type="submit"
           aria-label={
             trimmedQuery ? "Submit product search" : "Open product search"
           }
-          className="absolute top-0 right-0 z-3 flex size-12 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          variant="secondary"
+          size="icon"
+          className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-primary shadow-none hover:bg-transparent hover:text-primary hover:shadow-none focus-visible:ring-2 focus-visible:ring-ring/60"
           onClick={() => {
             if (!trimmedQuery) {
               expandAndFocus();
@@ -180,9 +183,9 @@ export function SearchBar({ className }: SearchBarProps) {
           aria-controls={resultsId}
           autoComplete="off"
           className={cn(
-            "h-12 w-12 rounded-full border-0 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-ring/50",
+            "h-12 w-12 rounded-full border-0 bg-foreground pr-12 pl-0 text-base text-transparent shadow-inner outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-ring/50",
             expanded &&
-              "w-full rounded-full border border-primary/70 bg-transparent pl-2 text-foreground placeholder:text-muted-foreground focus-visible:ring-0",
+              "w-full rounded-full pl-2.5 text-primary/80 placeholder:text-primary/80 focus-visible:ring-0",
           )}
           onChange={(event) => {
             const nextQuery = event.target.value;

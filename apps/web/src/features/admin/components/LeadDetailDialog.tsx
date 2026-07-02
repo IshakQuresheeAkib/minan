@@ -10,7 +10,7 @@ import {
   type AdminLeadUpdateInput,
 } from "@/features/admin/schemas/admin.schemas";
 import type { AdminLead } from "@/features/admin/types";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,

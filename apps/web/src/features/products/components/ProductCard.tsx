@@ -4,6 +4,8 @@ import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { Button } from "@/components/ui/Button";
+
 export type ProductCardData = {
   slug: string;
   name: string;
@@ -50,13 +52,15 @@ export function ProductCard({ product }: ProductCardProps) {
             aria-hidden="true"
           />
         )}
-        <Link
+        <Button
           href={productHref}
-          className="absolute right-2 bottom-2 z-10 flex cursor-pointer items-center gap-1 rounded-full bg-card/90 px-3 py-1.5 text-xs font-semibold text-card-foreground shadow-sm backdrop-blur-sm transition-opacity hover:opacity-90"
-        >
-          <ShoppingBag className="size-4 text-primary" aria-hidden="true" />
-          Shop
-        </Link>
+          size="sm"
+          className="absolute right-2 bottom-2 z-10 border-0 bg-primary/70 px-3 py-1.5 text-xs text-foreground shadow-sm backdrop-blur-sm hover:translate-y-0 hover:bg-primary/80 hover:text-foreground hover:shadow-sm"
+          leftIcon={
+            <ShoppingBag className="size-4 text-foreground" aria-hidden="true" />
+          }
+          text="Shop"
+        />
       </div>
       <div>
         <h3 className="mb-1 truncate text-sm font-semibold text-foreground">

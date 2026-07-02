@@ -45,9 +45,9 @@ export function SizeColorSelector({
                   aria-pressed={isActive}
                   onClick={() => onSizeChange(size)}
                   className={cn(
-                    "flex size-[52px] items-center justify-center rounded-full text-sm transition-transform active:scale-95",
+                    "flex size-[52px] items-center justify-center rounded-full text-sm transition-transform active:scale-95 shadow-inner shadow-primary/70",
                     isActive
-                      ? "bg-primary font-semibold text-primary-foreground shadow-[0_4px_12px_rgba(151,72,34,0.3)]"
+                      ? "bg-foreground font-semibold text-primary"
                       : "bg-card font-medium text-foreground shadow-sm",
                   )}
                 >

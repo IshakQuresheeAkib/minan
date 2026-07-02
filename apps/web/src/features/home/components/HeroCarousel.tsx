@@ -3,7 +3,6 @@
 import gsap from "gsap";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -13,6 +12,7 @@ import {
 } from "react";
 
 import { Navbar } from "@/components/shared/navbar";
+import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
@@ -307,15 +307,13 @@ export function HeroCarousel() {
                   <p className="hero-reveal mb-6 max-w-md text-sm leading-relaxed text-muted-foreground md:mb-9 md:text-base">
                     {slide.body}
                   </p>
-                  <Link
+                  <Button
                     href={slide.href}
-                    className={cn(
-                      "hero-reveal inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg md:px-8 md:py-4 bg-secondary-foreground text-secondary hover:bg-secondary-foreground/90 hover:shadow-foreground/10",
-                    )}
-                  >
-                    {slide.cta}
-                    <ChevronRight className="size-4" aria-hidden="true" />
-                  </Link>
+                    text={slide.cta}
+                    rightIcon={
+                      <ChevronRight className="size-4" aria-hidden="true" />
+                    }
+                  />
                 </div>
               </div>
             </div>

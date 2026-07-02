@@ -5,12 +5,43 @@ import type {
   UploadSignature,
 } from "@/features/admin/types";
 
+export type AdminProductStatusFilter = "all" | "active" | "inactive";
+
+type FetchAdminProductsOptions = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
+  status?: AdminProductStatusFilter;
+};
+
 export async function fetchAdminProducts(
   accessToken: string,
-  page = 1,
+  options: FetchAdminProductsOptions = {},
 ): Promise<PaginatedResponse<AdminProduct>> {
+  const params = new URLSearchParams();
+  const page = options.page ?? 1;
+
+  params.set("page", String(page));
+
+  if (options.limit !== undefined) {
+    params.set("limit", String(options.limit));
+  }
+
+  if (options.search?.trim()) {
+    params.set("search", options.search.trim());
+  }
+
+  if (options.categoryId?.trim()) {
+    params.set("category_id", options.categoryId.trim());
+  }
+
+  if (options.status && options.status !== "all") {
+    params.set("status", options.status);
+  }
+
   return apiRequest<PaginatedResponse<AdminProduct>>(
-    `/api/admin/products?page=${page}&limit=20`,
+    `/api/admin/products?${params.toString()}`,
     { accessToken },
   );
 }

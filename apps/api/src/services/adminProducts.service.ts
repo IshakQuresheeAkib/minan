@@ -12,6 +12,30 @@ import type {
 import type { ProductListResponse } from "../types/product.types.js";
 import { serializeProduct } from "../utils/serializeProduct.js";
 
+export type AdminProductStatusFilter = "all" | "active" | "inactive";
+
+type AdminProductFilterOptions = {
+  search?: string;
+  categoryId?: string;
+  status?: AdminProductStatusFilter;
+};
+
+type SearchCondition = {
+  name?: { $regex: string; $options: "i" };
+  description?: { $regex: string; $options: "i" };
+  slug?: { $regex: string; $options: "i" };
+};
+
+type ProductFilter = {
+  is_active?: boolean;
+  category_id?: Types.ObjectId;
+  $or?: SearchCondition[];
+};
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function ensureCategoryExists(categoryId: string): Promise<void> {
   if (!Types.ObjectId.isValid(categoryId)) {
     throw new AppError("Invalid category id", 400);
@@ -53,14 +77,52 @@ export async function listAdminProducts(options: {
   page: number;
   limit: number;
   skip: number;
+  filters?: AdminProductFilterOptions;
 }): Promise<ProductListResponse & { page: number; limit: number }> {
+  const filter: ProductFilter = {};
+  const status = options.filters?.status ?? "all";
+
+  if (status === "active") {
+    filter.is_active = true;
+  }
+
+  if (status === "inactive") {
+    filter.is_active = false;
+  }
+
+  const search = options.filters?.search?.trim();
+  if (search) {
+    const escapedSearch = escapeRegex(search);
+    filter.$or = [
+      { name: { $regex: escapedSearch, $options: "i" } },
+      { description: { $regex: escapedSearch, $options: "i" } },
+      { slug: { $regex: escapedSearch, $options: "i" } },
+    ];
+  }
+
+  const categoryId = options.filters?.categoryId;
+  if (categoryId) {
+    const category = await Category.findById(categoryId).select("_id");
+
+    if (!category) {
+      return {
+        data: [],
+        total: 0,
+        page: options.page,
+        limit: options.limit,
+      };
+    }
+
+    filter.category_id = category._id;
+  }
+
   const [products, total] = await Promise.all([
-    Product.find()
+    Product.find(filter)
       .populate("category_id")
       .sort({ createdAt: -1 })
       .skip(options.skip)
       .limit(options.limit),
-    Product.countDocuments(),
+    Product.countDocuments(filter),
   ]);
 
   return {

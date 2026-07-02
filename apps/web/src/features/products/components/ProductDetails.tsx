@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import type { ProductCardData } from "@/features/products/components/ProductCard";
 import { ProductBreadcrumbs } from "@/features/products/components/ProductBreadcrumbs";
@@ -220,35 +220,36 @@ export function ProductDetails({
                   Quantity
                 </span>
                 <div className="flex h-12 items-center gap-3 rounded-full border border-border bg-card px-2">
-                  <button
+                  <Button
                     type="button"
                     aria-label="Decrease quantity"
                     disabled={quantity <= 1}
                     onClick={() =>
                       setQuantity((current) => Math.max(1, current - 1))
                     }
-                    className="flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-muted disabled:opacity-40"
-                  >
-                    <Minus className="size-4" aria-hidden="true" />
-                  </button>
+                    variant="secondary"
+                    size="icon"
+                    className="size-9 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none disabled:opacity-40"
+                    icon={<Minus className="size-4" aria-hidden="true" />}
+                  />
                   <span className="w-4 text-center text-base font-semibold">
                     {quantity}
                   </span>
-                  <button
+                  <Button
                     type="button"
                     aria-label="Increase quantity"
                     onClick={() => setQuantity((current) => current + 1)}
-                    className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
-                  >
-                    <Plus className="size-4" aria-hidden="true" />
-                  </button>
+                    size="icon"
+                    className="size-9 bg-primary p-0 text-primary-foreground shadow-none hover:translate-y-0 hover:bg-primary/90 hover:text-primary-foreground hover:shadow-md active:scale-95"
+                    icon={<Plus className="size-4" aria-hidden="true" />}
+                  />
                 </div>
               </div>
 
               <div className="mt-6 hidden lg:block">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   className="h-12 w-full cursor-pointer rounded-full"
                   onClick={handleWhatsAppOrder}
                 >
@@ -288,7 +289,7 @@ export function ProductDetails({
       <footer className="fixed inset-x-0 bottom-0 z-50 flex flex-col gap-3 bg-background/80 px-4 pb-8 pt-4 backdrop-blur-md lg:hidden">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           className="h-11 w-full cursor-pointer rounded-full"
           onClick={handleWhatsAppOrder}
         >
@@ -298,35 +299,35 @@ export function ProductDetails({
 
         <div className="flex items-center gap-4">
           <div className="flex h-14 items-center gap-3 rounded-full border border-black/5 bg-card px-2 shadow-sm">
-            <button
+            <Button
               type="button"
               aria-label="Decrease quantity"
               disabled={quantity <= 1}
               onClick={() => setQuantity((current) => Math.max(1, current - 1))}
-              className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors active:bg-muted disabled:opacity-40"
-            >
-              <Minus className="size-4" aria-hidden="true" />
-            </button>
+              variant="secondary"
+              size="icon"
+              className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none active:bg-muted disabled:opacity-40"
+              icon={<Minus className="size-4" aria-hidden="true" />}
+            />
             <span className="w-4 text-center text-[17px] font-semibold">
               {quantity}
             </span>
-            <button
+            <Button
               type="button"
               aria-label="Increase quantity"
               onClick={() => setQuantity((current) => current + 1)}
-              className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform active:scale-95"
-            >
-              <Plus className="size-4" aria-hidden="true" />
-            </button>
+              size="icon"
+              className="size-10 bg-primary p-0 text-primary-foreground shadow-md hover:translate-y-0 hover:bg-primary/90 hover:text-primary-foreground hover:shadow-md active:scale-95"
+              icon={<Plus className="size-4" aria-hidden="true" />}
+            />
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={handleAddToCart}
-            className="h-14 flex-1 rounded-full bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_8px_20px_rgba(151,72,34,0.25)] transition-transform active:scale-95"
-          >
-            Add to Cart
-          </button>
+            className="h-14 flex-1 bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_8px_20px_rgba(151,72,34,0.25)] hover:translate-y-0 hover:bg-primary/90 hover:text-primary-foreground hover:shadow-[0_8px_20px_rgba(151,72,34,0.25)] active:scale-95"
+            text="Add to Cart"
+          />
         </div>
       </footer>
 

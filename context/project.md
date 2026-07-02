@@ -347,7 +347,7 @@ There is no public `GET /api/categories` route. Public category navigation curre
 | GET    | `/api/admin/leads`                     | premium           | List leads |
 | GET    | `/api/admin/leads/:id`                 | premium           | Get single lead |
 | PATCH  | `/api/admin/leads/:id`                 | premium           | Update lead status + notes |
-| GET    | `/api/admin/products`                  | premium           | List all products, including inactive |
+| GET    | `/api/admin/products`                  | premium           | List all products, including inactive. Query params: `search`, `category_id`, `status`, `page`, `limit` |
 | POST   | `/api/admin/products`                  | premium           | Create product |
 | PATCH  | `/api/admin/products/:id`              | premium           | Update product, including `is_active: true` reactivation |
 | PATCH  | `/api/admin/products/:id/deactivate`   | premium           | Soft delete |

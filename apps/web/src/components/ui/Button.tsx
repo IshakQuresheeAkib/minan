@@ -1,49 +1,177 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import type { ComponentProps } from "react";
+import { Loader2 } from "lucide-react";
+import Link, { type LinkProps } from "next/link";
+import type {
+  ButtonHTMLAttributes,
+  ComponentProps,
+  ComponentPropsWithoutRef,
+  MouseEventHandler,
+  ReactNode,
+} from "react";
 
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+  "hero-reveal inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full border border-primary text-sm font-bold tracking-wide disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive: "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20",
-        outline: "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        primary:
+          "bg-foreground text-primary shadow-md shadow-primary/50 transition-all duration-200 hover:-translate-y-0.5 hover:bg-secondary-foreground/90 hover:text-background hover:shadow-xl hover:shadow-primary/60",
+        secondary:
+          "text-foreground shadow-md shadow-primary/30 transition-colors duration-300 hover:bg-foreground hover:text-primary hover:shadow-primary/70",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3",
-        lg: "h-10 rounded-md px-6",
-        icon: "size-9",
+        default: "px-7 py-3.5 md:px-8 md:py-4",
+        sm: "px-4 py-2 text-xs",
+        lg: "px-8 py-4 text-base",
+        icon: "size-10 p-0",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "primary",
       size: "default",
     },
   },
 );
 
-type ButtonProps = ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
+type IconPosition = "left" | "right";
+
+type ButtonBaseProps = VariantProps<typeof buttonVariants> & {
+  asChild?: boolean;
+  children?: ReactNode;
+  className?: string;
+  icon?: ReactNode;
+  iconPosition?: IconPosition;
+  leftIcon?: ReactNode;
+  loading?: boolean;
+  loadingText?: ReactNode;
+  rightIcon?: ReactNode;
+  text?: ReactNode;
+};
+
+type NativeButtonProps = ButtonBaseProps &
+  Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps> & {
+    href?: undefined;
   };
 
-function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
-  const Comp = asChild ? Slot : "button";
+type LinkButtonProps = ButtonBaseProps &
+  Omit<ComponentProps<typeof Link>, keyof ButtonBaseProps | "href"> & {
+    disabled?: boolean;
+    href: LinkProps["href"];
+  };
+
+type SlotButtonProps = ButtonBaseProps &
+  Omit<ComponentPropsWithoutRef<typeof Slot>, keyof ButtonBaseProps> & {
+    asChild: true;
+    disabled?: boolean;
+    href?: undefined;
+  };
+
+type ButtonProps = NativeButtonProps | LinkButtonProps | SlotButtonProps;
+
+function Button({
+  asChild = false,
+  children,
+  className,
+  disabled,
+  href,
+  icon,
+  iconPosition = "right",
+  leftIcon,
+  loading = false,
+  loadingText,
+  rightIcon,
+  size,
+  text,
+  variant,
+  ...props
+}: ButtonProps) {
+  const isDisabled = Boolean(disabled || loading);
+  const label = loading && loadingText ? loadingText : (text ?? children);
+  const startIcon =
+    loading ? (
+      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+    ) : (
+      leftIcon ?? (iconPosition === "left" ? icon : null)
+    );
+  const endIcon = loading
+    ? null
+    : (rightIcon ?? (iconPosition === "right" ? icon : null));
+  const buttonContent = (
+    <>
+      {startIcon}
+      {label}
+      {endIcon}
+    </>
+  );
+  const buttonClassName = cn(buttonVariants({ variant, size }), className);
+
+  if (asChild) {
+    const slotProps = props as Omit<
+      SlotButtonProps,
+      keyof ButtonBaseProps | "asChild" | "disabled" | "href"
+    >;
+
+    return (
+      <Slot
+        {...slotProps}
+        data-slot="button"
+        aria-disabled={isDisabled || undefined}
+        data-disabled={isDisabled || undefined}
+        className={buttonClassName}
+      >
+        {children}
+      </Slot>
+    );
+  }
+
+  if (href) {
+    const { onClick, ...linkProps } = props as Omit<
+      LinkButtonProps,
+      keyof ButtonBaseProps | "disabled" | "href"
+    >;
+    const handleClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
+      if (isDisabled) {
+        event.preventDefault();
+        return;
+      }
+
+      onClick?.(event);
+    };
+
+    return (
+      <Link
+        {...linkProps}
+        data-slot="button"
+        href={href}
+        aria-disabled={isDisabled || undefined}
+        data-disabled={isDisabled || undefined}
+        tabIndex={isDisabled ? -1 : linkProps.tabIndex}
+        className={buttonClassName}
+        onClick={handleClick}
+      >
+        {buttonContent}
+      </Link>
+    );
+  }
+
+  const { type = "button", ...buttonProps } = props as Omit<
+    NativeButtonProps,
+    keyof ButtonBaseProps | "href"
+  >;
 
   return (
-    <Comp
+    <button
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
+      className={buttonClassName}
+      disabled={isDisabled}
+      type={type}
+      {...buttonProps}
+    >
+      {buttonContent}
+    </button>
   );
 }
 

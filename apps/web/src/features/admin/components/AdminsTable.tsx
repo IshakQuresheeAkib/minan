@@ -8,7 +8,7 @@ import {
 } from "@/features/admin/actions/admins.actions";
 import type { AdminUser } from "@/features/admin/types";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Table,
   TableBody,
@@ -123,7 +123,7 @@ export function AdminsTable({
                       <Button
                         type="button"
                         size="sm"
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => onEdit(admin)}
                       >
                         Edit
@@ -132,7 +132,8 @@ export function AdminsTable({
                         <Button
                           type="button"
                           size="sm"
-                          variant="destructive"
+                          variant="secondary"
+                          className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-white hover:shadow-destructive/40"
                           disabled={isSelf}
                           onClick={() => {
                             void handleDeactivate(admin);
