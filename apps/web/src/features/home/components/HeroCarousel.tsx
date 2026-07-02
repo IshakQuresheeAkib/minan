@@ -130,10 +130,13 @@ export function HeroCarousel() {
   };
 
   return (
-    <section aria-label="Promotions" className="relative">
+    <section
+      aria-label="Promotions"
+      className="relative overflow-x-clip lg:overflow-visible"
+    >
       <Navbar overlay />
       {/* ── Mobile: horizontal scroll cards ── */}
-      <div className="-mx-4 mb-12 overflow-x-auto px-4 lg:hidden hide-scrollbar">
+      <div className="mt-4 mb-12 w-full overflow-x-auto overscroll-x-contain px-4 hide-scrollbar lg:hidden">
         <div className="flex min-w-max gap-4">
           {slides.map((slide) => (
             <article
@@ -153,7 +156,7 @@ export function HeroCarousel() {
                     : "bg-linear-to-r from-secondary/80 to-transparent",
                 )}
               >
-                <h2 className="mb-2 font-display text-3xl font-bold leading-tight text-primary">
+                {/* <h2 className="mb-2 font-display text-3xl font-bold leading-tight text-primary">
                   {slide.mobileLines.map((line) => (
                     <span key={line} className="block">
                       {line}
@@ -165,7 +168,7 @@ export function HeroCarousel() {
                   className="w-max cursor-pointer rounded-full bg-card px-4 py-2 text-sm font-semibold text-card-foreground transition-opacity hover:opacity-90"
                 >
                   {slide.cta}
-                </Link>
+                </Link> */}
               </div>
               <div
                 className="absolute right-0 top-0 h-full w-2/3 bg-muted"
