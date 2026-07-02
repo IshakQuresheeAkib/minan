@@ -9,7 +9,6 @@ const colorSwatchMap: Record<string, string> = {
   Navy: "bg-primary",
   Red: "bg-destructive",
   Gold: "bg-secondary",
-  Beige: "bg-accent",
   "Sky Blue": "bg-primary",
 };
 

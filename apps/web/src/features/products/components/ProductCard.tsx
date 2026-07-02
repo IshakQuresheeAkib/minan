@@ -17,7 +17,6 @@ export type ProductCardData = {
 type ProductColorClass =
   | "bg-primary"
   | "bg-secondary"
-  | "bg-accent"
   | "bg-muted-foreground"
   | "bg-foreground"
 

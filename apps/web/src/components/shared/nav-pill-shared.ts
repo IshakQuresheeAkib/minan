@@ -66,18 +66,18 @@ export type NavPillVariant = "overlay" | "default";
 export const NAV_PILL_VARIANT_STYLES = {
   overlay: {
     shell:
-      "bg-white/5 border-accent/10 shadow-2xl shadow-accent/40 backdrop-blur-md",
-    hoverIndicator: "bg-accent/40",
-    activeIndicator: "bg-accent text-black",
+      "bg-background/5 border-primary/10 shadow-md shadow-primary/20 backdrop-blur-md",
+    hoverIndicator: "bg-primary/40",
+    activeIndicator: "bg-primary text-black",
     disabledLink: "text-background/35",
     linkActive: "text-foreground",
     linkInactive: "text-background/90 hover:text-background",
   },
   default: {
     shell:
-      "bg-background/95 border-border/50 shadow-md shadow-accent/20 backdrop-blur-md",
-    hoverIndicator: "bg-accent/35",
-    activeIndicator: "bg-accent",
+      "bg-background/5 border-border/50 shadow-md shadow-primary/20 backdrop-blur-md",
+    hoverIndicator: "bg-primary/35",
+    activeIndicator: "bg-primary",
     disabledLink: "text-muted-foreground/45",
     linkActive: "text-foreground",
     linkInactive: "text-foreground/80 hover:text-foreground",

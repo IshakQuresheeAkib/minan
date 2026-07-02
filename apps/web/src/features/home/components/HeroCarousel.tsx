@@ -310,11 +310,7 @@ export function HeroCarousel() {
                   <Link
                     href={slide.href}
                     className={cn(
-                      "hero-reveal inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg md:px-8 md:py-4",
-                      index === 0
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/25"
-                        : "bg-secondary-foreground text-secondary hover:bg-secondary-foreground/90 hover:shadow-foreground/10",
-                    )}
+                      "hero-reveal inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg md:px-8 md:py-4 bg-secondary-foreground text-secondary hover:bg-secondary-foreground/90 hover:shadow-foreground/10")}
                   >
                     {slide.cta}
                     <ChevronRight className="size-4" aria-hidden="true" />

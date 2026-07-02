@@ -112,8 +112,8 @@ export function CategoryChips({
                 className={cn(
                   "shrink-0 cursor-pointer whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold tracking-wide transition-colors duration-200",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border text-muted-foreground hover:border-primary hover:text-foreground",
+                    ? "bg-foreground text-primary"
+                    : "border border-primary text-foreground shadow-md shadow-primary/30 hover:border-foreground hover:text-foreground",
                 )}
               >
                 {chip}
