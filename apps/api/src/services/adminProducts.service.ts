@@ -110,6 +110,7 @@ export async function listAdminProducts(options: {
         total: 0,
         page: options.page,
         limit: options.limit,
+        hasMore: false,
       };
     }
 
@@ -130,6 +131,7 @@ export async function listAdminProducts(options: {
     total,
     page: options.page,
     limit: options.limit,
+    hasMore: options.page * options.limit < total,
   };
 }
 

@@ -2,14 +2,26 @@ import type { Types } from "mongoose";
 
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
+import type { ProductFilterOptionsResponse } from "../types/product.types.js";
 import { serializeProduct } from "../utils/serializeProduct.js";
 
+export type ProductSortOption =
+  | "newest"
+  | "price-asc"
+  | "price-desc"
+  | "name-asc";
+
 export type ListProductsOptions = {
-  categorySlug?: string;
+  categorySlugs?: string[];
   search?: string;
   page?: number;
   limit?: number;
   excludeSlug?: string;
+  colors?: string[];
+  sizes?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: ProductSortOption;
 };
 
 type SearchCondition = {
@@ -20,33 +32,84 @@ type SearchCondition = {
 
 type ProductFilter = {
   is_active: boolean;
-  category_id?: Types.ObjectId;
+  category_id?: Types.ObjectId | { $in: Types.ObjectId[] };
   slug?: { $ne: string };
+  colors?: { $in: string[] };
+  sizes?: { $in: string[] };
+  price?: {
+    $gte?: number;
+    $lte?: number;
+  };
   $or?: SearchCondition[];
+};
+
+type ProductSort = {
+  createdAt?: 1 | -1;
+  price?: 1 | -1;
+  name?: 1 | -1;
 };
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function getSort(sort: ProductSortOption | undefined): ProductSort {
+  if (sort === "price-asc") {
+    return { price: 1 };
+  }
+
+  if (sort === "price-desc") {
+    return { price: -1 };
+  }
+
+  if (sort === "name-asc") {
+    return { name: 1 };
+  }
+
+  return { createdAt: -1 };
+}
+
 export async function listProducts(options: ListProductsOptions = {}) {
   const filter: ProductFilter = { is_active: true };
 
-  if (options.categorySlug) {
-    const category = await Category.findOne({
-      slug: options.categorySlug,
+  if (options.categorySlugs && options.categorySlugs.length > 0) {
+    const categories = await Category.find({
+      slug: { $in: options.categorySlugs },
       is_active: true,
     }).select("_id");
 
-    if (!category) {
-      return { data: [], total: 0 };
+    if (categories.length === 0) {
+      const page = Math.max(1, options.page ?? 1);
+      const limit = Math.max(0, options.limit ?? 0);
+
+      return { data: [], total: 0, page, limit, hasMore: false };
     }
 
-    filter.category_id = category._id;
+    filter.category_id = { $in: categories.map((category) => category._id) };
   }
 
   if (options.excludeSlug) {
     filter.slug = { $ne: options.excludeSlug };
+  }
+
+  if (options.colors && options.colors.length > 0) {
+    filter.colors = { $in: options.colors };
+  }
+
+  if (options.sizes && options.sizes.length > 0) {
+    filter.sizes = { $in: options.sizes };
+  }
+
+  if (options.minPrice !== undefined || options.maxPrice !== undefined) {
+    filter.price = {};
+
+    if (options.minPrice !== undefined) {
+      filter.price.$gte = options.minPrice;
+    }
+
+    if (options.maxPrice !== undefined) {
+      filter.price.$lte = options.maxPrice;
+    }
   }
 
   const search = options.search?.trim();
@@ -61,10 +124,10 @@ export async function listProducts(options: ListProductsOptions = {}) {
 
   let query = Product.find(filter)
     .populate("category_id")
-    .sort({ createdAt: -1 });
+    .sort(getSort(options.sort));
 
+  const page = Math.max(1, options.page ?? 1);
   if (options.limit !== undefined && options.limit >= 1) {
-    const page = Math.max(1, options.page ?? 1);
     query = query.skip((page - 1) * options.limit).limit(options.limit);
   }
 
@@ -73,12 +136,52 @@ export async function listProducts(options: ListProductsOptions = {}) {
     Product.countDocuments(filter),
   ]);
 
+  const limit = options.limit ?? total;
+
   return {
     data: products.map(serializeProduct),
     total,
+    page,
+    limit,
+    hasMore: page * limit < total,
   };
 }
 
 export async function getProductBySlug(slug: string) {
   return Product.findOne({ slug, is_active: true }).populate("category_id");
+}
+
+export async function getProductFilterOptions(): Promise<ProductFilterOptionsResponse> {
+  const [categories, colors, sizes, priceRange] = await Promise.all([
+    Category.find({ is_active: true }).sort({ name: 1 }).select("name slug"),
+    Product.distinct("colors", { is_active: true }),
+    Product.distinct("sizes", { is_active: true }),
+    Product.aggregate<{ min: number; max: number }>([
+      { $match: { is_active: true } },
+      {
+        $group: {
+          _id: null,
+          min: { $min: "$price" },
+          max: { $max: "$price" },
+        },
+      },
+    ]),
+  ]);
+
+  const price = priceRange[0] ?? { min: 0, max: 0 };
+
+  return {
+    data: {
+      categories: categories.map((category) => ({
+        name: category.name,
+        slug: category.slug,
+      })),
+      colors: colors.sort((first, second) => first.localeCompare(second)),
+      sizes: sizes.sort((first, second) => first.localeCompare(second)),
+      price: {
+        min: price.min,
+        max: price.max,
+      },
+    },
+  };
 }
