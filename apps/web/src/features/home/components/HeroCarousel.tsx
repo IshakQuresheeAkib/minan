@@ -16,7 +16,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
-const SLIDE_INTERVAL = 2000;
+const SLIDE_INTERVAL = 4000;
 const ANIM_DURATION = 0.65;
 const DRAG_THRESHOLD = 56;
 
@@ -185,10 +185,7 @@ export function HeroCarousel() {
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    if (
-      event.target instanceof Element &&
-      event.target.closest("a, button")
-    ) {
+    if (event.target instanceof Element && event.target.closest("a, button")) {
       return;
     }
 
@@ -279,7 +276,10 @@ export function HeroCarousel() {
               />
               <div className="absolute inset-0 bg-linear-to-t from-black/35 via-transparent to-white/10" />
               <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-white/30 bg-background/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground shadow-lg backdrop-blur-md">
-                <Sparkles className="size-3.5 text-primary" aria-hidden="true" />
+                <Sparkles
+                  className="size-3.5 text-primary"
+                  aria-hidden="true"
+                />
                 {slide.stat}
               </div>
             </div>
@@ -310,7 +310,8 @@ export function HeroCarousel() {
                   <Link
                     href={slide.href}
                     className={cn(
-                      "hero-reveal inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg md:px-8 md:py-4 bg-secondary-foreground text-secondary hover:bg-secondary-foreground/90 hover:shadow-foreground/10")}
+                      "hero-reveal inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg md:px-8 md:py-4 bg-secondary-foreground text-secondary hover:bg-secondary-foreground/90 hover:shadow-foreground/10",
+                    )}
                   >
                     {slide.cta}
                     <ChevronRight className="size-4" aria-hidden="true" />
@@ -362,7 +363,7 @@ export function HeroCarousel() {
                 className={cn(
                   "absolute inset-y-0 left-0 rounded-full bg-primary",
                   index === current
-                    ? "animate-[hero-dot-progress_2s_linear_forwards]"
+                    ? "animate-[hero-dot-progress_4s_linear_forwards]"
                     : "w-0",
                 )}
               />

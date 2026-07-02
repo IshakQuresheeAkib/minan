@@ -42,9 +42,7 @@ function buildWhatsAppMessage(payload: WhatsappClickPayload): string {
   return lines.join("\n");
 }
 
-export async function openWhatsAppOrder(
-  payload: WhatsappClickPayload,
-): Promise<void> {
+export function openWhatsAppOrder(payload: WhatsappClickPayload): void {
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 
   if (!whatsappNumber) {
@@ -52,29 +50,36 @@ export async function openWhatsAppOrder(
     return;
   }
 
-  const eventId = crypto.randomUUID();
-  const sessionId = getSessionId();
-  const utm = getUtmParams();
-
-  trackWhatsappLead(eventId, {
-    content_name: payload.productName,
-    content_ids: payload.productId ? [payload.productId] : undefined,
-  });
-
-  await apiRequest("/api/whatsapp-click", {
-    method: "POST",
-    body: {
-      event_id: eventId,
-      session_id: sessionId,
-      product_id: payload.productId,
-      category_id: payload.categoryId,
-      ...utm,
-    },
-  });
-
   const phone = formatWhatsAppNumber(whatsappNumber);
   const message = buildWhatsAppMessage(payload);
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
   window.open(url, "_blank", "noopener,noreferrer");
+
+  try {
+    const eventId = crypto.randomUUID();
+    const sessionId = getSessionId();
+    const utm = getUtmParams();
+
+    trackWhatsappLead(eventId, {
+      content_name: payload.productName,
+      content_ids: payload.productId ? [payload.productId] : undefined,
+    });
+
+    void apiRequest("/api/whatsapp-click", {
+      method: "POST",
+      keepalive: true,
+      body: {
+        event_id: eventId,
+        session_id: sessionId,
+        product_id: payload.productId,
+        category_id: payload.categoryId,
+        ...utm,
+      },
+    }).catch((error: unknown) => {
+      console.error("Failed to track WhatsApp click", error);
+    });
+  } catch (error) {
+    console.error("Failed to track WhatsApp click", error);
+  }
 }
