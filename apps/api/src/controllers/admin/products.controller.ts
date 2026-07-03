@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { Types } from "mongoose";
 
 import { parseBody } from "../../lib/parseBody.js";
 import { parsePagination } from "../../lib/pagination.js";
@@ -10,12 +11,32 @@ import {
   createAdminProduct,
   deactivateAdminProduct,
   listAdminProducts,
+  type AdminProductStatusFilter,
   updateAdminProduct,
 } from "../../services/adminProducts.service.js";
 
 function getIdParam(req: Request): string {
   const id = req.params.id;
   return Array.isArray(id) ? (id[0] ?? "") : (id ?? "");
+}
+
+function getQueryParam(req: Request, key: string): string | undefined {
+  const value = req.query[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function parseStatusFilter(
+  status: string | undefined,
+): AdminProductStatusFilter | null {
+  if (status === undefined || status === "") {
+    return "all";
+  }
+
+  if (status === "all" || status === "active" || status === "inactive") {
+    return status;
+  }
+
+  return null;
 }
 
 export async function listAdminProductsHandler(
@@ -25,7 +46,30 @@ export async function listAdminProductsHandler(
 ): Promise<void> {
   try {
     const pagination = parsePagination(req.query);
-    const result = await listAdminProducts(pagination);
+    const search = getQueryParam(req, "search")?.trim();
+    const categoryId = getQueryParam(req, "category_id")?.trim();
+    const status = parseStatusFilter(getQueryParam(req, "status"));
+
+    if (!status) {
+      res
+        .status(400)
+        .json({ error: "status must be one of all, active, inactive" });
+      return;
+    }
+
+    if (categoryId && !Types.ObjectId.isValid(categoryId)) {
+      res.status(400).json({ error: "category_id must be a valid ObjectId" });
+      return;
+    }
+
+    const result = await listAdminProducts({
+      ...pagination,
+      filters: {
+        search,
+        categoryId,
+        status,
+      },
+    });
     res.json(result);
   } catch (error) {
     next(error);

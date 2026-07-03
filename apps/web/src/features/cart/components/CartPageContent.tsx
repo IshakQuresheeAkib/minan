@@ -2,10 +2,9 @@
 
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useMemo } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { useCartStore } from "@/store/cart.store";
 
@@ -15,6 +14,7 @@ function formatCurrency(value: number): string {
 
 export function CartPageContent() {
   const items = useCartStore((state) => state.items);
+  const hasHydrated = useCartStore((state) => state.hasHydrated);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
 
@@ -22,6 +22,38 @@ export function CartPageContent() {
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [items],
   );
+
+  if (!hasHydrated) {
+    return (
+      <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
+        <div>
+          <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
+          <div className="mt-6 grid gap-4">
+            {[0, 1].map((item) => (
+              <div
+                key={item}
+                className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-card p-3 shadow-sm sm:grid-cols-[104px_1fr_auto]"
+              >
+                <div className="aspect-square animate-pulse rounded-md bg-muted" />
+                <div className="space-y-3 py-1">
+                  <div className="h-5 w-3/4 animate-pulse rounded-md bg-muted" />
+                  <div className="h-4 w-32 animate-pulse rounded-md bg-muted" />
+                  <div className="h-4 w-24 animate-pulse rounded-md bg-muted" />
+                </div>
+                <div className="col-span-2 h-10 animate-pulse rounded-md bg-muted sm:col-span-1 sm:w-28" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <aside className="h-fit rounded-lg border bg-card p-5 shadow-sm">
+          <div className="h-6 w-36 animate-pulse rounded-md bg-muted" />
+          <div className="mt-5 h-4 w-full animate-pulse rounded-md bg-muted" />
+          <div className="mt-5 h-11 w-full animate-pulse rounded-md bg-muted" />
+        </aside>
+      </section>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -35,9 +67,7 @@ export function CartPageContent() {
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           Add your preferred items before starting checkout.
         </p>
-        <Button className="mt-6" asChild>
-          <Link href={publicRoutes.products}>Browse products</Link>
-        </Button>
+        <Button className="mt-6" href={publicRoutes.products} text="Browse products" />
       </section>
     );
   }
@@ -78,30 +108,32 @@ export function CartPageContent() {
 
               <div className="col-span-2 flex items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end">
                 <div className="flex h-10 items-center rounded-md border bg-background">
-                  <button
+                  <Button
                     type="button"
                     aria-label={`Decrease ${item.name} quantity`}
-                    className="flex size-10 items-center justify-center disabled:opacity-40"
+                    variant="secondary"
+                    size="icon"
+                    className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none disabled:opacity-40"
                     disabled={item.quantity <= 1}
                     onClick={() =>
                       updateQuantity(item.lineId, item.quantity - 1)
                     }
-                  >
-                    <Minus className="size-4" aria-hidden="true" />
-                  </button>
+                    icon={<Minus className="size-4" aria-hidden="true" />}
+                  />
                   <span className="w-8 text-center text-sm font-semibold">
                     {item.quantity}
                   </span>
-                  <button
+                  <Button
                     type="button"
                     aria-label={`Increase ${item.name} quantity`}
-                    className="flex size-10 items-center justify-center"
+                    variant="secondary"
+                    size="icon"
+                    className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none"
                     onClick={() =>
                       updateQuantity(item.lineId, item.quantity + 1)
                     }
-                  >
-                    <Plus className="size-4" aria-hidden="true" />
-                  </button>
+                    icon={<Plus className="size-4" aria-hidden="true" />}
+                  />
                 </div>
 
                 <button
@@ -128,9 +160,11 @@ export function CartPageContent() {
           <span>Total</span>
           <span>{formatCurrency(total)}</span>
         </div>
-        <Button className="mt-5 h-11 w-full" asChild>
-          <Link href={publicRoutes.checkout}>Proceed to checkout</Link>
-        </Button>
+        <Button
+          className="mt-5 h-11 w-full"
+          href={publicRoutes.checkout}
+          text="Proceed to checkout"
+        />
       </aside>
     </section>
   );

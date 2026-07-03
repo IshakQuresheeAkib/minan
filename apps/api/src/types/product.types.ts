@@ -22,10 +22,25 @@ export type ProductResponse = {
 export type ProductListResponse = {
   data: ProductResponse[];
   total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 };
 
 export type ProductDetailResponse = {
   data: ProductResponse;
+};
+
+export type ProductFilterOptionsResponse = {
+  data: {
+    categories: ProductCategorySummary[];
+    colors: string[];
+    sizes: string[];
+    price: {
+      min: number;
+      max: number;
+    };
+  };
 };
 
 export type ApiErrorResponse = {

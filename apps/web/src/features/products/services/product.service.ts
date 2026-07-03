@@ -10,24 +10,74 @@ import { z } from "zod";
 const productListSchema = z.object({
   data: z.array(productSchema),
   total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  hasMore: z.boolean(),
 });
 
-type GetProductsOptions = {
-  category?: string;
+const productFilterOptionsSchema = z.object({
+  data: z.object({
+    categories: z.array(
+      z.object({
+        name: z.string().min(1),
+        slug: z.string().min(1),
+      }),
+    ),
+    colors: z.array(z.string()),
+    sizes: z.array(z.string()),
+    price: z.object({
+      min: z.number(),
+      max: z.number(),
+    }),
+  }),
+});
+
+export type ProductSortOption =
+  | "newest"
+  | "price-asc"
+  | "price-desc"
+  | "name-asc";
+
+export type ProductFilterOptions = z.infer<
+  typeof productFilterOptionsSchema
+>["data"];
+
+export type GetProductsOptions = {
+  category?: string | readonly string[];
   search?: string;
   page?: number;
   limit?: number;
   exclude?: string;
+  colors?: readonly string[];
+  sizes?: readonly string[];
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: ProductSortOption;
 };
+
+function appendValues(
+  params: URLSearchParams,
+  key: string,
+  value: string | readonly string[] | undefined,
+): void {
+  if (!value) {
+    return;
+  }
+
+  const values = Array.isArray(value) ? value : [value];
+
+  values
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => params.append(key, item));
+}
 
 export async function getProducts(
   options: GetProductsOptions = {},
 ): Promise<ApiList<Product>> {
   const params = new URLSearchParams();
 
-  if (options.category) {
-    params.set("category", options.category);
-  }
+  appendValues(params, "category", options.category);
 
   if (options.search) {
     params.set("search", options.search);
@@ -45,11 +95,33 @@ export async function getProducts(
     params.set("exclude", options.exclude);
   }
 
+  appendValues(params, "color", options.colors);
+  appendValues(params, "size", options.sizes);
+
+  if (options.minPrice !== undefined) {
+    params.set("minPrice", String(options.minPrice));
+  }
+
+  if (options.maxPrice !== undefined) {
+    params.set("maxPrice", String(options.maxPrice));
+  }
+
+  if (options.sort) {
+    params.set("sort", options.sort);
+  }
+
   const query = params.toString();
   const path = query ? `/api/products?${query}` : "/api/products";
 
   const response = await apiRequest<ApiList<Product>>(path);
   return productListSchema.parse(response);
+}
+
+export async function getProductFilterOptions(): Promise<ProductFilterOptions> {
+  const response = await apiRequest<z.infer<typeof productFilterOptionsSchema>>(
+    "/api/products/filters",
+  );
+  return productFilterOptionsSchema.parse(response).data;
 }
 
 const colorClassMap: Record<string, ProductCardData["colors"][number]> = {
@@ -98,6 +170,7 @@ export function mapProductToCard(product: Product): ProductCardData {
     name: product.name,
     description: product.description,
     price: product.price,
+    imageUrl: product.images[0],
     colors: product.colors.map(
       (color) => colorClassMap[color] ?? "bg-muted-foreground",
     ),

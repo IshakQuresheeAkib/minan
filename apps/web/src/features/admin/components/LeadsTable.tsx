@@ -3,7 +3,7 @@
 import type { AdminLead } from "@/features/admin/types";
 import { TablePagination } from "@/features/admin/components/TablePagination";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Table,
   TableBody,
@@ -89,7 +89,7 @@ export function LeadsTable({
                     <Button
                       type="button"
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       onClick={() => onView(lead)}
                     >
                       View

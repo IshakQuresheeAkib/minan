@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { loginAdmin } from "@/features/admin/actions/auth.actions";
 import {
   loginSchema,

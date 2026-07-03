@@ -1,10 +1,9 @@
 "use client";
 
 import { CheckCircle2, ShoppingBag } from "lucide-react";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { LeadForm } from "@/features/checkout/components/LeadForm";
 import type { CartSnapshot } from "@/features/checkout/types";
@@ -16,6 +15,7 @@ function formatCurrency(value: number): string {
 
 export function CheckoutClient() {
   const items = useCartStore((state) => state.items);
+  const hasHydrated = useCartStore((state) => state.hasHydrated);
   const clearCart = useCartStore((state) => state.clearCart);
   const [submitted, setSubmitted] = useState(false);
 
@@ -49,9 +49,44 @@ export function CheckoutClient() {
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           MINAN will contact you to confirm availability, delivery, and payment.
         </p>
-        <Button className="mt-6" asChild>
-          <Link href={publicRoutes.products}>Continue shopping</Link>
-        </Button>
+        <Button
+          className="mt-6"
+          href={publicRoutes.products}
+          text="Continue shopping"
+        />
+      </section>
+    );
+  }
+
+  if (!hasHydrated) {
+    return (
+      <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
+        <div>
+          <div className="h-9 w-36 animate-pulse rounded-md bg-muted" />
+          <div className="mt-3 h-5 w-full max-w-xl animate-pulse rounded-md bg-muted" />
+          <div className="mt-8 grid gap-5">
+            {[0, 1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-12 animate-pulse rounded-md bg-muted"
+              />
+            ))}
+            <div className="h-28 animate-pulse rounded-md bg-muted" />
+          </div>
+        </div>
+
+        <aside className="h-fit rounded-lg border bg-card p-5 shadow-sm">
+          <div className="h-6 w-36 animate-pulse rounded-md bg-muted" />
+          <div className="mt-5 grid gap-4">
+            {[0, 1].map((item) => (
+              <div key={item} className="flex justify-between gap-4">
+                <div className="h-10 flex-1 animate-pulse rounded-md bg-muted" />
+                <div className="h-5 w-20 animate-pulse rounded-md bg-muted" />
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 h-5 w-full animate-pulse rounded-md bg-muted" />
+        </aside>
       </section>
     );
   }
@@ -68,9 +103,7 @@ export function CheckoutClient() {
         <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           Add products to your cart before sharing delivery details.
         </p>
-        <Button className="mt-6" asChild>
-          <Link href={publicRoutes.products}>Browse products</Link>
-        </Button>
+        <Button className="mt-6" href={publicRoutes.products} text="Browse products" />
       </section>
     );
   }

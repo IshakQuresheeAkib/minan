@@ -8,7 +8,7 @@ import {
 } from "@/features/admin/actions/categories.actions";
 import type { AdminCategory } from "@/features/admin/types";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Table,
   TableBody,
@@ -110,7 +110,7 @@ export function CategoriesTable({
                     <Button
                       type="button"
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       onClick={() => onEdit(category)}
                     >
                       Edit
@@ -119,7 +119,8 @@ export function CategoriesTable({
                       <Button
                         type="button"
                         size="sm"
-                        variant="destructive"
+                        variant="secondary"
+                        className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-white hover:shadow-destructive/40"
                         onClick={() => {
                           void handleDeactivate(category);
                         }}

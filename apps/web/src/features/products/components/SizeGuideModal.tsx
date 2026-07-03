@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 
 const sizeChart = [
   { size: "S", chest: "86–91 cm", length: "66 cm", shoulder: "42 cm" },
@@ -23,8 +23,8 @@ export function SizeGuideModal() {
       <DialogTrigger asChild>
         <Button
           type="button"
-          variant="link"
-          className="h-auto p-0 text-sm font-semibold text-primary"
+          variant="secondary"
+          className="h-auto border-0 bg-transparent p-0 text-sm font-semibold text-primary shadow-none hover:bg-transparent hover:text-primary hover:shadow-none"
         >
           Size guide
         </Button>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { getVisibleAdminLinks } from "@/constants/admin-nav";
 import { adminRoutes, publicRoutes } from "@/constants/routes";
 import { logoutAdmin } from "@/features/admin/actions/auth.actions";
@@ -92,7 +92,7 @@ export function AdminShell({ children }: AdminShellProps) {
                 }}
                 size="sm"
                 type="button"
-                variant="outline"
+                variant="secondary"
                 className="hidden lg:inline-flex"
               >
                 {loggingOut ? "Signing out..." : "Logout"}

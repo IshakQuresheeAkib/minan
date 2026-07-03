@@ -40,6 +40,7 @@ function redirectToDashboard(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("access_token")?.value;
+  const refreshToken = request.cookies.get("refresh_token")?.value;
   const secret = process.env.JWT_ACCESS_SECRET;
 
   if (pathname === loginPath) {
@@ -59,6 +60,10 @@ export async function proxy(request: NextRequest) {
       // Invalid or expired token — show login page
     }
 
+    return NextResponse.next();
+  }
+
+  if ((!token || !secret) && refreshToken) {
     return NextResponse.next();
   }
 
@@ -85,6 +90,10 @@ export async function proxy(request: NextRequest) {
     response.headers.set("x-minan-admin-role", role);
     return response;
   } catch {
+    if (refreshToken) {
+      return NextResponse.next();
+    }
+
     return redirectToLogin(request);
   }
 }

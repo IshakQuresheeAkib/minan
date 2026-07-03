@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { fetchUploadSignature } from "@/features/admin/actions/products.actions";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { uploadImageToCloudinary } from "@/lib/cloudinary/upload";
 import { ApiError } from "@/lib/api/client";
 
@@ -96,8 +96,8 @@ export function ImageUploader({
             <Button
               type="button"
               size="sm"
-              variant="destructive"
-              className="absolute top-1 right-1 h-6 px-2 text-xs"
+              variant="secondary"
+              className="absolute top-1 right-1 h-6 border-destructive px-2 text-xs text-destructive shadow-destructive/20 hover:bg-destructive hover:text-white hover:shadow-destructive/40"
               onClick={() => removeImage(index)}
             >
               Remove
@@ -119,7 +119,7 @@ export function ImageUploader({
         />
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
         >

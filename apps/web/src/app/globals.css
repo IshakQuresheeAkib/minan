@@ -39,7 +39,7 @@
   --foreground: #1b1c1c;
   --primary: #f5b836;
   --secondary: #fed65b;
-  --accent: #ffb597;
+  --accent: #ff724bf1;
   --destructive: #ba1a1a;
   --muted: #f0eded;
   --border: #dbc1b8;
@@ -103,5 +103,15 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+@keyframes hero-dot-progress {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
   }
 }

@@ -2,86 +2,58 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
-import { primaryNavItems } from "@/constants/nav-items";
+import { NavPill } from "@/components/shared/NavPill";
 import { publicRoutes } from "@/constants/routes";
 import { SearchBar } from "@/features/home/components/SearchBar";
 import { cn } from "@/lib/utils";
 
-export function Navbar() {
-  const pathname = usePathname();
-  const isHome = pathname === publicRoutes.home;
+type NavbarProps = {
+  overlay?: boolean;
+};
 
+export function Navbar({ overlay = false }: NavbarProps) {
   return (
-    <header
-      className={cn(
-        "flex h-20 w-full items-center justify-between px-4 pt-2 lg:h-20 lg:px-10",
-        isHome
-          ? "border-b border-border/60 bg-background lg:absolute lg:inset-x-0 lg:top-0 lg:z-50 lg:border-b-0 lg:bg-transparent"
-          : "border-b border-border/60 bg-background",
-      )}
-    >
-      <div className="flex w-full items-center gap-3 lg:grid lg:grid-cols-[auto_minmax(360px,1fr)_minmax(260px,340px)] lg:gap-8">
-        <Link
-          href={publicRoutes.home}
-          aria-label="MINAN — go to homepage"
-          className="shrink-0 transition-opacity duration-200 hover:opacity-85"
-        >
-          <Image
-            src="/logo.png"
-            alt="MINAN"
-            width={364}
-            height={353}
-            priority
-            className="h-20 w-auto lg:h-10"
-          />
-        </Link>
+    <>
+      {overlay ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 z-40 hidden h-[150px] bg-linear-to-b from-black/50 via-black/30 to-transparent lg:block"
+        />
+      ) : null}
+      <header
+        className={cn(
+          "flex w-full items-center justify-between px-4 py-2 lg:px-10",
+          overlay
+            ? "relative z-50 border-b border-border/60 bg-background lg:absolute lg:inset-x-0 lg:top-0 lg:border-b-0 lg:bg-transparent"
+            : "relative border-b border-border/60 bg-background",
+        )}
+      >
+        <div className="grid w-full grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 lg:grid-cols-[auto_minmax(360px,1fr)_300px] lg:gap-8">
+          <Link
+            href={publicRoutes.home}
+            aria-label="MINAN — go to homepage"
+            className="w-fit shrink-0 transition-opacity duration-200 hover:opacity-85"
+          >
+            <Image
+              src="/logo.png"
+              alt="MINAN"
+              width={364}
+              height={353}
+              priority
+              className="h-16 w-auto"
+            />
+          </Link>
 
-        <nav
-          aria-label="Main navigation"
-          className="hidden items-center justify-center gap-6 lg:flex"
-        >
-          {primaryNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.href ? pathname === item.href : false;
+          <div className="hidden justify-center lg:flex">
+            <NavPill variant={overlay ? "overlay" : "default"} />
+          </div>
 
-            if (item.disabled || !item.href) {
-              return (
-                <span
-                  key={item.id}
-                  aria-disabled="true"
-                  className="flex cursor-not-allowed items-center gap-1.5 text-sm font-semibold tracking-wide text-foreground/35"
-                >
-                  <Icon className="size-4" aria-hidden="true" />
-                  {item.label}
-                </span>
-              );
-            }
-
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "relative flex items-center gap-1.5 text-sm font-semibold tracking-wide transition-colors duration-200 after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-200",
-                  isActive
-                    ? "text-primary after:scale-x-100"
-                    : "text-foreground/65 hover:text-foreground",
-                )}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="min-w-0 w-fit flex-1 lg:flex lg:justify-end">
-          <SearchBar />
+          <div className="w-full min-w-0 justify-self-end lg:flex lg:w-[300px] lg:justify-end">
+            <SearchBar />
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }

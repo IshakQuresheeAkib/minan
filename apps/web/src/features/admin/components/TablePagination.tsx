@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 
 type TablePaginationProps = {
   page: number;
@@ -32,7 +32,7 @@ export function TablePagination({
         <div className="flex items-center gap-1">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => onPageChange(page - 1)}
             disabled={disabled || page <= 1}
@@ -46,7 +46,7 @@ export function TablePagination({
           </span>
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => onPageChange(page + 1)}
             disabled={disabled || page >= totalPages}

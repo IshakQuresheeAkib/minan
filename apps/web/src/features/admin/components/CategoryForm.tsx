@@ -15,7 +15,7 @@ import {
   type AdminCategoryFormInput,
 } from "@/features/admin/schemas/admin.schemas";
 import type { AdminCategory } from "@/features/admin/types";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Dialog,
   DialogContent,

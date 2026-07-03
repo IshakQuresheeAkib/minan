@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Sheet,
   SheetClose,
@@ -45,9 +45,9 @@ export function AdminMobileNav({
       <SheetTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
+          variant="secondary"
           size="icon"
-          className="shrink-0 lg:hidden"
+          className="shrink-0 border-0 bg-transparent text-foreground shadow-none hover:bg-secondary hover:text-secondary-foreground hover:shadow-none lg:hidden"
           aria-label="Open admin navigation menu"
         >
           <Menu className="size-5" aria-hidden="true" />
@@ -110,19 +110,20 @@ export function AdminMobileNav({
                 Home
               </Link>
             </SheetClose>
-            <button
+            <Button
               type="button"
               disabled={loggingOut}
               onClick={handleLogout}
+              variant="secondary"
               className={cn(
-                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "w-full justify-start rounded-md border-0 bg-transparent px-3 py-2 text-sm font-medium shadow-none",
                 "text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground",
-                "disabled:pointer-events-none disabled:opacity-50",
+                "hover:shadow-none disabled:pointer-events-none disabled:opacity-50",
               )}
+              leftIcon={<LogOut className="size-4 shrink-0" aria-hidden="true" />}
             >
-              <LogOut className="size-4 shrink-0" aria-hidden="true" />
               {loggingOut ? "Signing out..." : "Logout"}
-            </button>
+            </Button>
           </div>
         </nav>
       </SheetContent>

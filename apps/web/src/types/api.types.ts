@@ -5,4 +5,7 @@ export type ApiSuccess<TData> = {
 export type ApiList<TItem> = {
   data: TItem[];
   total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 };
