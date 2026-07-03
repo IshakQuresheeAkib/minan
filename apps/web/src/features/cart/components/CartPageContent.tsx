@@ -64,10 +64,14 @@ export function CartPageContent() {
         <h1 className="mt-5 text-2xl font-semibold tracking-normal">
           Your cart is empty
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        <p className="mt-2 max-w-md text-sm leading-6 text-foreground/70">
           Add your preferred items before starting checkout.
         </p>
-        <Button className="mt-6" href={publicRoutes.products} text="Browse products" />
+        <Button
+          className="mt-6"
+          href={publicRoutes.products}
+          text="Browse products"
+        />
       </section>
     );
   }
@@ -80,7 +84,7 @@ export function CartPageContent() {
           {items.map((item) => (
             <article
               key={item.lineId}
-              className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-card p-3 text-card-foreground shadow-sm sm:grid-cols-[104px_1fr_auto]"
+              className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-card p-3 text-foreground shadow-sm sm:grid-cols-[104px_1fr_auto]"
             >
               <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
                 {item.imageUrl ? (
@@ -98,7 +102,7 @@ export function CartPageContent() {
                 <h2 className="line-clamp-2 text-base font-semibold">
                   {item.name}
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-foreground/70">
                   {item.size} / {item.color}
                 </p>
                 <p className="mt-2 text-sm font-semibold">
@@ -139,7 +143,7 @@ export function CartPageContent() {
                 <button
                   type="button"
                   aria-label={`Remove ${item.name}`}
-                  className="flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+                  className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-muted hover:text-destructive"
                   onClick={() => removeItem(item.lineId)}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
@@ -150,10 +154,10 @@ export function CartPageContent() {
         </div>
       </div>
 
-      <aside className="h-fit rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
+      <aside className="h-fit rounded-lg border bg-card p-5 text-foreground shadow-sm">
         <h2 className="text-lg font-semibold">Order Summary</h2>
         <div className="mt-4 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Items</span>
+          <span className="text-foreground/70">Items</span>
           <span>{items.reduce((sum, item) => sum + item.quantity, 0)}</span>
         </div>
         <div className="mt-3 flex items-center justify-between border-t pt-4 text-base font-semibold">

@@ -69,7 +69,7 @@ export function CategoriesTable({
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Categories</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-foreground/70">
             Admin-managed categories. Public homepage chips remain static for
             now.
           </p>
@@ -80,9 +80,9 @@ export function CategoriesTable({
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading categories...</p>
+        <p className="text-sm text-foreground/70">Loading categories...</p>
       ) : categories.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No categories found.</p>
+        <p className="text-sm text-foreground/70">No categories found.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <Table>
@@ -120,7 +120,7 @@ export function CategoriesTable({
                         type="button"
                         size="sm"
                         variant="secondary"
-                        className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-white hover:shadow-destructive/40"
+                        className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
                         onClick={() => {
                           void handleDeactivate(category);
                         }}

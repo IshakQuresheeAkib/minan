@@ -10,9 +10,7 @@ type ProductGridProps = {
 export function ProductGrid({ products }: ProductGridProps) {
   if (products.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No products available yet.
-      </p>
+      <p className="text-sm text-foreground/70">No products available yet.</p>
     );
   }
   return (

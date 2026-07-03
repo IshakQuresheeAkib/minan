@@ -240,7 +240,7 @@ export function ProductDetails({
                     aria-label="Increase quantity"
                     onClick={() => setQuantity((current) => current + 1)}
                     size="icon"
-                    className="size-9 bg-primary p-0 text-primary-foreground shadow-none hover:translate-y-0 hover:bg-primary/90 hover:text-primary-foreground hover:shadow-md active:scale-95"
+                    className="size-9 bg-primary p-0 text-background shadow-none hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-md active:scale-95"
                     icon={<Plus className="size-4" aria-hidden="true" />}
                   />
                 </div>
@@ -298,7 +298,7 @@ export function ProductDetails({
         </Button>
 
         <div className="flex items-center gap-4">
-          <div className="flex h-14 items-center gap-3 rounded-full border border-black/5 bg-card px-2 shadow-sm">
+          <div className="flex h-14 items-center gap-3 rounded-full border border-foreground/5 bg-card px-2 shadow-sm">
             <Button
               type="button"
               aria-label="Decrease quantity"
@@ -317,7 +317,7 @@ export function ProductDetails({
               aria-label="Increase quantity"
               onClick={() => setQuantity((current) => current + 1)}
               size="icon"
-              className="size-10 bg-primary p-0 text-primary-foreground shadow-md hover:translate-y-0 hover:bg-primary/90 hover:text-primary-foreground hover:shadow-md active:scale-95"
+              className="size-10 bg-primary p-0 text-background shadow-md hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-md active:scale-95"
               icon={<Plus className="size-4" aria-hidden="true" />}
             />
           </div>
@@ -325,7 +325,7 @@ export function ProductDetails({
           <Button
             type="button"
             onClick={handleAddToCart}
-            className="h-14 flex-1 bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_8px_20px_rgba(151,72,34,0.25)] hover:translate-y-0 hover:bg-primary/90 hover:text-primary-foreground hover:shadow-[0_8px_20px_rgba(151,72,34,0.25)] active:scale-95"
+            className="h-14 flex-1 bg-primary text-[16px] font-semibold text-background shadow-[0_8px_20px_rgba(151,72,34,0.25)] hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-[0_8px_20px_rgba(151,72,34,0.25)] active:scale-95"
             text="Add to Cart"
           />
         </div>

@@ -28,7 +28,7 @@ const slides = [
     body: "Discover our exclusive collection at unbeatable prices. Fresh styles, bold looks.",
     cta: "Shop Now",
     href: publicRoutes.products,
-    imageSrc: "/hero/limited-offer.jfif",
+    imageSrc: "/hero/limited-offer.webp",
     imageAlt: "Golden fashion editorial look from MINAN",
     accent: "from-[#ff724b]/35 via-[#f5b836]/20 to-background",
     panel: "bg-[#f5b836]/30",
@@ -233,7 +233,7 @@ export function HeroCarousel() {
 
   return (
     <section aria-label="Promotions" className="relative overflow-hidden">
-      <Navbar overlay />
+      <Navbar />
 
       <div
         className="relative h-[680px] min-h-[640px] w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing lg:h-[90svh]"
@@ -242,89 +242,98 @@ export function HeroCarousel() {
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        {slides.map((slide, index) => (
-          <div
-            key={slide.id}
-            ref={(el) => {
-              slideRefs.current[index] = el;
-            }}
-            className="absolute inset-0"
-            aria-hidden={index !== current}
-          >
+        {slides.map((slide, index) => {
+          const isActive = index === current;
+
+          return (
             <div
-              className={cn("absolute inset-0 bg-linear-to-br", slide.accent)}
-            />
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
-            <div className="absolute right-0 top-0 hidden h-full w-[56%] overflow-hidden md:block">
+              key={slide.id}
+              ref={(el) => {
+                slideRefs.current[index] = el;
+              }}
+              className={cn(
+                "absolute inset-0",
+                !isActive && "pointer-events-none",
+              )}
+              aria-hidden={!isActive}
+              inert={!isActive ? true : undefined}
+            >
               <div
-                className={cn(
-                  "h-full w-full [clip-path:polygon(12%_0%,100%_0%,100%_100%,0%_100%)]",
-                  slide.panel,
-                )}
+                className={cn("absolute inset-0 bg-linear-to-br", slide.accent)}
               />
-            </div>
-
-            <div className="absolute inset-x-4 top-6 h-[300px] overflow-hidden rounded-[2rem] border border-white/25 bg-muted shadow-2xl shadow-foreground/10 md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
-              <Image
-                src={slide.imageSrc}
-                alt={slide.imageAlt}
-                fill
-                priority={index === 0}
-                sizes="(min-width: 1024px) 38vw, (min-width: 768px) 42vw, 100vw"
-                className="object-cover"
-                draggable={false}
-              />
-              <div className="absolute inset-0 bg-linear-to-t from-black/35 via-transparent to-white/10" />
-              <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-white/30 bg-background/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground shadow-lg backdrop-blur-md">
-                <Sparkles
-                  className="size-3.5 text-primary"
-                  aria-hidden="true"
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
+              <div className="absolute right-0 top-0 hidden h-full w-[56%] overflow-hidden md:block">
+                <div
+                  className={cn(
+                    "h-full w-full [clip-path:polygon(12%_0%,100%_0%,100%_100%,0%_100%)]",
+                    slide.panel,
+                  )}
                 />
-                {slide.stat}
               </div>
-            </div>
 
-            <div className="absolute inset-x-0 bottom-24 top-[350px] flex items-start md:inset-0 md:items-center md:pb-0 md:pt-20">
-              <div className="mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
-                <div className="max-w-xl">
-                  <span
-                    className={cn(
-                      "hero-reveal mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md md:mb-5",
-                      index === 0
-                        ? "border border-primary/30 bg-primary/10"
-                        : "border border-secondary-foreground/20 bg-secondary/30",
-                    )}
-                  >
-                    {slide.tag}
-                  </span>
-                  <h2 className="hero-reveal mb-4 font-display text-[clamp(3.1rem,10vw,5.5rem)] font-bold leading-[0.92] text-foreground md:mb-5 md:text-[clamp(3.5rem,6vw,5.5rem)]">
-                    {slide.heading.map((line) => (
-                      <span key={line} className="block">
-                        {line}
-                      </span>
-                    ))}
-                  </h2>
-                  <p className="hero-reveal mb-6 max-w-md text-sm leading-relaxed text-muted-foreground md:mb-9 md:text-base">
-                    {slide.body}
-                  </p>
-                  <Button
-                    href={slide.href}
-                    text={slide.cta}
-                    rightIcon={
-                      <ChevronRight className="size-4" aria-hidden="true" />
-                    }
+              <div className="absolute inset-x-4 top-6 h-[300px] overflow-hidden rounded-[2rem] border border-background/25 bg-muted shadow-2xl shadow-foreground/10 md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
+                <Image
+                  src={slide.imageSrc}
+                  alt={slide.imageAlt}
+                  fill
+                  priority={index === 0}
+                  sizes="(min-width: 1024px) 38vw, (min-width: 768px) 42vw, 100vw"
+                  className="object-cover object-[center_10%]"
+                  draggable={false}
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-foreground/35 via-transparent to-background/10" />
+                <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-background/30 bg-background/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground shadow-lg backdrop-blur-md">
+                  <Sparkles
+                    className="size-3.5 text-primary"
+                    aria-hidden="true"
                   />
+                  {slide.stat}
+                </div>
+              </div>
+
+              <div className="absolute inset-x-0 bottom-24 top-[350px] flex items-start md:inset-0 md:items-center md:pb-0 md:pt-20">
+                <div className="mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
+                  <div className="max-w-xl">
+                    <span
+                      className={cn(
+                        "hero-reveal mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md md:mb-5",
+                        index === 0
+                          ? "border border-primary/30 bg-primary/10"
+                          : "border border-foreground/20 bg-secondary/30",
+                      )}
+                    >
+                      {slide.tag}
+                    </span>
+                    <h2 className="hero-reveal mb-4 font-display text-[clamp(3.1rem,10vw,5.5rem)] font-bold leading-[0.92] text-foreground md:mb-5 md:text-[clamp(3.5rem,6vw,5.5rem)]">
+                      {slide.heading.map((line) => (
+                        <span key={line} className="block">
+                          {line}
+                        </span>
+                      ))}
+                    </h2>
+                    <p className="hero-reveal mb-6 max-w-md text-sm leading-relaxed text-foreground/70 md:mb-9 md:text-base">
+                      {slide.body}
+                    </p>
+                    <Button
+                      href={slide.href}
+                      text={slide.cta}
+                      tabIndex={isActive ? undefined : -1}
+                      rightIcon={
+                        <ChevronRight className="size-4" aria-hidden="true" />
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         <button
           type="button"
           onClick={handlePrev}
           aria-label="Previous slide"
-          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:left-6"
+          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:left-6"
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </button>
@@ -333,13 +342,13 @@ export function HeroCarousel() {
           type="button"
           onClick={handleNext}
           aria-label="Next slide"
-          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:right-6"
+          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:right-6"
         >
           <ChevronRight className="size-5" aria-hidden="true" />
         </button>
 
         <div
-          className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/35 bg-background/65 px-3 py-2 shadow-lg shadow-foreground/5 backdrop-blur-md"
+          className="absolute bottom-28 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-background/35 bg-background/65 px-3 py-2 shadow-lg shadow-foreground/5 backdrop-blur-md lg:bottom-8"
           role="group"
           aria-label="Slide navigation"
         >

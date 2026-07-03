@@ -52,7 +52,7 @@ export function ProductsSection({ category }: ProductsSectionProps) {
         <ProductGrid products={cardProducts} />
       )}
       {isPaginating && (
-        <p className="py-4 text-center text-sm text-muted-foreground">
+        <p className="py-4 text-center text-sm text-foreground/70">
           Loading products...
         </p>
       )}

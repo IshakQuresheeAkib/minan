@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Filter,
-  RotateCcw,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { Filter, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   startTransition,
@@ -95,6 +90,27 @@ function formatPrice(value: number) {
   return `BDT ${value.toLocaleString("en-BD")}`;
 }
 
+function normalizePriceRange(
+  minPrice: number | undefined,
+  maxPrice: number | undefined,
+) {
+  if (
+    minPrice !== undefined &&
+    maxPrice !== undefined &&
+    minPrice > maxPrice
+  ) {
+    return {
+      minPrice: maxPrice,
+      maxPrice: minPrice,
+    };
+  }
+
+  return {
+    minPrice,
+    maxPrice,
+  };
+}
+
 function isChecked(values: readonly string[], value: string) {
   return values.includes(value);
 }
@@ -108,24 +124,17 @@ export function ProductCatalog({
   const pathname = usePathname();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const {
-    products,
-    isLoading,
-    isRefreshing,
-    error,
-    loadMore,
-    hasMore,
-    total,
-  } = useProducts({
-    category: filters.categories,
-    colors: filters.colors,
-    sizes: filters.sizes,
-    minPrice: filters.minPrice,
-    maxPrice: filters.maxPrice,
-    search: filters.search,
-    sort: filters.sort,
-    initialData,
-  });
+  const { products, isLoading, isRefreshing, error, loadMore, hasMore, total } =
+    useProducts({
+      category: filters.categories,
+      colors: filters.colors,
+      sizes: filters.sizes,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      search: filters.search,
+      sort: filters.sort,
+      initialData,
+    });
 
   useEffect(() => {
     if (!hasMore) {
@@ -231,17 +240,18 @@ export function ProductCatalog({
 
     const minPrice = minPriceRaw ? Number(minPriceRaw) : undefined;
     const maxPrice = maxPriceRaw ? Number(maxPriceRaw) : undefined;
+    const normalizedRange = normalizePriceRange(
+      minPrice !== undefined && Number.isFinite(minPrice)
+        ? Math.max(0, minPrice)
+        : undefined,
+      maxPrice !== undefined && Number.isFinite(maxPrice)
+        ? Math.max(0, maxPrice)
+        : undefined,
+    );
 
     pushFilters({
       ...filters,
-      minPrice:
-        minPrice !== undefined && Number.isFinite(minPrice)
-          ? Math.max(0, minPrice)
-          : undefined,
-      maxPrice:
-        maxPrice !== undefined && Number.isFinite(maxPrice)
-          ? Math.max(0, maxPrice)
-          : undefined,
+      ...normalizedRange,
     });
   }
 
@@ -302,7 +312,7 @@ export function ProductCatalog({
             <p className="text-sm font-semibold text-foreground">
               {total.toLocaleString("en-BD")} result{total === 1 ? "" : "s"}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground/70">
               {activeFilterCount > 0
                 ? `${activeFilterCount} active refinement${
                     activeFilterCount === 1 ? "" : "s"
@@ -395,8 +405,14 @@ export function ProductCatalog({
             {(filters.minPrice !== undefined ||
               filters.maxPrice !== undefined) && (
               <FilterChip
-                label={`${filters.minPrice ? formatPrice(filters.minPrice) : "Any"} - ${
-                  filters.maxPrice ? formatPrice(filters.maxPrice) : "Any"
+                label={`${
+                  filters.minPrice !== undefined
+                    ? formatPrice(filters.minPrice)
+                    : "Any"
+                } - ${
+                  filters.maxPrice !== undefined
+                    ? formatPrice(filters.maxPrice)
+                    : "Any"
                 }`}
                 onRemove={clearPrice}
               />
@@ -432,7 +448,7 @@ export function ProductCatalog({
             <ProductGrid products={cards} />
           )}
           {isPaginating && (
-            <p className="py-5 text-center text-sm text-muted-foreground">
+            <p className="py-5 text-center text-sm text-foreground/70">
               Loading more pieces...
             </p>
           )}
@@ -473,7 +489,7 @@ function FilterPanel({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-foreground">Filters</h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-foreground/70">
             {formatPrice(priceRange.min)} - {formatPrice(priceRange.max)}
           </p>
         </div>
@@ -559,7 +575,7 @@ function FilterPanel({
         >
           <div className="grid grid-cols-2 gap-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-foreground/70">
                 Min
               </span>
               <Input
@@ -573,7 +589,7 @@ function FilterPanel({
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-foreground/70">
                 Max
               </span>
               <Input
@@ -670,7 +686,7 @@ function EmptyProductsState({ onReset }: { onReset: () => void }) {
       <h2 className="text-xl font-semibold text-foreground">
         No pieces match these filters
       </h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+      <p className="mt-2 max-w-md text-sm leading-6 text-foreground/70">
         Try widening the price range or removing a color, size, or category.
       </p>
       <Button

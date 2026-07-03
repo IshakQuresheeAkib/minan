@@ -71,7 +71,7 @@ export function AdminsTable({
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Admins</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-foreground/70">
             Create admin accounts and assign general or premium roles.
           </p>
         </div>
@@ -81,9 +81,9 @@ export function AdminsTable({
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading admins...</p>
+        <p className="text-sm text-foreground/70">Loading admins...</p>
       ) : admins.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No admins found.</p>
+        <p className="text-sm text-foreground/70">No admins found.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <Table>
@@ -104,7 +104,7 @@ export function AdminsTable({
                     <TableCell className="font-medium">
                       {admin.email}
                       {isSelf ? (
-                        <span className="ml-2 text-xs text-muted-foreground">
+                        <span className="ml-2 text-xs text-foreground/70">
                           (you)
                         </span>
                       ) : null}
@@ -133,7 +133,7 @@ export function AdminsTable({
                           type="button"
                           size="sm"
                           variant="secondary"
-                          className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-white hover:shadow-destructive/40"
+                          className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
                           disabled={isSelf}
                           onClick={() => {
                             void handleDeactivate(admin);

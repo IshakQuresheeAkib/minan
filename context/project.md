@@ -146,7 +146,7 @@ If refresh fails, the client clears Zustand and redirects to `/admin/login`.
 
 | Option        | Value                                            |
 | ------------- | ------------------------------------------------ |
-| `origin`      | `ALLOWED_ORIGIN`, production value `https://app.minan.com` |
+| `origin`      | `ALLOWED_ORIGINS`, production value `http://localhost:3000, https://minan-web.vercel.app` |
 | `credentials` | `true`                                           |
 
 Never use `*` for CORS origin.
@@ -512,7 +512,6 @@ Custom domains are required for production admin cookie auth.
 ### Frontend `.env.local`
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.minan.com
 API_PROXY_TARGET=https://api.minan.com
 JWT_ACCESS_SECRET=<same value as API>
 NEXT_PUBLIC_META_PIXEL_ID=
@@ -521,8 +520,7 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 ```
 
-- `NEXT_PUBLIC_API_URL` is used by `lib/api/client.ts`.
-- `API_PROXY_TARGET` is used by `next.config.ts` rewrites for `/api/:path*`.
+- `API_PROXY_TARGET` is used by `lib/api/client.ts`.
 - `JWT_ACCESS_SECRET` is required by `proxy.ts` to verify access-token cookies.
 
 ### Backend `.env`
@@ -531,7 +529,7 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 MONGODB_URI=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
-ALLOWED_ORIGIN=https://app.minan.com
+ALLOWED_ORIGINS=http://localhost:3000,https://minan-web.vercel.app
 META_CAPI_TOKEN=
 META_PIXEL_ID=
 CLOUDINARY_URL=

@@ -97,7 +97,7 @@ export function ImageUploader({
               type="button"
               size="sm"
               variant="secondary"
-              className="absolute top-1 right-1 h-6 border-destructive px-2 text-xs text-destructive shadow-destructive/20 hover:bg-destructive hover:text-white hover:shadow-destructive/40"
+              className="absolute top-1 right-1 h-6 border-destructive px-2 text-xs text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
               onClick={() => removeImage(index)}
             >
               Remove

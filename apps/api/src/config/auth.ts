@@ -10,15 +10,21 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
+function getCookieDomain(): string | undefined {
+  return process.env.AUTH_COOKIE_DOMAIN?.trim() || undefined;
+}
+
 export function getAuthCookieOptions(maxAgeMs: number): CookieOptions {
   if (isProduction()) {
+    const domain = getCookieDomain();
+
     return {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      domain: ".minan.com",
       path: "/",
       maxAge: maxAgeMs,
+      ...(domain ? { domain } : {}),
     };
   }
 

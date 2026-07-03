@@ -53,6 +53,27 @@ function getNumberParam(value: string | string[] | undefined) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
+function normalizePriceRange(
+  minPrice: number | undefined,
+  maxPrice: number | undefined,
+) {
+  if (
+    minPrice !== undefined &&
+    maxPrice !== undefined &&
+    minPrice > maxPrice
+  ) {
+    return {
+      minPrice: maxPrice,
+      maxPrice: minPrice,
+    };
+  }
+
+  return {
+    minPrice,
+    maxPrice,
+  };
+}
+
 function getSortParam(
   value: string | string[] | undefined,
 ): ProductSortOption {
@@ -75,8 +96,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const colors = getParamValues(params.color);
   const sizes = getParamValues(params.size);
   const search = getFirstParam(params.search)?.trim();
-  const minPrice = getNumberParam(params.minPrice);
-  const maxPrice = getNumberParam(params.maxPrice);
+  const { minPrice, maxPrice } = normalizePriceRange(
+    getNumberParam(params.minPrice),
+    getNumberParam(params.maxPrice),
+  );
   const sort = getSortParam(params.sort);
   const filters: ProductCatalogFilters = {
     categories,
@@ -108,7 +131,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         <h1 className="text-3xl font-semibold tracking-normal">
           {search ? `Search results for "${search}"` : "Products"}
         </h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+        <p className="max-w-2xl text-sm leading-6 text-foreground/70">
           {search
             ? "Browse matching pieces from the current MINAN collection."
             : "Premium daily wear selected for fast browsing and easy ordering."}

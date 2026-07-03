@@ -47,16 +47,16 @@ export function LeadsTable({
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold tracking-normal">Leads</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-foreground/70">
           Leads appear here once checkout submissions exist or data is seeded.
           An empty table is expected until then.
         </p>
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading leads...</p>
+        <p className="text-sm text-foreground/70">Loading leads...</p>
       ) : leads.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-foreground/70">
           No leads yet. Leads will show up after checkout submissions or manual
           seeding.
         </p>

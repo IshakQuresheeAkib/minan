@@ -86,22 +86,22 @@ function LeadDetailFields({
       <dl className="space-y-2 text-sm">
         <div>
           <dt className="font-medium">Phone</dt>
-          <dd className="text-muted-foreground">{lead.phone_number}</dd>
+          <dd className="text-foreground/70">{lead.phone_number}</dd>
         </div>
         {lead.email ? (
           <div>
             <dt className="font-medium">Email</dt>
-            <dd className="text-muted-foreground">{lead.email}</dd>
+            <dd className="text-foreground/70">{lead.email}</dd>
           </div>
         ) : null}
         <div>
           <dt className="font-medium">Address</dt>
-          <dd className="text-muted-foreground">{lead.address}</dd>
+          <dd className="text-foreground/70">{lead.address}</dd>
         </div>
         {lead.bkash_txn_id ? (
           <div>
             <dt className="font-medium">bKash TX ID</dt>
-            <dd className="text-muted-foreground">{lead.bkash_txn_id}</dd>
+            <dd className="text-foreground/70">{lead.bkash_txn_id}</dd>
           </div>
         ) : null}
       </dl>
@@ -117,7 +117,7 @@ function LeadDetailFields({
               >
                 <div className="min-w-0">
                   <p className="font-medium">{item.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-foreground/70">
                     {item.size} / {item.color} x {item.quantity}
                   </p>
                 </div>

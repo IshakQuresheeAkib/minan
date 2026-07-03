@@ -46,7 +46,7 @@ export function CheckoutClient() {
         <h1 className="mt-5 text-3xl font-semibold tracking-normal">
           Request received
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        <p className="mt-2 max-w-md text-sm leading-6 text-foreground/70">
           MINAN will contact you to confirm availability, delivery, and payment.
         </p>
         <Button
@@ -100,10 +100,14 @@ export function CheckoutClient() {
         <h1 className="mt-5 text-2xl font-semibold tracking-normal">
           Checkout needs cart items
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        <p className="mt-2 max-w-md text-sm leading-6 text-foreground/70">
           Add products to your cart before sharing delivery details.
         </p>
-        <Button className="mt-6" href={publicRoutes.products} text="Browse products" />
+        <Button
+          className="mt-6"
+          href={publicRoutes.products}
+          text="Browse products"
+        />
       </section>
     );
   }
@@ -112,8 +116,9 @@ export function CheckoutClient() {
     <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-normal">Checkout</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Share delivery details and optional bKash transaction ID for manual confirmation.
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/70">
+          Share delivery details and optional bKash transaction ID for manual
+          confirmation.
         </p>
         <LeadForm
           cartSnapshot={cartSnapshot}
@@ -124,14 +129,17 @@ export function CheckoutClient() {
         />
       </div>
 
-      <aside className="h-fit rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
+      <aside className="h-fit rounded-lg border bg-card p-5 text-foreground shadow-sm">
         <h2 className="text-lg font-semibold">Order Summary</h2>
         <div className="mt-4 grid gap-4">
           {items.map((item) => (
-            <div key={item.lineId} className="flex justify-between gap-4 text-sm">
+            <div
+              key={item.lineId}
+              className="flex justify-between gap-4 text-sm"
+            >
               <div className="min-w-0">
                 <p className="line-clamp-2 font-medium">{item.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-foreground/70">
                   {item.size} / {item.color} x {item.quantity}
                 </p>
               </div>

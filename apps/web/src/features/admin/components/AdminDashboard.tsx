@@ -12,7 +12,7 @@ export function AdminDashboard() {
       <section className="space-y-6">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Dashboard</h1>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          <p className="mt-1 text-sm leading-6 text-foreground/70">
             Loading metrics...
           </p>
         </div>
@@ -32,7 +32,7 @@ export function AdminDashboard() {
     <section className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-normal">Dashboard</h1>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+        <p className="mt-1 text-sm leading-6 text-foreground/70">
           Lead and traffic metrics for general admin access.
         </p>
       </div>

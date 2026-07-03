@@ -18,8 +18,7 @@ export type ProductCardData = {
 type ProductColorClass =
   | "bg-primary"
   | "bg-secondary"
-  | "bg-accent"
-  | "bg-muted-foreground"
+  | "bg-foreground/70"
   | "bg-foreground";
 
 type ProductCardProps = {
@@ -57,7 +56,10 @@ export function ProductCard({ product }: ProductCardProps) {
           size="sm"
           className="absolute right-2 bottom-2 z-10 border-0 bg-primary/70 px-3 py-1.5 text-xs text-foreground shadow-sm backdrop-blur-sm hover:translate-y-0 hover:bg-primary/80 hover:text-foreground hover:shadow-sm"
           leftIcon={
-            <ShoppingBag className="size-4 text-foreground" aria-hidden="true" />
+            <ShoppingBag
+              className="size-4 text-foreground"
+              aria-hidden="true"
+            />
           }
           text="Shop"
         />
@@ -66,7 +68,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <h3 className="mb-1 truncate text-sm font-semibold text-foreground">
           {product.name}
         </h3>
-        <p className="mb-2 truncate text-xs text-muted-foreground">
+        <p className="mb-2 truncate text-xs text-foreground/70">
           {product.description}
         </p>
         <div className="flex items-center justify-between">

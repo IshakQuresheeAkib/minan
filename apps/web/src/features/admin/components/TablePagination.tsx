@@ -25,7 +25,7 @@ export function TablePagination({
   const to = Math.min(page * limit, total);
 
   return (
-    <div className="flex items-center justify-between gap-2 border-t pt-3 text-sm text-muted-foreground">
+    <div className="flex items-center justify-between gap-2 border-t pt-3 text-sm text-foreground/70">
       <span>{total === 0 ? "No results" : `${from}–${to} of ${total}`}</span>
 
       {totalPages > 1 && (

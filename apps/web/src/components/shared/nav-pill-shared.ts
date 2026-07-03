@@ -68,19 +68,19 @@ export const NAV_PILL_VARIANT_STYLES = {
     shell:
       "bg-background/5 border-primary/10 shadow-md shadow-primary/20 backdrop-blur-md",
     hoverIndicator: "bg-primary/40",
-    activeIndicator: "bg-primary text-black",
+    activeIndicator: "bg-primary text-foreground",
     disabledLink: "text-background/35",
     linkActive: "text-foreground",
     linkInactive: "text-background/90 hover:text-background",
   },
   default: {
     shell:
-      "bg-background/5 border-border/50 shadow-md shadow-primary/20 backdrop-blur-md",
-    hoverIndicator: "bg-primary/35",
+      "bg-foreground border-primary/20 shadow-md shadow-primary/20",
+    hoverIndicator: "bg-primary/25",
     activeIndicator: "bg-primary",
-    disabledLink: "text-muted-foreground/45",
+    disabledLink: "text-background/35",
     linkActive: "text-foreground",
-    linkInactive: "text-foreground/80 hover:text-foreground",
+    linkInactive: "text-background/85 hover:text-background",
   },
 } as const satisfies Record<
   NavPillVariant,

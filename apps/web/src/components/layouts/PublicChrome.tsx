@@ -28,8 +28,8 @@ export function PublicChrome({ children }: PublicChromeProps) {
         className={cn(
           "relative mx-auto w-full overflow-x-clip shadow-[0_0_40px_rgba(0,0,0,0.05)]",
           isProductDetail
-            ? "max-w-[430px] lg:max-w-none lg:shadow-none"
-            : "max-w-screen-sm lg:max-w-none lg:shadow-none",
+            ? ""
+            : "",
         )}
       >
         {!isHome ? <Navbar /> : null}

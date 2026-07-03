@@ -17,7 +17,7 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
 
   if (!activeImage) {
     return (
-      <div className="mb-8 flex h-[380px] items-center justify-center rounded-[32px] bg-muted text-sm text-muted-foreground lg:mb-0 lg:h-[520px] lg:rounded-2xl">
+      <div className="mb-8 flex h-[380px] items-center justify-center rounded-[32px] bg-muted text-sm text-foreground/70 lg:mb-0 lg:h-[520px] lg:rounded-2xl">
         No image available
       </div>
     );
@@ -72,7 +72,7 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
           />
           <div className="absolute bottom-4 right-4 flex items-end gap-2 lg:hidden">
             <div className="flex items-center gap-2 rounded-full bg-card py-2 pr-5 pl-2 shadow-lg">
-              <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <div className="flex size-8 items-center justify-center rounded-full bg-primary text-background">
                 <span className="text-xs font-semibold">৳</span>
               </div>
               <span className="text-sm font-semibold text-foreground">
