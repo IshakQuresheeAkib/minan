@@ -1,6 +1,6 @@
 import { useAuthStore, type AdminRole } from "@/store/auth.store";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.trim() || "";
+const BASE_URL = process.env.API_PROXY_TARGET?.trim() || "";
 
 type JsonBody = Record<string, unknown> | readonly unknown[];
 

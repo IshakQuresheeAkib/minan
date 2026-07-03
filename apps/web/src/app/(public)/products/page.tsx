@@ -53,6 +53,27 @@ function getNumberParam(value: string | string[] | undefined) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
+function normalizePriceRange(
+  minPrice: number | undefined,
+  maxPrice: number | undefined,
+) {
+  if (
+    minPrice !== undefined &&
+    maxPrice !== undefined &&
+    minPrice > maxPrice
+  ) {
+    return {
+      minPrice: maxPrice,
+      maxPrice: minPrice,
+    };
+  }
+
+  return {
+    minPrice,
+    maxPrice,
+  };
+}
+
 function getSortParam(
   value: string | string[] | undefined,
 ): ProductSortOption {
@@ -75,8 +96,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const colors = getParamValues(params.color);
   const sizes = getParamValues(params.size);
   const search = getFirstParam(params.search)?.trim();
-  const minPrice = getNumberParam(params.minPrice);
-  const maxPrice = getNumberParam(params.maxPrice);
+  const { minPrice, maxPrice } = normalizePriceRange(
+    getNumberParam(params.minPrice),
+    getNumberParam(params.maxPrice),
+  );
   const sort = getSortParam(params.sort);
   const filters: ProductCatalogFilters = {
     categories,

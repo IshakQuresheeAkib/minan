@@ -90,6 +90,27 @@ function formatPrice(value: number) {
   return `BDT ${value.toLocaleString("en-BD")}`;
 }
 
+function normalizePriceRange(
+  minPrice: number | undefined,
+  maxPrice: number | undefined,
+) {
+  if (
+    minPrice !== undefined &&
+    maxPrice !== undefined &&
+    minPrice > maxPrice
+  ) {
+    return {
+      minPrice: maxPrice,
+      maxPrice: minPrice,
+    };
+  }
+
+  return {
+    minPrice,
+    maxPrice,
+  };
+}
+
 function isChecked(values: readonly string[], value: string) {
   return values.includes(value);
 }
@@ -219,17 +240,18 @@ export function ProductCatalog({
 
     const minPrice = minPriceRaw ? Number(minPriceRaw) : undefined;
     const maxPrice = maxPriceRaw ? Number(maxPriceRaw) : undefined;
+    const normalizedRange = normalizePriceRange(
+      minPrice !== undefined && Number.isFinite(minPrice)
+        ? Math.max(0, minPrice)
+        : undefined,
+      maxPrice !== undefined && Number.isFinite(maxPrice)
+        ? Math.max(0, maxPrice)
+        : undefined,
+    );
 
     pushFilters({
       ...filters,
-      minPrice:
-        minPrice !== undefined && Number.isFinite(minPrice)
-          ? Math.max(0, minPrice)
-          : undefined,
-      maxPrice:
-        maxPrice !== undefined && Number.isFinite(maxPrice)
-          ? Math.max(0, maxPrice)
-          : undefined,
+      ...normalizedRange,
     });
   }
 
@@ -383,8 +405,14 @@ export function ProductCatalog({
             {(filters.minPrice !== undefined ||
               filters.maxPrice !== undefined) && (
               <FilterChip
-                label={`${filters.minPrice ? formatPrice(filters.minPrice) : "Any"} - ${
-                  filters.maxPrice ? formatPrice(filters.maxPrice) : "Any"
+                label={`${
+                  filters.minPrice !== undefined
+                    ? formatPrice(filters.minPrice)
+                    : "Any"
+                } - ${
+                  filters.maxPrice !== undefined
+                    ? formatPrice(filters.maxPrice)
+                    : "Any"
                 }`}
                 onRemove={clearPrice}
               />

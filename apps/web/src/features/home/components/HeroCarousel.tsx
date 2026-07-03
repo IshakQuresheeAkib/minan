@@ -28,7 +28,7 @@ const slides = [
     body: "Discover our exclusive collection at unbeatable prices. Fresh styles, bold looks.",
     cta: "Shop Now",
     href: publicRoutes.products,
-    imageSrc: "/hero/limited-offer.jfif",
+    imageSrc: "/hero/limited-offer.webp",
     imageAlt: "Golden fashion editorial look from MINAN",
     accent: "from-[#ff724b]/35 via-[#f5b836]/20 to-background",
     panel: "bg-[#f5b836]/30",
@@ -278,7 +278,7 @@ export function HeroCarousel() {
                   fill
                   priority={index === 0}
                   sizes="(min-width: 1024px) 38vw, (min-width: 768px) 42vw, 100vw"
-                  className="object-cover"
+                  className="object-cover object-[center_10%]"
                   draggable={false}
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-foreground/35 via-transparent to-background/10" />
