@@ -63,11 +63,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if ((!token || !secret) && refreshToken) {
+  if (!secret) {
+    return redirectToLogin(request);
+  }
+
+  if (!token && refreshToken) {
     return NextResponse.next();
   }
 
-  if (!token || !secret) {
+  if (!token) {
     return redirectToLogin(request);
   }
 
