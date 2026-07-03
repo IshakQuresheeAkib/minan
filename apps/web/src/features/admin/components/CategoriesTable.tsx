@@ -120,7 +120,7 @@ export function CategoriesTable({
                         type="button"
                         size="sm"
                         variant="secondary"
-                        className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-white hover:shadow-destructive/40"
+                        className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
                         onClick={() => {
                           void handleDeactivate(category);
                         }}

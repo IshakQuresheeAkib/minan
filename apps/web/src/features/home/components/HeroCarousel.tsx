@@ -233,7 +233,7 @@ export function HeroCarousel() {
 
   return (
     <section aria-label="Promotions" className="relative overflow-hidden">
-      <Navbar overlay />
+      <Navbar />
 
       <div
         className="relative h-[680px] min-h-[640px] w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing lg:h-[90svh]"
@@ -271,7 +271,7 @@ export function HeroCarousel() {
                 />
               </div>
 
-              <div className="absolute inset-x-4 top-6 h-[300px] overflow-hidden rounded-[2rem] border border-white/25 bg-muted shadow-2xl shadow-foreground/10 md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
+              <div className="absolute inset-x-4 top-6 h-[300px] overflow-hidden rounded-[2rem] border border-background/25 bg-muted shadow-2xl shadow-foreground/10 md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
                 <Image
                   src={slide.imageSrc}
                   alt={slide.imageAlt}
@@ -281,8 +281,8 @@ export function HeroCarousel() {
                   className="object-cover"
                   draggable={false}
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-black/35 via-transparent to-white/10" />
-                <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-white/30 bg-background/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground shadow-lg backdrop-blur-md">
+                <div className="absolute inset-0 bg-linear-to-t from-foreground/35 via-transparent to-background/10" />
+                <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-background/30 bg-background/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground shadow-lg backdrop-blur-md">
                   <Sparkles
                     className="size-3.5 text-primary"
                     aria-hidden="true"
@@ -333,7 +333,7 @@ export function HeroCarousel() {
           type="button"
           onClick={handlePrev}
           aria-label="Previous slide"
-          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:left-6"
+          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:left-6"
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </button>
@@ -342,13 +342,13 @@ export function HeroCarousel() {
           type="button"
           onClick={handleNext}
           aria-label="Next slide"
-          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:right-6"
+          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:right-6"
         >
           <ChevronRight className="size-5" aria-hidden="true" />
         </button>
 
         <div
-          className="absolute bottom-28 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/35 bg-background/65 px-3 py-2 shadow-lg shadow-foreground/5 backdrop-blur-md lg:bottom-8"
+          className="absolute bottom-28 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-background/35 bg-background/65 px-3 py-2 shadow-lg shadow-foreground/5 backdrop-blur-md lg:bottom-8"
           role="group"
           aria-label="Slide navigation"
         >

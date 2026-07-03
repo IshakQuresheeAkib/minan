@@ -298,7 +298,7 @@ export function ProductDetails({
         </Button>
 
         <div className="flex items-center gap-4">
-          <div className="flex h-14 items-center gap-3 rounded-full border border-black/5 bg-card px-2 shadow-sm">
+          <div className="flex h-14 items-center gap-3 rounded-full border border-foreground/5 bg-card px-2 shadow-sm">
             <Button
               type="button"
               aria-label="Decrease quantity"
