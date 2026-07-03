@@ -21,12 +21,22 @@ import { productsRouter } from "./routes/products.routes.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
-const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "http://localhost:3000";
-
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+  
 app.use(helmet());
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
     credentials: true,
   }),
 );
