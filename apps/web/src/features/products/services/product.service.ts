@@ -129,7 +129,6 @@ const colorClassMap: Record<string, ProductCardData["colors"][number]> = {
   White: "bg-secondary",
   Blue: "bg-primary",
   Navy: "bg-primary",
-  Beige: "bg-accent",
   "Sky Blue": "bg-primary",
 };
 
@@ -172,7 +171,7 @@ export function mapProductToCard(product: Product): ProductCardData {
     price: product.price,
     imageUrl: product.images[0],
     colors: product.colors.map(
-      (color) => colorClassMap[color] ?? "bg-muted-foreground",
+      (color) => colorClassMap[color] ?? "bg-foreground/70",
     ),
   };
 }

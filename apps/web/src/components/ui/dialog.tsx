@@ -73,7 +73,7 @@ function DialogContent({
               type="button"
               variant="secondary"
               size="icon"
-              className="absolute top-4 right-4 size-8 border-0 bg-transparent p-0 text-muted-foreground opacity-70 shadow-none hover:bg-accent hover:text-foreground hover:opacity-100 hover:shadow-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+              className="absolute top-4 right-4 size-8 border-0 bg-transparent p-0 text-foreground/70 opacity-70 shadow-none hover:bg-accent hover:text-foreground hover:opacity-100 hover:shadow-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
             >
               <XIcon className="size-4" aria-hidden="true" />
               <span className="sr-only">Close</span>
@@ -142,7 +142,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-sm text-foreground/70", className)}
       {...props}
     />
   );

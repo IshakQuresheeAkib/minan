@@ -53,8 +53,8 @@ export function AdminShell({ children }: AdminShellProps) {
               key={link.href}
               href={link.href}
               className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors",
-                "hover:bg-secondary hover:text-secondary-foreground",
+                "rounded-md px-3 py-2 text-sm font-medium text-foreground/70 transition-colors",
+                "hover:bg-secondary hover:text-foreground",
               )}
             >
               {link.label}
@@ -82,7 +82,7 @@ export function AdminShell({ children }: AdminShellProps) {
               </Link>
             </div>
             <div className="ml-auto flex items-center gap-3">
-              <p className="text-xs font-medium uppercase text-muted-foreground">
+              <p className="text-xs font-medium uppercase text-foreground/70">
                 {role ?? "admin"}
               </p>
               <Button

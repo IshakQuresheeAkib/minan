@@ -185,7 +185,7 @@ export function SearchBar({ className }: SearchBarProps) {
           className={cn(
             "h-12 w-12 rounded-full border border-primary/45 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-ring/50",
             expanded &&
-              "w-full rounded-full pl-3 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/45",
+              "w-full rounded-full pl-3 text-foreground placeholder:text-foreground/70 focus-visible:ring-primary/45",
           )}
           onChange={(event) => {
             const nextQuery = event.target.value;
@@ -232,10 +232,10 @@ export function SearchBar({ className }: SearchBarProps) {
           id={resultsId}
           role="listbox"
           aria-label="Search results"
-          className="absolute top-full right-0 z-90 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-popover/95 p-1.5 text-popover-foreground shadow-foreground/10 backdrop-blur"
+          className="absolute top-full right-0 z-90 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-background/90 p-1.5 text-foreground shadow-foreground/10 backdrop-blur"
         >
           {loading && (
-            <p className="rounded-md px-3 py-3 text-sm text-muted-foreground">
+            <p className="rounded-md px-3 py-3 text-sm text-foreground/70">
               Searching...
             </p>
           )}
@@ -247,7 +247,7 @@ export function SearchBar({ className }: SearchBarProps) {
           )}
 
           {!loading && !error && hasSearched && results.length === 0 && (
-            <p className="rounded-md px-3 py-3 text-sm text-muted-foreground">
+            <p className="rounded-md px-3 py-3 text-sm text-foreground/70">
               No products matched &quot;{trimmedQuery}&quot;.
             </p>
           )}
@@ -266,7 +266,7 @@ export function SearchBar({ className }: SearchBarProps) {
                   <span className="block truncate text-sm font-medium text-foreground">
                     {product.name}
                   </span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                  <span className="mt-0.5 block truncate text-xs text-foreground/70">
                     {product.category?.name ?? "Product"}
                   </span>
                 </span>

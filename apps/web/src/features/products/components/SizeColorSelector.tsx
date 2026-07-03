@@ -9,7 +9,6 @@ const colorSwatchMap: Record<string, string> = {
   Navy: "bg-primary",
   Red: "bg-destructive",
   Gold: "bg-secondary",
-  Beige: "bg-accent",
   "Sky Blue": "bg-primary",
 };
 
@@ -66,8 +65,7 @@ export function SizeColorSelector({
           <div className="flex flex-wrap gap-3">
             {colors.map((color) => {
               const isActive = color === selectedColor;
-              const swatchClass =
-                colorSwatchMap[color] ?? "bg-muted-foreground";
+              const swatchClass = colorSwatchMap[color] ?? "bg-foreground/70";
 
               return (
                 <button

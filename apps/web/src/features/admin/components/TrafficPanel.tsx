@@ -6,16 +6,14 @@ type TrafficPanelProps = {
 
 export function TrafficPanel({ trafficSources }: TrafficPanelProps) {
   return (
-    <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
+    <section className="rounded-lg border bg-card p-5 text-foreground shadow-sm">
       <h2 className="text-lg font-semibold tracking-normal">Traffic Sources</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1 text-sm text-foreground/70">
         UTM breakdown from analytics events.
       </p>
 
       {trafficSources.length === 0 ? (
-        <p className="mt-6 text-sm text-muted-foreground">
-          No traffic data yet.
-        </p>
+        <p className="mt-6 text-sm text-foreground/70">No traffic data yet.</p>
       ) : (
         <ul className="mt-6 divide-y">
           {trafficSources.map((entry) => (
@@ -24,7 +22,7 @@ export function TrafficPanel({ trafficSources }: TrafficPanelProps) {
               className="flex items-center justify-between py-3 text-sm"
             >
               <span className="font-medium">{entry.source}</span>
-              <span className="text-muted-foreground">{entry.count}</span>
+              <span className="text-foreground/70">{entry.count}</span>
             </li>
           ))}
         </ul>

@@ -16,7 +16,7 @@ export function ProductBreadcrumbs({
   return (
     <nav
       aria-label="Breadcrumb"
-      className="mb-6 hidden text-sm text-muted-foreground lg:block"
+      className="mb-6 hidden text-sm text-foreground/70 lg:block"
     >
       <ol className="flex flex-wrap items-center gap-1.5">
         <li>

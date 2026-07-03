@@ -108,7 +108,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         <h1 className="text-3xl font-semibold tracking-normal">
           {search ? `Search results for "${search}"` : "Products"}
         </h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+        <p className="max-w-2xl text-sm leading-6 text-foreground/70">
           {search
             ? "Browse matching pieces from the current MINAN collection."
             : "Premium daily wear selected for fast browsing and easy ordering."}

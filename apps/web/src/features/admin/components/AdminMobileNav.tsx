@@ -47,7 +47,7 @@ export function AdminMobileNav({
           type="button"
           variant="secondary"
           size="icon"
-          className="shrink-0 border-0 bg-transparent text-foreground shadow-none hover:bg-secondary hover:text-secondary-foreground hover:shadow-none lg:hidden"
+          className="shrink-0 border-0 bg-transparent text-foreground shadow-none hover:bg-secondary hover:text-foreground hover:shadow-none lg:hidden"
           aria-label="Open admin navigation menu"
         >
           <Menu className="size-5" aria-hidden="true" />
@@ -60,7 +60,7 @@ export function AdminMobileNav({
         <SheetHeader className="border-b px-4 py-4 text-left">
           <SheetTitle className="text-base">MINAN Admin</SheetTitle>
           {role ? (
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-xs font-medium uppercase text-foreground/70">
               {role}
             </p>
           ) : null}
@@ -83,8 +83,8 @@ export function AdminMobileNav({
                     className={cn(
                       "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-secondary text-secondary-foreground"
-                        : "text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground",
+                        ? "bg-secondary text-foreground"
+                        : "text-foreground/70 hover:bg-secondary/60 hover:text-foreground",
                     )}
                   >
                     <Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -102,8 +102,8 @@ export function AdminMobileNav({
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   pathname === publicRoutes.home
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground",
+                    ? "bg-secondary text-foreground"
+                    : "text-foreground/70 hover:bg-secondary/60 hover:text-foreground",
                 )}
               >
                 <Home className="size-4 shrink-0" aria-hidden="true" />
@@ -117,10 +117,12 @@ export function AdminMobileNav({
               variant="secondary"
               className={cn(
                 "w-full justify-start rounded-md border-0 bg-transparent px-3 py-2 text-sm font-medium shadow-none",
-                "text-muted-foreground hover:bg-secondary/60 hover:text-secondary-foreground",
+                "text-foreground/70 hover:bg-secondary/60 hover:text-foreground",
                 "hover:shadow-none disabled:pointer-events-none disabled:opacity-50",
               )}
-              leftIcon={<LogOut className="size-4 shrink-0" aria-hidden="true" />}
+              leftIcon={
+                <LogOut className="size-4 shrink-0" aria-hidden="true" />
+              }
             >
               {loggingOut ? "Signing out..." : "Logout"}
             </Button>

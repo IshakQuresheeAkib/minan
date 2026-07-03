@@ -126,9 +126,7 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
   if (!ready || isRedirectingUnauthorizedRoute) {
     return (
       <div className="flex min-h-[50dvh] items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          Loading admin session...
-        </p>
+        <p className="text-sm text-foreground/70">Loading admin session...</p>
       </div>
     );
   }

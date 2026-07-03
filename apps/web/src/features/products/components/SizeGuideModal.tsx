@@ -39,7 +39,7 @@ export function SizeGuideModal() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-border text-muted-foreground">
+              <tr className="border-b border-border text-foreground/70">
                 <th className="py-2 pr-4 font-medium">Size</th>
                 <th className="py-2 pr-4 font-medium">Chest</th>
                 <th className="py-2 pr-4 font-medium">Length</th>
