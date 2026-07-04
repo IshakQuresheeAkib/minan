@@ -22,10 +22,11 @@ type ProductColorClass =
   | "bg-foreground";
 
 type ProductCardProps = {
+  imagePriority?: boolean;
   product: ProductCardData;
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ imagePriority = false, product }: ProductCardProps) {
   const productHref = `/products/${product.slug}`;
 
   return (
@@ -41,6 +42,7 @@ export function ProductCard({ product }: ProductCardProps) {
               src={product.imageUrl}
               alt={product.name}
               fill
+              priority={imagePriority}
               sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
               className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
             />

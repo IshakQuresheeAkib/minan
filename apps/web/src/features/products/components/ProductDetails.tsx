@@ -1,16 +1,13 @@
 "use client";
 
 import { ArrowLeft, MessageCircle, Minus, Plus, Share2 } from "lucide-react";
-import gsap from "gsap";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
-import type { ProductCardData } from "@/features/products/components/ProductCard";
 import { ProductBreadcrumbs } from "@/features/products/components/ProductBreadcrumbs";
 import { ProductGallery } from "@/features/products/components/ProductGallery";
-import { RelatedProducts } from "@/features/products/components/RelatedProducts";
 import { SizeGuideModal } from "@/features/products/components/SizeGuideModal";
 import { SizeColorSelector } from "@/features/products/components/SizeColorSelector";
 import { TrustBadges } from "@/features/products/components/TrustBadges";
@@ -21,13 +18,13 @@ import { useCartStore } from "@/store/cart.store";
 const DESCRIPTION_PREVIEW_LENGTH = 120;
 
 type ProductDetailsProps = {
+  children?: ReactNode;
   product: Product;
-  relatedProducts: ProductCardData[];
 };
 
 export function ProductDetails({
+  children,
   product,
-  relatedProducts,
 }: ProductDetailsProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
@@ -65,21 +62,41 @@ export function ProductDetails({
       return;
     }
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        galleryEl,
-        { opacity: 0, x: -24 },
-        { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" },
-      );
-      gsap.fromTo(
-        infoEl,
-        { opacity: 0, x: 24 },
-        { opacity: 1, x: 0, duration: 0.55, delay: 0.08, ease: "power2.out" },
-      );
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+
+    void import("gsap").then(({ default: gsap }) => {
+      if (cancelled) {
+        return;
+      }
+
+      const ctx = gsap.context(() => {
+        gsap.fromTo(
+          galleryEl,
+          { opacity: 0, x: -24 },
+          { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" },
+        );
+        gsap.fromTo(
+          infoEl,
+          { opacity: 0, x: 24 },
+          {
+            opacity: 1,
+            x: 0,
+            duration: 0.55,
+            delay: 0.08,
+            ease: "power2.out",
+          },
+        );
+      });
+
+      cleanup = () => {
+        ctx.revert();
+      };
     });
 
     return () => {
-      ctx.revert();
+      cancelled = true;
+      cleanup?.();
     };
   }, []);
 
@@ -283,7 +300,7 @@ export function ProductDetails({
           </div>
         </div>
 
-        <RelatedProducts products={relatedProducts} />
+        {children}
       </div>
 
       <footer className="fixed inset-x-0 bottom-0 z-50 flex flex-col gap-3 bg-background/80 px-4 pb-8 pt-4 backdrop-blur-md lg:hidden">

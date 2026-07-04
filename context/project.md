@@ -492,7 +492,7 @@ Current end-to-end live path: `whatsapp_click`.
 | Brute force      | rate-limit `/api/auth/login` |
 | Checkout spam    | rate-limit `/api/leads` |
 | HTTP headers     | `helmet` |
-| CORS             | specific `ALLOWED_ORIGIN`, credentials enabled, never `*` |
+| CORS             | specific `ALLOWED_ORIGINS`, credentials enabled, never `*` |
 | Password leak    | Mongoose `toJSON` strips `password` |
 | Role escalation  | Role from JWT only, never request body |
 
