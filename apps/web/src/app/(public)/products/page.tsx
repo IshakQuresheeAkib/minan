@@ -1,7 +1,10 @@
+import { Suspense } from "react";
+
 import {
   ProductCatalog,
   type ProductCatalogFilters,
 } from "@/features/products/components/ProductCatalog";
+import { ProductCatalogSkeleton } from "@/features/products/components/ProductCatalogSkeleton";
 import {
   getProductFilterOptions,
   getProducts,
@@ -110,20 +113,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     maxPrice,
     sort,
   };
-  const [products, filterOptions] = await Promise.all([
-    getProducts({
-      category: categories,
-      colors,
-      sizes,
-      search,
-      minPrice,
-      maxPrice,
-      sort,
-      page: 1,
-      limit: 20,
-    }),
-    getProductFilterOptions(),
-  ]);
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -137,12 +126,41 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             : "Premium daily wear selected for fast browsing and easy ordering."}
         </p>
       </div>
-      <ProductCatalog
+      <Suspense
         key={JSON.stringify(filters)}
-        filters={filters}
-        filterOptions={filterOptions}
-        initialData={products}
-      />
+        fallback={<ProductCatalogSkeleton />}
+      >
+        <ProductsCatalogContent filters={filters} />
+      </Suspense>
     </section>
+  );
+}
+
+async function ProductsCatalogContent({
+  filters,
+}: {
+  filters: ProductCatalogFilters;
+}) {
+  const [products, filterOptions] = await Promise.all([
+    getProducts({
+      category: filters.categories,
+      colors: filters.colors,
+      sizes: filters.sizes,
+      search: filters.search,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      sort: filters.sort,
+      page: 1,
+      limit: 20,
+    }),
+    getProductFilterOptions(),
+  ]);
+
+  return (
+    <ProductCatalog
+      filters={filters}
+      filterOptions={filterOptions}
+      initialData={products}
+    />
   );
 }
