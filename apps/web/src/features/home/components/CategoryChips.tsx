@@ -6,6 +6,7 @@ import { productCategories } from "@/constants/categories";
 import { cn } from "@/lib/utils";
 
 const chips = ["All", ...productCategories] as const;
+const DRAG_CLICK_CANCEL_THRESHOLD = 10;
 
 export type CategoryChip = (typeof chips)[number];
 
@@ -28,7 +29,7 @@ export function CategoryChips({
   });
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (event.pointerType === "mouse" && event.button !== 0) {
+    if (event.pointerType === "mouse") {
       return;
     }
 
@@ -55,12 +56,14 @@ export function CategoryChips({
 
     const distance = event.clientX - dragRef.current.startX;
 
-    if (Math.abs(distance) > 4) {
+    if (Math.abs(distance) > DRAG_CLICK_CANCEL_THRESHOLD) {
       dragRef.current.hasDragged = true;
       event.preventDefault();
     }
 
-    scroller.scrollLeft = dragRef.current.scrollLeft - distance;
+    if (dragRef.current.hasDragged) {
+      scroller.scrollLeft = dragRef.current.scrollLeft - distance;
+    }
   }
 
   function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
