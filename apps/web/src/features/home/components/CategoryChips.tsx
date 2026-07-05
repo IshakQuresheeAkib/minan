@@ -88,11 +88,11 @@ export function CategoryChips({
   return (
     <section
       aria-label="Categories"
-      className="mb-12 w-full min-w-0 max-w-full overflow-x-clip"
+      className="mb-6 w-full min-w-0 max-w-full overflow-x-clip"
     >
       <div
         ref={scrollerRef}
-        className="hide-scrollbar w-full min-w-0 max-w-full cursor-grab overflow-x-auto overflow-y-hidden overscroll-x-contain px-4 pb-2 touch-pan-x select-none active:cursor-grabbing [-webkit-overflow-scrolling:touch] lg:px-0"
+        className="hide-scrollbar w-full min-w-0 max-w-full cursor-grab overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 touch-pan-x select-none active:cursor-grabbing [-webkit-overflow-scrolling:touch]"
         onClickCapture={handleClickCapture}
         onPointerCancel={handlePointerEnd}
         onPointerDown={handlePointerDown}
@@ -110,10 +110,10 @@ export function CategoryChips({
                 type="button"
                 onClick={() => onChipChange(chip)}
                 className={cn(
-                  "shrink-0 cursor-pointer whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold tracking-wide transition-colors duration-300",
+                  "shrink-0 cursor-pointer whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold tracking-wide transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
                   isActive
                     ? "bg-foreground text-primary"
-                    : "border border-primary text-foreground shadow-md shadow-primary/30 hover:bg-foreground hover:text-primary hover:shadow-primary/70",
+                    : "border border-border bg-card text-foreground/85 hover:border-primary hover:text-foreground",
                 )}
               >
                 {chip}

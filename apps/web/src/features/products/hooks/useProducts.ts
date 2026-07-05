@@ -47,13 +47,7 @@ function fromKey(key: string) {
 }
 
 export function useProducts(options: UseProductsOptions = {}) {
-  const {
-    initialData,
-    maxPrice,
-    minPrice,
-    search,
-    sort = "newest",
-  } = options;
+  const { initialData, maxPrice, minPrice, search, sort = "newest" } = options;
   const categoryKey = toKey(normalizeValues(options.category));
   const colorKey = toKey(normalizeValues(options.colors));
   const sizeKey = toKey(normalizeValues(options.sizes));
@@ -66,6 +60,7 @@ export function useProducts(options: UseProductsOptions = {}) {
   const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
   const fetchGenerationRef = useRef(0);
+  const hasConsumedInitialDataRef = useRef(false);
   const filtersKey = [
     categoryKey,
     colorKey,
@@ -154,7 +149,8 @@ export function useProducts(options: UseProductsOptions = {}) {
     fetchGenerationRef.current += 1;
     loadingRef.current = false;
 
-    if (initialData) {
+    if (initialData && !hasConsumedInitialDataRef.current) {
+      hasConsumedInitialDataRef.current = true;
       return;
     }
 
