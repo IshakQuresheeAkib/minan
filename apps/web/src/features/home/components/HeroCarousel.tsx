@@ -74,7 +74,6 @@ function subscribeToReducedMotion(onStoreChange: () => void) {
 
 export function HeroCarousel() {
   const [current, setCurrent] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const prefersReducedMotion = useSyncExternalStore(
     subscribeToReducedMotion,
     getReducedMotionSnapshot,
@@ -186,7 +185,7 @@ export function HeroCarousel() {
   const resetInterval = useCallback(() => {
     clearAutoRotate();
 
-    if (isPaused || prefersReducedMotion) {
+    if (prefersReducedMotion) {
       return;
     }
 
@@ -194,7 +193,7 @@ export function HeroCarousel() {
       const next = (currentRef.current + 1) % slides.length;
       goTo(next, "next");
     }, SLIDE_INTERVAL);
-  }, [clearAutoRotate, goTo, isPaused, prefersReducedMotion]);
+  }, [clearAutoRotate, goTo, prefersReducedMotion]);
 
   useEffect(() => {
     resetInterval();
@@ -267,8 +266,6 @@ export function HeroCarousel() {
     },
     [handleNext, handlePrev],
   );
-
-  const isAutoRotationPaused = isPaused || prefersReducedMotion;
 
   return (
     <section aria-label="Promotions" className="relative overflow-hidden">
@@ -412,7 +409,7 @@ export function HeroCarousel() {
                   className={cn(
                     "absolute inset-y-0 left-0 rounded-full bg-primary",
                     index === current
-                      ? isAutoRotationPaused
+                      ? prefersReducedMotion
                         ? "w-full"
                         : "animate-[hero-dot-progress_4s_linear_forwards]"
                       : "w-0",
