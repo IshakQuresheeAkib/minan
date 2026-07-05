@@ -4,7 +4,7 @@
 **Market:** Bangladesh, mobile-first, 3G/4G, Facebook Ads.
 **Supabase:** Not used.
 **Database:** Data persistence is MongoDB Atlas through the Express API.
-**Next.js Route Handlers:** Not used for app data operations. All data operations go through Express.
+**Next.js Route Handlers:** Not used for app data operations. All data operations go through Express, either directly or through the Next.js rewrite proxy.
 
 ---
 
@@ -39,6 +39,7 @@
 - TypeScript strict mode everywhere: no `any`, no `as unknown` casting.
 - No Next.js Route Handlers under `app/api/` for data operations.
 - No Next.js Server Actions: `*.actions.ts` files are plain async functions that call Express.
+- Next.js rewrites `/api/:path*` to `API_PROXY_TARGET`; do not add data route handlers to replace this.
 - GSAP only for animations. Do not use or suggest Framer Motion.
 - Zustand only for global client state.
 - React Hook Form + Zod for forms.
@@ -115,7 +116,7 @@ Both frontend and backend must run on subdomains of the same parent domain so co
 | Frontend (Vercel) | `app.minan.com` |
 | Backend (Render)  | `api.minan.com` |
 
-Express sets auth cookies with `Domain=.minan.com`. This lets the browser send the access token cookie on page requests to `app.minan.com`, so `proxy.ts` can verify admin auth before protected pages render.
+Express sets auth cookies with `AUTH_COOKIE_DOMAIN=.minan.com` in production. This lets the browser send the access token cookie on page requests to `app.minan.com`, so `proxy.ts` can verify admin auth before protected pages render.
 
 **Production admin auth requires custom domains.** It will not work correctly across default `*.vercel.app` and `*.onrender.com` domains because they do not share a parent domain.
 
@@ -125,6 +126,7 @@ Express sets auth cookies with `Domain=.minan.com`. This lets the browser send t
 | ------------------ | ---------------------------------------------------------------------- |
 | `proxy.ts`         | Reads httpOnly access token cookie, verifies JWT, redirects if invalid |
 | Next.js Client     | Sends `Authorization: Bearer <token>` from Zustand on API calls        |
+| Next.js Rewrites   | Proxies `/api/:path*` to `API_PROXY_TARGET` from `next.config.ts`      |
 | Express Middleware | Verifies Bearer token independently on protected routes                |
 | Express Routes     | Business logic, DB ops, CAPI, rate limiting                            |
 | Mongoose           | Persistence                                                            |
@@ -146,7 +148,7 @@ If refresh fails, the client clears Zustand and redirects to `/admin/login`.
 
 | Option        | Value                                            |
 | ------------- | ------------------------------------------------ |
-| `origin`      | `ALLOWED_ORIGINS`, production value `http://localhost:3000, https://minan-web.vercel.app` |
+| `origin`      | Comma-separated `ALLOWED_ORIGINS`; requests without an Origin are allowed |
 | `credentials` | `true`                                           |
 
 Never use `*` for CORS origin.
@@ -198,6 +200,7 @@ Only the refresh token whose hash matches `refresh_token_hash` is accepted, with
 ### CSRF Mitigation
 
 - `X-Requested-With: XMLHttpRequest` is required on all state-changing requests
+- The shared `apiRequest` client adds this header for non-GET requests
 - Browser form posts from third-party sites cannot set this custom header
 - Refresh-token rotation limits replay after a successful refresh
 
@@ -328,16 +331,23 @@ A premium admin cannot demote or deactivate their own account:
 
 | Method | Route                 | Description |
 | ------ | --------------------- | ----------- |
-| GET    | `/api/products`       | List active products. Query params: `category`, `search`, `page`, `limit`, `exclude` |
+| GET    | `/api/products`       | List active products. Query params: `category`, `color`, `size`, `search`, `minPrice`, `maxPrice`, `sort`, `page`, `limit`, `exclude` |
+| GET    | `/api/products/filters` | Active catalog filter options: categories, colors, sizes, min/max price |
 | GET    | `/api/products/:slug` | Single active product by slug |
-| POST   | `/api/leads`          | Submit checkout lead, rate-limited 5 req/15 min/IP |
-| POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI |
-| POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI |
-| POST   | `/api/auth/login`     | Admin login, rate-limited 10 req/15 min/IP |
-| POST   | `/api/auth/refresh`   | Rotate tokens |
-| POST   | `/api/auth/logout`    | Clear auth cookies and refresh-token hashes |
+| POST   | `/api/leads`          | Submit checkout lead, CSRF-header protected, rate-limited 5 req/15 min/IP |
+| POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
+| POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
+| POST   | `/api/auth/login`     | Admin login, CSRF-header protected, rate-limited 10 req/15 min/IP |
+| POST   | `/api/auth/refresh`   | Rotate tokens, CSRF-header protected |
+| POST   | `/api/auth/logout`    | Clear auth cookies and refresh-token hashes, CSRF-header protected |
 
-There is no public `GET /api/categories` route. Public category navigation currently comes from frontend constants and seed data.
+### Health
+
+| Method | Route     | Description |
+| ------ | --------- | ----------- |
+| GET    | `/health` | API health check with MongoDB connection status. Returns `200 ok` or `503 degraded` |
+
+There is no public `GET /api/categories` route. Public category navigation starts from frontend constants on the homepage and from `/api/products/filters` on the catalog page.
 
 ### Protected Admin
 
@@ -396,6 +406,7 @@ Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requi
 - `features/<domain>/actions/*.actions.ts` are plain async functions calling Express. No `"use server"`.
 - `components/ui/` is shadcn/ui output.
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
+- `next.config.ts` rewrites `/api/:path*` to `API_PROXY_TARGET`, defaulting to `http://localhost:3001`.
 - `lib/analytics/pixel.ts` contains client-side Meta Pixel helpers only. CAPI is Express-only.
 - `store/auth.store.ts` keeps access token and role in memory only.
 - `store/cart.store.ts` keeps cart items in Zustand and persists selected cart lines to browser `localStorage`.
@@ -423,7 +434,10 @@ Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requi
 - Product categories: T-Shirts, Shirts, Pants, Footwear, Accessories, Women, Kids
 - WhatsApp ordering from PDP with pre-filled message and `/api/whatsapp-click`
 - Cart stored in Zustand and persisted to browser `localStorage`
+- Product catalog supports multi-select category/color/size filters, min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
+- Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
 - Checkout lead form writes to MongoDB `leads`
+- Checkout verifies cart products, prices, sizes, and colors server-side before persisting the lead snapshot
 - Role-gated admin CRUD for products, categories, leads, and admins
 - Dashboard screen exists; real metric aggregation is planned
 
@@ -466,12 +480,15 @@ For deduped events:
 
 Current end-to-end live path: `whatsapp_click`.
 
+Duplicate analytics `event_id` values are ignored before insert, so retries do not create duplicate MongoDB analytics rows.
+
 ---
 
 ## 15. Performance
 
 - Mobile-first, optimized for Bangladesh 3G/4G users
-- Public catalog/product pages currently use `export const dynamic = "force-dynamic"` for fresh Express-backed data
+- Public home/catalog/product pages currently use `export const dynamic = "force-dynamic"` for fresh Express-backed data
+- Catalog page server-renders the first page and filter options, then the client hook loads more pages with a page size of 20
 - Do not document `use cache` / `dynamicIO` as current behavior until the app explicitly adopts that caching model
 - Turbopack in development
 - MongoDB indexes: product/category `slug`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
@@ -520,7 +537,7 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 ```
 
-- `API_PROXY_TARGET` is used by `lib/api/client.ts`.
+- `API_PROXY_TARGET` is used by both `next.config.ts` rewrites and `lib/api/client.ts`.
 - `JWT_ACCESS_SECRET` is required by `proxy.ts` to verify access-token cookies.
 
 ### Backend `.env`
@@ -529,6 +546,7 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 MONGODB_URI=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
+AUTH_COOKIE_DOMAIN=.minan.com
 ALLOWED_ORIGINS=http://localhost:3000,https://minan-web.vercel.app
 META_CAPI_TOKEN=
 META_PIXEL_ID=
@@ -540,7 +558,8 @@ ADMIN_ROLE=
 NODE_ENV=
 ```
 
-`seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`.
+- `AUTH_COOKIE_DOMAIN` should be `.minan.com` in production when frontend and backend share the parent domain.
+- `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`.
 
 ---
 
