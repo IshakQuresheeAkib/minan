@@ -124,10 +124,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             : "Premium daily wear selected for fast browsing and easy ordering."}
         </p>
       </div>
-      <Suspense
-        key={JSON.stringify(filters)}
-        fallback={<ProductCatalogSkeleton />}
-      >
+      <Suspense fallback={<ProductCatalogSkeleton />}>
         <ProductsCatalogContent filters={filters} />
       </Suspense>
     </section>
