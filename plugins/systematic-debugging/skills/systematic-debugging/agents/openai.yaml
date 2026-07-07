@@ -1,7 +1,0 @@
-interface:
-  display_name: "Systematic Debugging"
-  short_description: "Root-cause debugging before fixes."
-  default_prompt: "Use $systematic-debugging to investigate this issue before proposing fixes."
-
-policy:
-  allow_implicit_invocation: true

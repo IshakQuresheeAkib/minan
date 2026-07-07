@@ -8,6 +8,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type PointerEvent,
 } from "react";
 
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 const SLIDE_INTERVAL = 4000;
 const ANIM_DURATION = 0.65;
 const DRAG_THRESHOLD = 56;
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 const slides = [
   {
@@ -51,8 +53,32 @@ const slides = [
 
 type Direction = "next" | "prev";
 
+function getReducedMotionSnapshot() {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return false;
+  }
+
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+function subscribeToReducedMotion(onStoreChange: () => void) {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return () => {};
+  }
+
+  const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY);
+  mediaQuery.addEventListener("change", onStoreChange);
+
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
 export function HeroCarousel() {
   const [current, setCurrent] = useState(0);
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionSnapshot,
+    () => false,
+  );
   const currentRef = useRef(0);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isAnimatingRef = useRef(false);
@@ -91,8 +117,9 @@ export function HeroCarousel() {
 
       isAnimatingRef.current = true;
 
-      const xOut = direction === "next" ? -70 : 70;
-      const xIn = direction === "next" ? 70 : -70;
+      const duration = prefersReducedMotion ? 0 : ANIM_DURATION;
+      const xOut = prefersReducedMotion ? 0 : direction === "next" ? -70 : 70;
+      const xIn = prefersReducedMotion ? 0 : direction === "next" ? 70 : -70;
       const outgoingItems = outEl.querySelectorAll(".hero-reveal");
       const incomingItems = inEl.querySelectorAll(".hero-reveal");
 
@@ -102,7 +129,7 @@ export function HeroCarousel() {
       gsap.to(outEl, {
         x: xOut,
         opacity: 0,
-        duration: ANIM_DURATION,
+        duration,
         ease: "power2.inOut",
         onComplete: () => gsap.set(outEl, { zIndex: 0 }),
       });
@@ -110,7 +137,7 @@ export function HeroCarousel() {
       gsap.to(outgoingItems, {
         y: direction === "next" ? -16 : 16,
         opacity: 0,
-        duration: ANIM_DURATION * 0.45,
+        duration: duration * 0.45,
         ease: "power2.out",
       });
 
@@ -126,7 +153,7 @@ export function HeroCarousel() {
         {
           x: 0,
           opacity: 1,
-          duration: ANIM_DURATION,
+          duration,
           ease: "power2.inOut",
         },
         0,
@@ -135,35 +162,44 @@ export function HeroCarousel() {
         {
           y: 0,
           opacity: 1,
-          duration: ANIM_DURATION * 0.75,
+          duration: duration * 0.75,
           ease: "power3.out",
-          stagger: 0.08,
+          stagger: prefersReducedMotion ? 0 : 0.08,
         },
-        0.18,
+        prefersReducedMotion ? 0 : 0.18,
       );
 
       currentRef.current = nextIndex;
       setCurrent(nextIndex);
     },
-    [],
+    [prefersReducedMotion],
   );
 
+  const clearAutoRotate = useCallback(() => {
+    if (!intervalRef.current) return;
+
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }, []);
+
   const resetInterval = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    clearAutoRotate();
+
+    if (prefersReducedMotion) {
+      return;
+    }
 
     intervalRef.current = setInterval(() => {
       const next = (currentRef.current + 1) % slides.length;
       goTo(next, "next");
     }, SLIDE_INTERVAL);
-  }, [goTo]);
+  }, [clearAutoRotate, goTo, prefersReducedMotion]);
 
   useEffect(() => {
     resetInterval();
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [resetInterval]);
+    return clearAutoRotate;
+  }, [clearAutoRotate, resetInterval]);
 
   const handlePrev = useCallback(() => {
     const prev = (currentRef.current - 1 + slides.length) % slides.length;
@@ -236,7 +272,7 @@ export function HeroCarousel() {
       <Navbar />
 
       <div
-        className="relative h-[680px] min-h-[640px] w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing lg:h-[90svh]"
+        className="relative h-[min(600px,calc(100svh-5rem))] min-h-[540px] w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing sm:min-h-[600px] lg:h-[90svh] lg:min-h-[640px]"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
@@ -271,7 +307,7 @@ export function HeroCarousel() {
                 />
               </div>
 
-              <div className="absolute inset-x-4 top-6 h-[300px] overflow-hidden rounded-[2rem] border border-background/25 bg-muted shadow-2xl shadow-foreground/10 md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
+              <div className="absolute inset-x-4 top-4 h-[228px] overflow-hidden rounded-[1.5rem] border border-background/25 bg-muted shadow-2xl shadow-foreground/10 sm:top-6 sm:h-[280px] sm:rounded-[2rem] md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
                 <Image
                   src={slide.imageSrc}
                   alt={slide.imageAlt}
@@ -291,12 +327,12 @@ export function HeroCarousel() {
                 </div>
               </div>
 
-              <div className="absolute inset-x-0 bottom-24 top-[350px] flex items-start md:inset-0 md:items-center md:pb-0 md:pt-20">
+              <div className="absolute inset-x-0 bottom-5 top-[312px] flex items-start sm:top-[368px] md:inset-0 md:items-center md:pb-0 md:pt-20">
                 <div className="mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
                   <div className="max-w-xl">
                     <span
                       className={cn(
-                        "hero-reveal mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md md:mb-5",
+                        "hero-reveal mb-3 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md md:mb-5",
                         index === 0
                           ? "border border-primary/30 bg-primary/10"
                           : "border border-foreground/20 bg-secondary/30",
@@ -304,14 +340,14 @@ export function HeroCarousel() {
                     >
                       {slide.tag}
                     </span>
-                    <h2 className="hero-reveal mb-4 font-display text-[clamp(3.1rem,10vw,5.5rem)] font-bold leading-[0.92] text-foreground md:mb-5 md:text-[clamp(3.5rem,6vw,5.5rem)]">
+                    <h2 className="hero-reveal mb-3 font-display text-[clamp(2.55rem,12vw,4.5rem)] font-bold leading-[0.92] text-foreground md:mb-5 md:text-[clamp(3.5rem,6vw,5.5rem)]">
                       {slide.heading.map((line) => (
-                        <span key={line} className="block">
-                          {line}
+                        <span key={line} className="">
+                          {line}{" "}
                         </span>
                       ))}
                     </h2>
-                    <p className="hero-reveal mb-6 max-w-md text-sm leading-relaxed text-foreground/70 md:mb-9 md:text-base">
+                    <p className="hero-reveal mb-5 max-w-md text-sm leading-relaxed text-foreground/70 md:mb-9 md:text-base">
                       {slide.body}
                     </p>
                     <Button
@@ -348,9 +384,9 @@ export function HeroCarousel() {
         </button>
 
         <div
-          className="absolute bottom-28 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-background/35 bg-background/65 px-3 py-2 shadow-lg shadow-foreground/5 backdrop-blur-md lg:bottom-8"
+          className="absolute top-[258px] left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-background/35 bg-background/75 px-2 py-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md sm:top-[318px] md:top-auto md:bottom-28 lg:bottom-8"
           role="group"
-          aria-label="Slide navigation"
+          aria-label="Slide controls"
         >
           {slides.map((slide, index) => (
             <button
@@ -359,21 +395,27 @@ export function HeroCarousel() {
               onClick={() => handleDot(index)}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={index === current ? "true" : undefined}
-              className={cn(
-                "relative h-2.5 cursor-pointer overflow-hidden rounded-full transition-all duration-300",
-                index === current
-                  ? "w-10 bg-foreground/15"
-                  : "w-2.5 bg-foreground/20 hover:bg-foreground/40",
-              )}
+              className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-200 hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
             >
               <span
                 className={cn(
-                  "absolute inset-y-0 left-0 rounded-full bg-primary",
+                  "relative block h-2.5 overflow-hidden rounded-full transition-all duration-300",
                   index === current
-                    ? "animate-[hero-dot-progress_4s_linear_forwards]"
-                    : "w-0",
+                    ? "w-8 bg-foreground/15"
+                    : "w-2.5 bg-foreground/20",
                 )}
-              />
+              >
+                <span
+                  className={cn(
+                    "absolute inset-y-0 left-0 rounded-full bg-primary",
+                    index === current
+                      ? prefersReducedMotion
+                        ? "w-full"
+                        : "animate-[hero-dot-progress_4s_linear_forwards]"
+                      : "w-0",
+                  )}
+                />
+              </span>
             </button>
           ))}
         </div>
