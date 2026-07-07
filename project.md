@@ -4,7 +4,7 @@
 **Market:** Bangladesh, mobile-first, 3G/4G, Facebook Ads.
 **Supabase:** Not used.
 **Database:** Data persistence is MongoDB Atlas through the Express API.
-**Next.js Route Handlers:** Not used for app data operations. All data operations go through Express, either directly or through the Next.js rewrite proxy.
+**Next.js Route Handlers:** Not used for app data operations. All data operations go through Express, either directly or through the Next.js rewrite proxy. The only `app/api` exception is `/api/revalidate`, which invalidates storefront cache tags and does not read or write app data.
 
 ---
 
@@ -37,7 +37,7 @@
 - Follow Next.js 16 conventions: use `proxy.ts`, not `middleware.ts`.
 - Production-ready code only. No placeholders or TODO stubs.
 - TypeScript strict mode everywhere: no `any`, no `as unknown` casting.
-- No Next.js Route Handlers under `app/api/` for data operations.
+- No Next.js Route Handlers under `app/api/` for data operations. `app/api/revalidate/route.ts` is allowed for cache invalidation only.
 - No Next.js Server Actions: `*.actions.ts` files are plain async functions that call Express.
 - Next.js rewrites `/api/:path*` to `API_PROXY_TARGET`; do not add data route handlers to replace this.
 - GSAP only for animations. Do not use or suggest Framer Motion.
@@ -127,6 +127,7 @@ Express sets auth cookies with `AUTH_COOKIE_DOMAIN=.minan.com` in production. Th
 | `proxy.ts`         | Reads httpOnly access token cookie, verifies JWT, redirects if invalid |
 | Next.js Client     | Sends `Authorization: Bearer <token>` from Zustand on API calls        |
 | Next.js Rewrites   | Proxies `/api/:path*` to `API_PROXY_TARGET` from `next.config.ts`      |
+| Next.js Revalidate | Accepts server-to-server storefront cache invalidation at `/api/revalidate` |
 | Express Middleware | Verifies Bearer token independently on protected routes                |
 | Express Routes     | Business logic, DB ops, CAPI, rate limiting                            |
 | Mongoose           | Persistence                                                            |
@@ -487,7 +488,8 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 ## 15. Performance
 
 - Mobile-first, optimized for Bangladesh 3G/4G users
-- Public home/catalog/product pages currently use `export const dynamic = "force-dynamic"` for fresh Express-backed data
+- Public home/catalog/product pages use Next.js Cache Components with the shared `catalog` cache tag.
+- Product/category admin writes trigger Express-to-Next revalidation with `revalidateTag("catalog", { expire: 0 })`.
 - Catalog page server-renders the first page and filter options, then the client hook loads more pages with a page size of 20
 - Do not document `use cache` / `dynamicIO` as current behavior until the app explicitly adopts that caching model
 - Turbopack in development
@@ -531,6 +533,7 @@ Custom domains are required for production admin cookie auth.
 ```env
 API_PROXY_TARGET=https://api.minan.com
 JWT_ACCESS_SECRET=<same value as API>
+REVALIDATE_SECRET=<same value as STOREFRONT_REVALIDATE_SECRET>
 NEXT_PUBLIC_META_PIXEL_ID=
 NEXT_PUBLIC_GA4_ID=
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
@@ -556,10 +559,13 @@ ADMIN_EMAIL=
 ADMIN_PASSWORD=
 ADMIN_ROLE=
 NODE_ENV=
+STOREFRONT_REVALIDATE_URL=https://app.minan.com/api/revalidate
+STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
 ```
 
 - `AUTH_COOKIE_DOMAIN` should be `.minan.com` in production when frontend and backend share the parent domain.
 - `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`.
+- `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 
 ---
 

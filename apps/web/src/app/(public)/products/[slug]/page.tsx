@@ -1,24 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache, Suspense } from "react";
+import { Suspense } from "react";
 
 import { ProductDetails } from "@/features/products/components/ProductDetails";
 import { ProductDetailsSkeleton } from "@/features/products/components/ProductDetailsSkeleton";
 import { RelatedProducts } from "@/features/products/components/RelatedProducts";
 import { RelatedProductsSkeleton } from "@/features/products/components/RelatedProductsSkeleton";
 import {
-  getProductBySlug,
-  getRelatedProducts,
-  mapProductToCard,
-} from "@/features/products/services/product.service";
+  getCachedProductBySlug,
+  getCachedProducts,
+} from "@/features/products/services/product.cache";
+import { mapProductToCard } from "@/features/products/services/product.service";
+import type { Product } from "@/features/products/schemas/product.schema";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
-
-export const dynamic = "force-dynamic";
-
-const getCachedProductBySlug = cache(getProductBySlug);
 
 export async function generateMetadata({
   params,
@@ -67,9 +64,17 @@ async function ProductDetailContent({ slug }: { slug: string }) {
 async function ProductRelatedProducts({
   product,
 }: {
-  product: NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
+  product: Product;
 }) {
-  const relatedProducts = await getRelatedProducts(product, 4);
+  if (!product.category) {
+    return <RelatedProducts products={[]} />;
+  }
+
+  const { data: relatedProducts } = await getCachedProducts({
+    category: product.category.slug,
+    exclude: product.slug,
+    limit: 4,
+  });
 
   return <RelatedProducts products={relatedProducts.map(mapProductToCard)} />;
 }

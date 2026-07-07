@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 
 import { AppError } from "../lib/errors.js";
 import { throwIfDuplicateKey } from "../lib/mongoErrors.js";
+import { revalidateStorefront } from "../lib/revalidateStorefront.js";
 import { slugify } from "../lib/slugify.js";
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
@@ -68,7 +69,9 @@ export async function createAdminCategory(input: CategoryCreateInput) {
       is_active: true,
     });
 
-    return serializeCategory(category);
+    const serializedCategory = serializeCategory(category);
+    await revalidateStorefront();
+    return serializedCategory;
   } catch (error) {
     throwIfDuplicateKey(error, "Category slug already exists");
   }
@@ -109,7 +112,9 @@ export async function updateAdminCategory(
 
   try {
     await category.save();
-    return serializeCategory(category);
+    const serializedCategory = serializeCategory(category);
+    await revalidateStorefront();
+    return serializedCategory;
   } catch (error) {
     throwIfDuplicateKey(error, "Category slug already exists");
   }
@@ -139,5 +144,7 @@ export async function deactivateAdminCategory(id: string) {
 
   category.is_active = false;
   await category.save();
-  return serializeCategory(category);
+  const serializedCategory = serializeCategory(category);
+  await revalidateStorefront();
+  return serializedCategory;
 }
