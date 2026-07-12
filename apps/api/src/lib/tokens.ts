@@ -22,24 +22,15 @@ function getRefreshSecret(): string {
   return secret;
 }
 
-function isAdminRole(value: unknown): value is AdminJwtPayload["role"] {
-  return value === "general" || value === "premium";
-}
-
 function parsePayload(decoded: jwt.JwtPayload): AdminJwtPayload {
   const id = decoded.id;
   const email = decoded.email;
-  const role = decoded.role;
 
-  if (
-    typeof id !== "string" ||
-    typeof email !== "string" ||
-    !isAdminRole(role)
-  ) {
+  if (typeof id !== "string" || typeof email !== "string") {
     throw new Error("Invalid token payload");
   }
 
-  return { id, email, role };
+  return { id, email };
 }
 
 export function signAccessToken(payload: AdminJwtPayload): string {

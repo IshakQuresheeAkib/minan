@@ -33,7 +33,7 @@ export function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-semibold tracking-normal">Dashboard</h1>
         <p className="mt-1 text-sm leading-6 text-foreground/70">
-          Lead and traffic metrics for general admin access.
+          Lead and traffic metrics for admin operations.
         </p>
       </div>
 

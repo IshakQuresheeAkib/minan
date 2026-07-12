@@ -1,4 +1,4 @@
-import { useAuthStore, type AdminRole } from "@/store/auth.store";
+import { useAuthStore } from "@/store/auth.store";
 
 const BASE_URL = process.env.API_PROXY_TARGET?.trim() || "";
 
@@ -6,7 +6,6 @@ type JsonBody = Record<string, unknown> | readonly unknown[];
 
 type AuthSessionResponse = {
   accessToken: string;
-  role: AdminRole;
 };
 
 type ApiRequestOptions = Omit<RequestInit, "body"> & {
@@ -16,10 +15,6 @@ type ApiRequestOptions = Omit<RequestInit, "body"> & {
 };
 
 let refreshPromise: Promise<AuthSessionResponse> | null = null;
-
-function isAdminRole(value: unknown): value is AdminRole {
-  return value === "general" || value === "premium";
-}
 
 async function parseErrorMessage(response: Response): Promise<string> {
   let message = response.statusText || "API request failed";
@@ -54,19 +49,14 @@ async function refreshAccessToken(): Promise<AuthSessionResponse> {
 
       const session = (await response.json()) as {
         accessToken?: unknown;
-        role?: unknown;
       };
 
-      if (
-        typeof session.accessToken !== "string" ||
-        !isAdminRole(session.role)
-      ) {
+      if (typeof session.accessToken !== "string") {
         throw new ApiError("Invalid refresh response", 500);
       }
 
       const nextSession: AuthSessionResponse = {
         accessToken: session.accessToken,
-        role: session.role,
       };
 
       useAuthStore.getState().setSession(nextSession);

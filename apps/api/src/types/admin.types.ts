@@ -1,4 +1,3 @@
-import type { AdminRole } from "./auth.types.js";
 import type { LeadStatus } from "../models/Lead.js";
 
 export type CategoryResponse = {
@@ -52,7 +51,6 @@ export type LeadListResponse = {
 export type AdminUserResponse = {
   _id: string;
   email: string;
-  role: AdminRole;
   is_active: boolean;
   createdAt: string;
   updatedAt: string;

@@ -6,7 +6,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "../lib/tokens.js";
-import type { AdminJwtPayload, AdminRole } from "../types/auth.types.js";
+import type { AdminJwtPayload } from "../types/auth.types.js";
 
 export class AuthError extends Error {
   readonly status: number;
@@ -21,12 +21,10 @@ export class AuthError extends Error {
 function toJwtPayload(admin: {
   _id: { toString(): string };
   email: string;
-  role: AdminRole;
 }): AdminJwtPayload {
   return {
     id: admin._id.toString(),
     email: admin.email,
-    role: admin.role,
   };
 }
 

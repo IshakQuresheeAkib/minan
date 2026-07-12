@@ -25,7 +25,7 @@
 - Premium brand experience
 - Lead collection through checkout into first-party MongoDB data
 - Meta Pixel + CAPI infrastructure with event deduplication
-- Role-based admin dashboard
+- Authenticated full-access admin dashboard
 - Supports future e-commerce migration
 - Facebook custom audience retargeting
 
@@ -141,7 +141,7 @@ Express sets auth cookies with `AUTH_COOKIE_DOMAIN=.minan.com` in production. Th
 `app/(admin)/admin/layout.tsx` wraps protected admin routes in `AdminSessionProvider`. On mount, `AdminSessionProvider` calls `POST /api/auth/refresh` to:
 
 1. Exchange a valid refresh token cookie for new tokens
-2. Repopulate `auth.store.ts` with the new access token and role
+2. Repopulate `auth.store.ts` with the new access token
 
 If refresh fails, the client clears Zustand and redirects to `/admin/login`.
 
@@ -187,12 +187,12 @@ Local development uses `secure: false`, `sameSite: "lax"`, and no cookie domain.
 
 ### Auth Flow
 
-1. `POST /api/auth/login` -> argon2 verify -> issue access + refresh cookies and return access token + role in the response body
+1. `POST /api/auth/login` -> argon2 verify -> issue access + refresh cookies and return access token in the response body
 2. Express stores `argon2.hash(refreshToken)` on the admin user and clears `previous_refresh_token_hash`
-3. Next.js stores access token and role in `auth.store.ts`
+3. Next.js stores access token in `auth.store.ts`
 4. `proxy.ts` reads the access token cookie and blocks unauthenticated admin renders
 5. API calls send `Authorization: Bearer <accessToken>` from Zustand
-6. 401 -> `POST /api/auth/refresh` -> Express atomically rotates refresh-token hash and returns a new access token + role
+6. 401 -> `POST /api/auth/refresh` -> Express atomically rotates refresh-token hash and returns a new access token
 7. Concurrent refresh with the immediately previous token returns `409 Concurrent token rotation`
 8. `POST /api/auth/logout` clears cookies and nulls refresh-token hashes
 
@@ -207,35 +207,24 @@ Only the refresh token whose hash matches `refresh_token_hash` is accepted, with
 
 ---
 
-## 7. Admin Roles
+## 7. Admin Access
 
-| Role      | Access                                          |
-| --------- | ----------------------------------------------- |
-| `general` | Dashboard read-only                             |
-| `premium` | Full CRUD - products, categories, leads, admins |
-
-### Permission Matrix
-
-| Feature                     | general | premium |
-| --------------------------- | ------- | ------- |
-| View Dashboard + Traffic    | yes     | yes     |
-| Product CRUD                | no      | yes     |
-| Category CRUD               | no      | yes     |
-| Lead Read / Create / Update | no      | yes     |
-| Admin CRUD                  | no      | yes     |
+MINAN uses one authenticated admin model. Every active admin account has the full admin feature set: dashboard, product CRUD, category CRUD, lead management, uploads, and admin-user management.
 
 ### Enforcement
 
-- Role in JWT payload: `{ id, email, role }`
-- Express middleware checks role per route, never from request body
-- `proxy.ts` reads role from JWT cookie only for server-side admin route gating
-- Role change requires token refresh to take effect
+- JWT payload: `{ id, email }`
+- Legacy JWTs may contain a `role` claim, but current code ignores it
+- Express admin routes require authenticated Bearer tokens
+- Admin write routes also require `X-Requested-With: XMLHttpRequest`
+- `proxy.ts` reads the access-token cookie only to verify authenticated admin page access
+- Do not accept role or privilege values from request bodies
 
 ### Self-Guard Rule
 
-A premium admin cannot demote or deactivate their own account:
+An admin cannot deactivate their own account:
 
-- `PATCH /api/admin/admins/:id` rejects self role changes and self `is_active: false`
+- `PATCH /api/admin/admins/:id` rejects self `is_active: false`
 - `PATCH /api/admin/admins/:id/deactivate` rejects self-deactivation
 - Enforcement lives in the admins service/controller, not middleware
 
@@ -309,7 +298,6 @@ A premium admin cannot demote or deactivate their own account:
 | `_id`                         | ObjectId    | PK |
 | `email`                       | String      | required, unique, lowercase |
 | `password`                    | String      | argon2 hashed, never in API response |
-| `role`                        | String      | `general | premium` |
 | `is_active`                   | Boolean     | default `true` |
 | `refresh_token_hash`          | String/null | selected only when needed |
 | `previous_refresh_token_hash` | String/null | selected only when needed, concurrent rotation guard |
@@ -354,25 +342,25 @@ There is no public `GET /api/categories` route. Public category navigation start
 
 | Method | Route                                  | Role              | Description |
 | ------ | -------------------------------------- | ----------------- | ----------- |
-| GET    | `/api/admin/dashboard`                 | general + premium | Placeholder metrics response |
-| GET    | `/api/admin/leads`                     | premium           | List leads |
-| GET    | `/api/admin/leads/:id`                 | premium           | Get single lead |
-| PATCH  | `/api/admin/leads/:id`                 | premium           | Update lead status + notes |
-| GET    | `/api/admin/products`                  | premium           | List all products, including inactive. Query params: `search`, `category_id`, `status`, `page`, `limit` |
-| POST   | `/api/admin/products`                  | premium           | Create product |
-| PATCH  | `/api/admin/products/:id`              | premium           | Update product, including `is_active: true` reactivation |
-| PATCH  | `/api/admin/products/:id/deactivate`   | premium           | Soft delete |
-| GET    | `/api/admin/categories`                | premium           | List all categories |
-| POST   | `/api/admin/categories`                | premium           | Create category |
-| PATCH  | `/api/admin/categories/:id`            | premium           | Update category, including `is_active: true` reactivation |
-| PATCH  | `/api/admin/categories/:id/deactivate` | premium           | Soft delete, blocked when active products reference the category |
-| GET    | `/api/admin/admins`                    | premium           | List admins |
-| POST   | `/api/admin/admins`                    | premium           | Create admin |
-| PATCH  | `/api/admin/admins/:id`                | premium           | Update admin, including `is_active: true` reactivation |
-| PATCH  | `/api/admin/admins/:id/deactivate`     | premium           | Soft disable |
-| GET    | `/api/admin/uploads/signature`         | premium           | Get Cloudinary signed upload params |
+| GET    | `/api/admin/dashboard`                 | admin | Placeholder metrics response |
+| GET    | `/api/admin/leads`                     | admin | List leads |
+| GET    | `/api/admin/leads/:id`                 | admin | Get single lead |
+| PATCH  | `/api/admin/leads/:id`                 | admin | Update lead status + notes |
+| GET    | `/api/admin/products`                  | admin | List all products, including inactive. Query params: `search`, `category_id`, `status`, `page`, `limit` |
+| POST   | `/api/admin/products`                  | admin | Create product |
+| PATCH  | `/api/admin/products/:id`              | admin | Update product, including `is_active: true` reactivation |
+| PATCH  | `/api/admin/products/:id/deactivate`   | admin | Soft delete |
+| GET    | `/api/admin/categories`                | admin | List all categories |
+| POST   | `/api/admin/categories`                | admin | Create category |
+| PATCH  | `/api/admin/categories/:id`            | admin | Update category, including `is_active: true` reactivation |
+| PATCH  | `/api/admin/categories/:id/deactivate` | admin | Soft delete, blocked when active products reference the category |
+| GET    | `/api/admin/admins`                    | admin | List admins |
+| POST   | `/api/admin/admins`                    | admin | Create admin |
+| PATCH  | `/api/admin/admins/:id`                | admin | Update admin, including `is_active: true` reactivation |
+| PATCH  | `/api/admin/admins/:id/deactivate`     | admin | Soft disable |
+| GET    | `/api/admin/uploads/signature`         | admin | Get Cloudinary signed upload params |
 
-Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requireCsrfHeader`.
+Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
 ---
 
@@ -386,11 +374,11 @@ Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requi
 | `/cart`             | Cart                | Public            |
 | `/checkout`         | Checkout            | Public            |
 | `/admin/login`      | Admin Login         | Public            |
-| `/admin`            | Dashboard           | General + Premium |
-| `/admin/products`   | Product Management  | Premium           |
-| `/admin/categories` | Category Management | Premium           |
-| `/admin/leads`      | Lead Management     | Premium           |
-| `/admin/admins`     | Admin Management    | Premium           |
+| `/admin`            | Dashboard           | Admin             |
+| `/admin/products`   | Product Management  | Admin             |
+| `/admin/categories` | Category Management | Admin             |
+| `/admin/leads`      | Lead Management     | Admin             |
+| `/admin/admins`     | Admin Management    | Admin             |
 
 `/admin/login` lives under the public route group at `app/(public)/admin/login/page.tsx`. Protected admin routes live under `app/(admin)/admin/`.
 
@@ -409,7 +397,7 @@ Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requi
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
 - `next.config.ts` rewrites `/api/:path*` to `API_PROXY_TARGET`, defaulting to `http://localhost:3001`.
 - `lib/analytics/pixel.ts` contains client-side Meta Pixel helpers only. CAPI is Express-only.
-- `store/auth.store.ts` keeps access token and role in memory only.
+- `store/auth.store.ts` keeps the access token in memory only.
 - `store/cart.store.ts` keeps cart items in Zustand and persists selected cart lines to browser `localStorage`.
 
 ---
@@ -439,7 +427,7 @@ Admin write routes require `requireAuth`, `requireRole(["premium"])`, and `requi
 - Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
 - Checkout lead form writes to MongoDB `leads`
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the lead snapshot
-- Role-gated admin CRUD for products, categories, leads, and admins
+- Authenticated admin CRUD for products, categories, leads, and admins
 - Dashboard screen exists; real metric aggregation is planned
 
 ---
@@ -513,7 +501,7 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | HTTP headers     | `helmet` |
 | CORS             | specific `ALLOWED_ORIGINS`, credentials enabled, never `*` |
 | Password leak    | Mongoose `toJSON` strips `password` |
-| Role escalation  | Role from JWT only, never request body |
+| Privilege escalation | Single admin access model; never accept role or privilege values from request body |
 
 ---
 
@@ -527,6 +515,8 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Images   | Cloudinary            | -               |
 
 Custom domains are required for production admin cookie auth.
+
+Admin role removal changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window; old web against new API or new web against old API can break admin refresh/admin-user forms. Existing legacy JWTs that still include `role` are tolerated by the new parser as long as they contain valid `id` and `email` claims.
 
 ### Frontend `.env.local`
 
@@ -557,14 +547,14 @@ CLOUDINARY_URL=
 CLOUDINARY_UPLOAD_FOLDER=
 ADMIN_EMAIL=
 ADMIN_PASSWORD=
-ADMIN_ROLE=
 NODE_ENV=
 STOREFRONT_REVALIDATE_URL=https://app.minan.com/api/revalidate
 STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
 ```
 
 - `AUTH_COOKIE_DOMAIN` should be `.minan.com` in production when frontend and backend share the parent domain.
-- `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password, role, and `is_active: true`.
+- `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password and `is_active: true`.
+- `cleanup:admin-roles` is an optional post-deploy hygiene script that removes legacy `role` fields from `admin_users`; stale role fields are ignored by current code.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 
 ---
@@ -604,13 +594,13 @@ Do not treat these aggregations as implemented until `dashboard.controller.ts` i
 - `apps/api/src/services/` owns business logic and DB access.
 - `apps/api/src/controllers/` owns Express request/response handling.
 - `apps/api/src/routes/` declares route wiring and middleware order.
-- `apps/api/src/middleware/` owns auth, role, CSRF, and error middleware.
+- `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
 - Public routers: products, leads, analytics, whatsapp-click, auth.
 - Admin router is mounted at `/api/admin`.
-- Dashboard stays accessible to `general` and `premium`.
-- All admin writes require auth, premium role, and CSRF header.
+- All admin routes are accessible to active authenticated admins.
+- All admin writes require auth and CSRF header.
 - Slugs are generated through `lib/slugify.ts`; duplicate slugs resolve with suffixes in current admin services.
 - Admin serializers and model transforms must never expose password or refresh-token hashes.
 

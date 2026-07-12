@@ -1,12 +1,9 @@
 import argon2 from "argon2";
 import mongoose, { type Document, Schema } from "mongoose";
 
-import type { AdminRole } from "../types/auth.types.js";
-
 export interface AdminUserDocument extends Document {
   email: string;
   password: string;
-  role: AdminRole;
   is_active: boolean;
   refresh_token_hash: string | null;
   previous_refresh_token_hash: string | null;
@@ -24,11 +21,6 @@ const adminUserSchema = new Schema<AdminUserDocument>(
       trim: true,
     },
     password: { type: String, required: true },
-    role: {
-      type: String,
-      enum: ["general", "premium"] satisfies AdminRole[],
-      required: true,
-    },
     is_active: { type: Boolean, default: true },
     refresh_token_hash: { type: String, default: null, select: false },
     previous_refresh_token_hash: {

@@ -36,7 +36,6 @@ export function LoginForm() {
       const session = await loginAdmin(values);
       setSession({
         accessToken: session.accessToken,
-        role: session.role,
       });
 
       const nextPath = searchParams.get("next");

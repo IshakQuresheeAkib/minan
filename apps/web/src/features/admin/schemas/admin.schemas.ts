@@ -30,14 +30,12 @@ export type AdminLeadUpdateInput = z.infer<typeof adminLeadUpdateSchema>;
 export const adminCreateFormSchema = z.object({
   email: z.email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["general", "premium"]),
 });
 
 export type AdminCreateFormInput = z.infer<typeof adminCreateFormSchema>;
 
 export const adminUpdateFormSchema = z.object({
   email: z.email("Enter a valid email address"),
-  role: z.enum(["general", "premium"]),
   is_active: z.boolean(),
 });
 

@@ -2,30 +2,17 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { refreshSession } from "@/features/admin/actions/auth.actions";
 import type { AuthSessionResponse } from "@/features/admin/types";
-import { adminRoutes, publicRoutes } from "@/constants/routes";
+import { publicRoutes } from "@/constants/routes";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth.store";
 
 type AdminSessionProviderProps = {
   children: ReactNode;
 };
-
-const premiumOnlyPaths = [
-  adminRoutes.products,
-  adminRoutes.categories,
-  adminRoutes.leads,
-  adminRoutes.admins,
-] as const;
-
-function isPremiumOnlyPath(pathname: string): boolean {
-  return premiumOnlyPaths.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
-}
 
 function getLoginRedirectUrl(): string {
   const nextPath = `${window.location.pathname}${window.location.search}`;
@@ -39,9 +26,7 @@ function getLoginRedirectUrl(): string {
 
 export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const accessToken = useAuthStore((state) => state.accessToken);
-  const role = useAuthStore((state) => state.role);
   const setSession = useAuthStore((state) => state.setSession);
   const clearSession = useAuthStore((state) => state.clearSession);
   const [ready, setReady] = useState(false);
@@ -53,12 +38,7 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
       function applySession(session: AuthSessionResponse) {
         setSession({
           accessToken: session.accessToken,
-          role: session.role,
         });
-
-        if (session.role !== "premium" && isPremiumOnlyPath(pathname)) {
-          router.replace(adminRoutes.dashboard);
-        }
       }
 
       try {
@@ -106,7 +86,7 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [clearSession, pathname, router, setSession]);
+  }, [clearSession, router, setSession]);
 
   useEffect(() => {
     if (ready && accessToken === null) {
@@ -114,16 +94,7 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
     }
   }, [accessToken, ready, router]);
 
-  useEffect(() => {
-    if (ready && role !== "premium" && isPremiumOnlyPath(pathname)) {
-      router.replace(adminRoutes.dashboard);
-    }
-  }, [pathname, ready, role, router]);
-
-  const isRedirectingUnauthorizedRoute =
-    ready && role !== "premium" && isPremiumOnlyPath(pathname);
-
-  if (!ready || isRedirectingUnauthorizedRoute) {
+  if (!ready) {
     return (
       <div className="flex min-h-[50dvh] items-center justify-center">
         <p className="text-sm text-foreground/70">Loading admin session...</p>

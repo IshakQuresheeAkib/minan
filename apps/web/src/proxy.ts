@@ -2,25 +2,11 @@ import { jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-type AdminRole = "general" | "premium";
-
 const loginPath = "/admin/login";
 const dashboardPath = "/admin";
-const premiumOnlyPaths = [
-  "/admin/products",
-  "/admin/categories",
-  "/admin/leads",
-  "/admin/admins",
-] as const;
 
-function isAdminRole(value: unknown): value is AdminRole {
-  return value === "general" || value === "premium";
-}
-
-function isPremiumOnlyPath(pathname: string) {
-  return premiumOnlyPaths.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
+function isAdminPayload(payload: Record<string, unknown>) {
+  return typeof payload.id === "string" && typeof payload.email === "string";
 }
 
 function redirectToLogin(request: NextRequest) {
@@ -53,7 +39,7 @@ export async function proxy(request: NextRequest) {
         token,
         new TextEncoder().encode(secret),
       );
-      if (isAdminRole(payload.role)) {
+      if (isAdminPayload(payload)) {
         return redirectToDashboard(request);
       }
     } catch {
@@ -80,19 +66,12 @@ export async function proxy(request: NextRequest) {
       token,
       new TextEncoder().encode(secret),
     );
-    const role = payload.role;
 
-    if (!isAdminRole(role)) {
+    if (!isAdminPayload(payload)) {
       return redirectToLogin(request);
     }
 
-    if (isPremiumOnlyPath(pathname) && role !== "premium") {
-      return redirectToDashboard(request);
-    }
-
-    const response = NextResponse.next();
-    response.headers.set("x-minan-admin-role", role);
-    return response;
+    return NextResponse.next();
   } catch {
     if (refreshToken) {
       return NextResponse.next();
