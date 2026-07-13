@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowLeft, MessageCircle, Minus, Plus, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageCircle,
+  Minus,
+  Plus,
+  Share2,
+  ShoppingBag,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -46,6 +53,7 @@ export function ProductDetails({
     expandedDescription || !shouldTruncate
       ? product.description
       : `${product.description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd()}…`;
+  const isProductUnavailable = !product.is_active;
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
@@ -115,13 +123,17 @@ export function ProductDetails({
     await navigator.clipboard.writeText(window.location.href);
   };
 
-  const handleAddToCart = () => {
+  const addSelectedItemToCart = () => {
+    if (isProductUnavailable) {
+      return false;
+    }
+
     if (product.sizes.length > 0 && !selectedSize) {
-      return;
+      return false;
     }
 
     if (product.colors.length > 0 && !selectedColor) {
-      return;
+      return false;
     }
 
     addItem({
@@ -135,10 +147,26 @@ export function ProductDetails({
       imageUrl: product.images[0],
     });
 
-    router.push(publicRoutes.cart);
+    return true;
+  };
+
+  const handleAddToCart = () => {
+    if (addSelectedItemToCart()) {
+      router.push(publicRoutes.cart);
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (addSelectedItemToCart()) {
+      router.push(publicRoutes.checkout);
+    }
   };
 
   const handleWhatsAppOrder = () => {
+    if (isProductUnavailable) {
+      return;
+    }
+
     void openWhatsAppOrder({
       productId: product._id,
       categoryId: product.category_id,
@@ -173,7 +201,7 @@ export function ProductDetails({
         </button>
       </header>
 
-      <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-36 lg:px-8 lg:pb-16 lg:pt-6">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-64 lg:px-8 lg:pb-16 lg:pt-6">
         <ProductBreadcrumbs
           category={product.category}
           productName={product.name}
@@ -267,11 +295,12 @@ export function ProductDetails({
                 <Button
                   type="button"
                   variant="secondary"
+                  disabled={isProductUnavailable}
                   className="h-12 w-full cursor-pointer rounded-full"
                   onClick={handleWhatsAppOrder}
                 >
                   <MessageCircle className="size-4" aria-hidden="true" />
-                  Order on WhatsApp
+                  {isProductUnavailable ? "Sold Out" : "Order on WhatsApp"}
                 </Button>
               </div>
 
@@ -307,11 +336,12 @@ export function ProductDetails({
         <Button
           type="button"
           variant="secondary"
+          disabled={isProductUnavailable}
           className="h-11 w-full cursor-pointer rounded-full"
           onClick={handleWhatsAppOrder}
         >
           <MessageCircle className="size-4" aria-hidden="true" />
-          Order on WhatsApp
+          {isProductUnavailable ? "Sold Out" : "Order on WhatsApp"}
         </Button>
 
         <div className="flex items-center gap-4">
@@ -342,20 +372,43 @@ export function ProductDetails({
           <Button
             type="button"
             onClick={handleAddToCart}
-            className="h-14 flex-1 bg-primary text-[16px] font-semibold text-background shadow-[0_8px_20px_rgba(151,72,34,0.25)] hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-[0_8px_20px_rgba(151,72,34,0.25)] active:scale-95"
-            text="Add to Cart"
+            disabled={isProductUnavailable}
+            variant="secondary"
+            className="h-14 flex-1 border-border bg-card text-[15px] font-semibold text-foreground shadow-sm hover:translate-y-0 hover:bg-muted hover:text-foreground hover:shadow-sm active:scale-95"
+            text={isProductUnavailable ? "Sold Out" : "Add to Cart"}
           />
         </div>
+
+        <Button
+          type="button"
+          onClick={handleBuyNow}
+          disabled={isProductUnavailable}
+          className="h-14 w-full bg-primary text-[16px] font-semibold text-background shadow-[0_8px_20px_rgba(151,72,34,0.25)] hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-[0_8px_20px_rgba(151,72,34,0.25)] active:scale-95"
+          leftIcon={<ShoppingBag className="size-4" aria-hidden="true" />}
+          text={isProductUnavailable ? "Sold Out" : "Buy Now"}
+        />
       </footer>
 
-      <div className="fixed bottom-6 right-6 z-50 hidden lg:block">
+      <div className="fixed bottom-6 right-6 z-50 hidden items-center gap-3 lg:flex">
         <Button
           type="button"
           size="lg"
           onClick={handleAddToCart}
-          className="h-14 cursor-pointer rounded-full px-8 text-base font-semibold shadow-[0_8px_24px_rgba(151,72,34,0.35)]"
+          disabled={isProductUnavailable}
+          variant="secondary"
+          className="h-14 cursor-pointer rounded-full bg-card px-8 text-base font-semibold text-foreground shadow-[0_8px_24px_rgba(151,72,34,0.18)] hover:translate-y-0 hover:bg-muted hover:text-foreground"
         >
-          Add to Cart
+          {isProductUnavailable ? "Sold Out" : "Add to Cart"}
+        </Button>
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleBuyNow}
+          disabled={isProductUnavailable}
+          className="h-14 cursor-pointer rounded-full px-8 text-base font-semibold shadow-[0_8px_24px_rgba(151,72,34,0.35)]"
+          leftIcon={<ShoppingBag className="size-4" aria-hidden="true" />}
+        >
+          {isProductUnavailable ? "Sold Out" : "Buy Now"}
         </Button>
       </div>
 

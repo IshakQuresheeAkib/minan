@@ -254,11 +254,18 @@ function ProductFormFields({
           )}
         />
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Images</p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">Product images</p>
+            <p className="text-xs leading-relaxed text-foreground/65">
+              The first image is the main storefront image. Other images appear
+              after it in the product gallery.
+            </p>
+          </div>
           <ImageUploader
             accessToken={accessToken}
             images={images}
+            showProductRoles
             onChange={setImages}
           />
         </div>
