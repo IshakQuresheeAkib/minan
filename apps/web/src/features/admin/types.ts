@@ -11,7 +11,6 @@ export type DashboardMetrics = {
 
 export type AuthSessionResponse = {
   accessToken: string;
-  role: "general" | "premium";
 };
 
 export type AdminProduct = {
@@ -68,7 +67,6 @@ export type AdminLead = {
 export type AdminUser = {
   _id: string;
   email: string;
-  role: "general" | "premium";
   is_active: boolean;
   createdAt: string;
   updatedAt: string;

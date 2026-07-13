@@ -20,19 +20,28 @@ import { cn } from "@/lib/utils";
 
 interface SearchBarProps {
   className?: string;
+  initialQuery?: string;
+  onSearchSubmit?: (query: string) => void;
+  variant?: "navbar" | "catalog";
 }
 
-export function SearchBar({ className }: SearchBarProps) {
+export function SearchBar({
+  className,
+  initialQuery = "",
+  onSearchSubmit,
+  variant = "navbar",
+}: SearchBarProps) {
   const router = useRouter();
   const resultsId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const queryRef = useRef("");
+  const queryRef = useRef(initialQuery);
   const requestIdRef = useRef(0);
   const debounceRef = useRef<number | null>(null);
 
-  const [query, setQuery] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const isCatalog = variant === "catalog";
+  const [query, setQuery] = useState(initialQuery);
+  const [expanded, setExpanded] = useState(isCatalog);
   const [results, setResults] = useState<Product[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,13 +59,13 @@ export function SearchBar({ className }: SearchBarProps) {
     requestIdRef.current += 1;
     queryRef.current = "";
     setQuery("");
-    setExpanded(false);
+    setExpanded(isCatalog);
     setResults([]);
     setOpen(false);
     setLoading(false);
     setError(null);
     setHasSearched(false);
-  }, []);
+  }, [isCatalog]);
 
   const runSearch = useCallback((searchQuery: string): void => {
     const requestId = requestIdRef.current + 1;
@@ -87,14 +96,23 @@ export function SearchBar({ className }: SearchBarProps) {
     function handlePointerDown(event: MouseEvent): void {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
-        if (!queryRef.current.trim()) {
+        if (!isCatalog && !queryRef.current.trim()) {
           setExpanded(false);
         }
       }
     }
 
     function handleEscape(event: KeyboardEvent): void {
-      if (event.key === "Escape") reset();
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (isCatalog) {
+        setOpen(false);
+        return;
+      }
+
+      reset();
     }
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -106,19 +124,29 @@ export function SearchBar({ className }: SearchBarProps) {
         window.clearTimeout(debounceRef.current);
       }
     };
-  }, [reset]);
+  }, [isCatalog, reset]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     setExpanded(true);
 
     if (!trimmedQuery) {
+      if (isCatalog) {
+        onSearchSubmit?.("");
+        setOpen(false);
+        return;
+      }
+
       inputRef.current?.focus();
       return;
     }
 
-    const params = new URLSearchParams({ search: trimmedQuery });
-    router.push(`${publicRoutes.products}?${params.toString()}`);
+    if (onSearchSubmit) {
+      onSearchSubmit(trimmedQuery);
+    } else {
+      const params = new URLSearchParams({ search: trimmedQuery });
+      router.push(`${publicRoutes.products}?${params.toString()}`);
+    }
     setOpen(false);
   }
 
@@ -134,7 +162,8 @@ export function SearchBar({ className }: SearchBarProps) {
     <div
       ref={containerRef}
       className={cn(
-        "relative flex w-full max-w-[300px] justify-end",
+        "relative flex w-full justify-end",
+        isCatalog ? "max-w-none" : "max-w-[300px]",
         showSuggestions && "z-[80]",
         className,
       )}
@@ -146,12 +175,13 @@ export function SearchBar({ className }: SearchBarProps) {
         className={cn(
           "relative z-10 h-12 w-12 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
           expanded && "w-full",
+          isCatalog && "w-full",
         )}
       >
         <Search
           className={cn(
             "pointer-events-none absolute top-1/2 right-3 z-2 size-6 -translate-y-1/2 transition-colors duration-200",
-            expanded ? "text-background" : "text-foreground",
+            expanded && !isCatalog ? "text-background" : "text-foreground",
           )}
           aria-hidden="true"
         />
@@ -164,11 +194,11 @@ export function SearchBar({ className }: SearchBarProps) {
           size="icon"
           className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-primary hover:shadow-none focus-visible:ring-2 focus-visible:ring-ring/60"
           onClick={() => {
-            if (!trimmedQuery) {
+            if (!isCatalog && !trimmedQuery) {
               expandAndFocus();
             }
           }}
-          onMouseEnter={expandAndFocus}
+          onMouseEnter={isCatalog ? undefined : expandAndFocus}
         />
         <input
           ref={inputRef}
@@ -186,6 +216,8 @@ export function SearchBar({ className }: SearchBarProps) {
             "h-12 w-12 rounded-full border border-primary/45 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-ring/50",
             expanded &&
               "w-full rounded-full pl-3 text-foreground placeholder:text-foreground/70 focus-visible:ring-primary/45",
+            isCatalog &&
+              "w-full bg-background pl-4 text-foreground placeholder:text-foreground/60 transition-colors duration-200",
           )}
           onChange={(event) => {
             const nextQuery = event.target.value;

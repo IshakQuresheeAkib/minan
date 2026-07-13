@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "seed": "tsx src/seed/seed.ts",
     "seed:admin": "tsx src/seed/seed-admin.ts",
+    "cleanup:admin-roles": "tsx src/scripts/cleanup-admin-roles.ts",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {

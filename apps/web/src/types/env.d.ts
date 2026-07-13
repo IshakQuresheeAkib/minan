@@ -6,5 +6,6 @@ declare namespace NodeJS {
     NEXT_PUBLIC_WHATSAPP_NUMBER?: string;
     API_PROXY_TARGET?: string;
     JWT_ACCESS_SECRET?: string;
+    REVALIDATE_SECRET?: string;
   }
 }

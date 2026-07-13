@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 
 import {
   ProductCatalog,
@@ -6,16 +7,14 @@ import {
 } from "@/features/products/components/ProductCatalog";
 import { ProductCatalogSkeleton } from "@/features/products/components/ProductCatalogSkeleton";
 import {
-  getProductFilterOptions,
-  getProducts,
-  type ProductSortOption,
-} from "@/features/products/services/product.service";
+  getCachedProductFilterOptions,
+  getCachedProducts,
+} from "@/features/products/services/product.cache";
+import { type ProductSortOption } from "@/features/products/services/product.service";
 
 export const metadata = {
   title: "Products",
 };
-
-export const dynamic = "force-dynamic";
 
 type ProductsPageProps = {
   searchParams: Promise<{
@@ -94,6 +93,8 @@ function getSortParam(
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  await connection();
+
   const params = await searchParams;
   const categories = getParamValues(params.category);
   const colors = getParamValues(params.color);
@@ -126,10 +127,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             : "Premium daily wear selected for fast browsing and easy ordering."}
         </p>
       </div>
-      <Suspense
-        key={JSON.stringify(filters)}
-        fallback={<ProductCatalogSkeleton />}
-      >
+      <Suspense fallback={<ProductCatalogSkeleton />}>
         <ProductsCatalogContent filters={filters} />
       </Suspense>
     </section>
@@ -142,7 +140,7 @@ async function ProductsCatalogContent({
   filters: ProductCatalogFilters;
 }) {
   const [products, filterOptions] = await Promise.all([
-    getProducts({
+    getCachedProducts({
       category: filters.categories,
       colors: filters.colors,
       sizes: filters.sizes,
@@ -153,7 +151,7 @@ async function ProductsCatalogContent({
       page: 1,
       limit: 20,
     }),
-    getProductFilterOptions(),
+    getCachedProductFilterOptions(),
   ]);
 
   return (

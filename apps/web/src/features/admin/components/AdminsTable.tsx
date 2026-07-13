@@ -72,7 +72,7 @@ export function AdminsTable({
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Admins</h1>
           <p className="mt-1 text-sm text-foreground/70">
-            Create admin accounts and assign general or premium roles.
+            Create admin accounts and manage active access.
           </p>
         </div>
         <Button type="button" onClick={onCreate}>
@@ -90,7 +90,6 @@ export function AdminsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -108,9 +107,6 @@ export function AdminsTable({
                           (you)
                         </span>
                       ) : null}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{admin.role}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge

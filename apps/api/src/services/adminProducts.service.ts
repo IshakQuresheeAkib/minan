@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 
 import { AppError } from "../lib/errors.js";
 import { throwIfDuplicateKey } from "../lib/mongoErrors.js";
+import { revalidateStorefront } from "../lib/revalidateStorefront.js";
 import { slugify } from "../lib/slugify.js";
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
@@ -159,7 +160,9 @@ export async function createAdminProduct(input: ProductCreateInput) {
     });
 
     await product.populate("category_id");
-    return serializeProduct(product);
+    const serializedProduct = serializeProduct(product);
+    await revalidateStorefront();
+    return serializedProduct;
   } catch (error) {
     throwIfDuplicateKey(error, "Product slug already exists");
   }
@@ -222,7 +225,9 @@ export async function updateAdminProduct(
   try {
     await product.save();
     await product.populate("category_id");
-    return serializeProduct(product);
+    const serializedProduct = serializeProduct(product);
+    await revalidateStorefront();
+    return serializedProduct;
   } catch (error) {
     throwIfDuplicateKey(error, "Product slug already exists");
   }
@@ -241,5 +246,7 @@ export async function deactivateAdminProduct(id: string) {
   product.is_active = false;
   await product.save();
   await product.populate("category_id");
-  return serializeProduct(product);
+  const serializedProduct = serializeProduct(product);
+  await revalidateStorefront();
+  return serializedProduct;
 }

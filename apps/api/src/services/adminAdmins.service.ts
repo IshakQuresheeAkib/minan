@@ -10,18 +10,13 @@ import type {
 import type { AdminUserListResponse } from "../types/admin.types.js";
 import { serializeAdmin } from "../utils/serializeAdmin.js";
 
-function assertSelfModificationAllowed(
+function assertSelfDeactivationAllowed(
   actorId: string,
   targetId: string,
   input: AdminUpdateInput,
-  currentRole: "general" | "premium",
 ): void {
   if (actorId !== targetId) {
     return;
-  }
-
-  if (input.role !== undefined && input.role !== currentRole) {
-    throw new AppError("You cannot change your own role", 400);
   }
 
   if (input.is_active === false) {
@@ -43,7 +38,6 @@ export async function createAdminUser(input: AdminCreateInput) {
     const admin = await AdminUser.create({
       email: input.email.toLowerCase().trim(),
       password: input.password,
-      role: input.role,
       is_active: true,
     });
 
@@ -67,14 +61,10 @@ export async function updateAdminUser(
     throw new AppError("Admin not found", 404);
   }
 
-  assertSelfModificationAllowed(actorId, id, input, admin.role);
+  assertSelfDeactivationAllowed(actorId, id, input);
 
   if (input.email !== undefined) {
     admin.email = input.email.toLowerCase().trim();
-  }
-
-  if (input.role !== undefined) {
-    admin.role = input.role;
   }
 
   if (input.is_active !== undefined) {

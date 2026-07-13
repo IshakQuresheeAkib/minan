@@ -2,8 +2,6 @@ import { z } from "zod";
 
 import { slugify } from "../lib/slugify.js";
 
-const adminRoleSchema = z.enum(["general", "premium"]);
-
 const leadStatusSchema = z.enum(["pending", "confirmed", "cancelled"]);
 
 const slugStringSchema = z
@@ -70,13 +68,11 @@ export const leadUpdateSchema = z
 export const adminCreateSchema = z.object({
   email: z.email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: adminRoleSchema,
 });
 
 export const adminUpdateSchema = z
   .object({
     email: z.email("Enter a valid email address").optional(),
-    role: adminRoleSchema.optional(),
     is_active: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {

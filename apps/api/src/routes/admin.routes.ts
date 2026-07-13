@@ -27,90 +27,82 @@ import {
 import { getUploadSignatureHandler } from "../controllers/admin/uploads.controller.js";
 import { requireCsrfHeader } from "../middleware/csrf.js";
 import { requireAuth } from "../middleware/requireAuth.js";
-import { requireRole } from "../middleware/requireRole.js";
 
 export const adminRouter = Router();
 
-const premiumOnly = [requireAuth, requireRole(["premium"])] as const;
+adminRouter.get("/dashboard", requireAuth, getDashboardHandler);
 
-adminRouter.get(
-  "/dashboard",
-  requireAuth,
-  requireRole(["general", "premium"]),
-  getDashboardHandler,
-);
-
-adminRouter.get("/products", ...premiumOnly, listAdminProductsHandler);
+adminRouter.get("/products", requireAuth, listAdminProductsHandler);
 adminRouter.post(
   "/products",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   createAdminProductHandler,
 );
 adminRouter.patch(
   "/products/:id",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   updateAdminProductHandler,
 );
 adminRouter.patch(
   "/products/:id/deactivate",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   deactivateAdminProductHandler,
 );
 
-adminRouter.get("/categories", ...premiumOnly, listAdminCategoriesHandler);
+adminRouter.get("/categories", requireAuth, listAdminCategoriesHandler);
 adminRouter.post(
   "/categories",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   createAdminCategoryHandler,
 );
 adminRouter.patch(
   "/categories/:id",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   updateAdminCategoryHandler,
 );
 adminRouter.patch(
   "/categories/:id/deactivate",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   deactivateAdminCategoryHandler,
 );
 
-adminRouter.get("/leads", ...premiumOnly, listAdminLeadsHandler);
-adminRouter.get("/leads/:id", ...premiumOnly, getAdminLeadHandler);
+adminRouter.get("/leads", requireAuth, listAdminLeadsHandler);
+adminRouter.get("/leads/:id", requireAuth, getAdminLeadHandler);
 adminRouter.patch(
   "/leads/:id",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   updateAdminLeadHandler,
 );
 
-adminRouter.get("/admins", ...premiumOnly, listAdminUsersHandler);
+adminRouter.get("/admins", requireAuth, listAdminUsersHandler);
 adminRouter.post(
   "/admins",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   createAdminUserHandler,
 );
 adminRouter.patch(
   "/admins/:id",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   updateAdminUserHandler,
 );
 adminRouter.patch(
   "/admins/:id/deactivate",
-  ...premiumOnly,
+  requireAuth,
   requireCsrfHeader,
   deactivateAdminUserHandler,
 );
 
 adminRouter.get(
   "/uploads/signature",
-  ...premiumOnly,
+  requireAuth,
   getUploadSignatureHandler,
 );

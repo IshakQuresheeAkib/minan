@@ -65,7 +65,6 @@ export async function loginHandler(
     setAuthCookies(res, session.accessToken, session.refreshToken);
     res.json({
       accessToken: session.accessToken,
-      role: session.payload.role,
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -92,7 +91,6 @@ export async function refreshHandler(
     setAuthCookies(res, session.accessToken, session.refreshToken);
     res.json({
       accessToken: session.accessToken,
-      role: session.payload.role,
     });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -17,7 +17,6 @@ export async function createAdminUser(
   body: {
     email: string;
     password: string;
-    role: "general" | "premium";
   },
 ): Promise<{ data: AdminUser }> {
   return apiRequest<{ data: AdminUser }>("/api/admin/admins", {
@@ -32,7 +31,6 @@ export async function updateAdminUser(
   id: string,
   body: Partial<{
     email: string;
-    role: "general" | "premium";
     is_active: boolean;
   }>,
 ): Promise<{ data: AdminUser }> {

@@ -17,18 +17,15 @@ import {
 import type { AdminNavLink } from "@/constants/admin-nav";
 import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
-import type { AdminRole } from "@/store/auth.store";
 
 type AdminMobileNavProps = {
   visibleLinks: AdminNavLink[];
-  role: AdminRole | null;
   loggingOut: boolean;
   onLogout: () => void;
 };
 
 export function AdminMobileNav({
   visibleLinks,
-  role,
   loggingOut,
   onLogout,
 }: AdminMobileNavProps) {
@@ -59,11 +56,6 @@ export function AdminMobileNav({
       >
         <SheetHeader className="border-b px-4 py-4 text-left">
           <SheetTitle className="text-base">MINAN Admin</SheetTitle>
-          {role ? (
-            <p className="text-xs font-medium uppercase text-foreground/70">
-              {role}
-            </p>
-          ) : null}
         </SheetHeader>
 
         <nav

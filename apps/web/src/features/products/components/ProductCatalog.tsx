@@ -3,10 +3,10 @@
 import { Filter, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  startTransition,
   useEffect,
   useMemo,
   useRef,
+  useTransition,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -30,8 +30,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { SearchBar } from "@/features/home/components/SearchBar";
 import { ProductGrid } from "@/features/products/components/ProductGrid";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
+import { productColorSwatches } from "@/features/products/constants/product-colors";
 import type { Product } from "@/features/products/schemas/product.schema";
 import {
   mapProductToCard,
@@ -47,25 +49,6 @@ const sortLabels: Record<ProductSortOption, string> = {
   "price-asc": "Price low to high",
   "price-desc": "Price high to low",
   "name-asc": "Name A-Z",
-};
-
-const colorSwatches: Record<string, string> = {
-  Beige: "#d8c2a7",
-  Black: "#111111",
-  Blue: "#3468b7",
-  Brown: "#7a4b2a",
-  Gold: "#c99b2e",
-  Red: "#7f1d1d",
-  Navy: "#172554",
-  Orange: "#c2410c",
-  Pink: "#e879f9",
-  Purple: "#9333ea",
-  Yellow: "#eab308",
-  Green: "#16a34a",
-  Teal: "#14b8a6",
-  Cyan: "#0891b2",
-  White: "#ffffff",
-  "Sky Blue": "#7dd3fc",
 };
 
 export type ProductCatalogFilters = {
@@ -123,6 +106,7 @@ export function ProductCatalog({
   const router = useRouter();
   const pathname = usePathname();
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isPending, startTransition] = useTransition();
 
   const { products, isLoading, isRefreshing, error, loadMore, hasMore, total } =
     useProducts({
@@ -268,8 +252,22 @@ export function ProductCatalog({
       categories: [],
       colors: [],
       sizes: [],
-      search: filters.search,
       sort: "newest",
+    });
+  }
+
+  function clearSearch() {
+    pushFilters({
+      ...filters,
+      search: undefined,
+    });
+  }
+
+  function applySearch(search: string) {
+    const normalizedSearch = search.trim();
+    pushFilters({
+      ...filters,
+      search: normalizedSearch || undefined,
     });
   }
 
@@ -277,9 +275,13 @@ export function ProductCatalog({
     filters.categories.length +
     filters.colors.length +
     filters.sizes.length +
+    (filters.search ? 1 : 0) +
     (filters.minPrice !== undefined || filters.maxPrice !== undefined ? 1 : 0) +
     (filters.sort !== "newest" ? 1 : 0);
   const cards = products.map(mapProductToCard);
+  const hasCards = cards.length > 0;
+  const showRefreshingProducts = (isPending || isRefreshing) && hasCards;
+  const showInitialSkeleton = (isPending || isRefreshing) && !hasCards;
   const isPaginating = isLoading && !isRefreshing && products.length > 0;
 
   function renderFilterPanel() {
@@ -307,6 +309,14 @@ export function ProductCatalog({
       </aside>
 
       <div className="min-w-0">
+        <SearchBar
+          key={filters.search ?? "catalog-search"}
+          variant="catalog"
+          initialQuery={filters.search ?? ""}
+          onSearchSubmit={applySearch}
+          className="mb-5"
+        />
+
         <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/80 p-3 shadow-[0_12px_36px_rgba(151,72,34,0.06)] sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">
@@ -380,6 +390,12 @@ export function ProductCatalog({
 
         {activeFilterCount > 0 && (
           <div className="mb-5 flex flex-wrap gap-2">
+            {filters.search && (
+              <FilterChip
+                label={`Search: "${filters.search}"`}
+                onRemove={clearSearch}
+              />
+            )}
             {filters.categories.map((category) => (
               <FilterChip
                 key={category}
@@ -391,7 +407,7 @@ export function ProductCatalog({
               <FilterChip
                 key={color}
                 label={color}
-                swatch={colorSwatches[color]}
+                swatch={productColorSwatches[color]}
                 onRemove={() => toggleMultiFilter("color", color, false)}
               />
             ))}
@@ -435,17 +451,38 @@ export function ProductCatalog({
           </div>
         )}
 
-        <section aria-busy={isLoading} aria-label="Filtered products">
-          {isRefreshing ? (
+        <section
+          aria-busy={isLoading || isPending}
+          aria-label="Filtered products"
+        >
+          {showRefreshingProducts && (
+            <div
+              className="mb-3 h-1 overflow-hidden rounded-full bg-primary/15"
+              aria-hidden="true"
+            >
+              <span className="block h-full w-1/3 rounded-full bg-primary/80 animate-pulse" />
+            </div>
+          )}
+          {showInitialSkeleton ? (
             <ProductGridSkeleton />
-          ) : error ? (
-            <p className="py-10 text-center text-sm text-destructive">
-              {error}
-            </p>
+          ) : error && !hasCards ? (
+            <CatalogErrorState error={error} onRetry={() => router.refresh()} />
           ) : cards.length === 0 ? (
             <EmptyProductsState onReset={resetFilters} />
           ) : (
-            <ProductGrid products={cards} />
+            <div
+              className={cn(
+                "transition-opacity duration-200",
+                showRefreshingProducts && "opacity-60",
+              )}
+            >
+              <ProductGrid products={cards} />
+            </div>
+          )}
+          {error && hasCards && (
+            <div className="mt-4">
+              <CatalogErrorState error={error} onRetry={() => router.refresh()} />
+            </div>
           )}
           {isPaginating && (
             <p className="py-5 text-center text-sm text-foreground/70">
@@ -524,6 +561,7 @@ function FilterPanel({
             <button
               key={color}
               type="button"
+              aria-pressed={isChecked(filters.colors, color)}
               onClick={() =>
                 onToggle("color", color, !isChecked(filters.colors, color))
               }
@@ -536,7 +574,7 @@ function FilterPanel({
             >
               <span
                 className="size-4 rounded-full border border-border"
-                style={{ backgroundColor: colorSwatches[color] ?? color }}
+                style={{ backgroundColor: productColorSwatches[color] ?? color }}
                 aria-hidden="true"
               />
               <span className="truncate">{color}</span>
@@ -551,13 +589,14 @@ function FilterPanel({
             <button
               key={size}
               type="button"
+              aria-pressed={isChecked(filters.sizes, size)}
               onClick={() =>
                 onToggle("size", size, !isChecked(filters.sizes, size))
               }
               className={cn(
                 "h-9 min-w-11 cursor-pointer rounded-full border px-3 text-sm font-semibold transition-all",
                 isChecked(filters.sizes, size)
-                  ? "border-foreground bg-foreground text-primary shadow-md shadow-primary/30"
+                  ? "border-foreground bg-foreground text-background shadow-md shadow-primary/30"
                   : "border-border bg-background text-foreground hover:border-primary",
               )}
             >
@@ -662,6 +701,7 @@ function FilterChip({ label, onRemove, swatch }: FilterChipProps) {
     <button
       type="button"
       onClick={onRemove}
+      aria-label={`Remove ${label} filter`}
       className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-primary/50 bg-primary/15 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-primary/25"
     >
       {swatch && (
@@ -674,6 +714,28 @@ function FilterChip({ label, onRemove, swatch }: FilterChipProps) {
       {label}
       <X className="size-3.5" aria-hidden="true" />
     </button>
+  );
+}
+
+function CatalogErrorState({
+  error,
+  onRetry,
+}: {
+  error: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-10 text-center">
+      <p className="text-sm font-semibold text-destructive">{error}</p>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="mt-4"
+        onClick={onRetry}
+        text="Try again"
+      />
+    </div>
   );
 }
 

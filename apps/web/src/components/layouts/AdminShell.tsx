@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { getVisibleAdminLinks } from "@/constants/admin-nav";
+import { adminNavLinks } from "@/constants/admin-nav";
 import { adminRoutes, publicRoutes } from "@/constants/routes";
 import { logoutAdmin } from "@/features/admin/actions/auth.actions";
 import { AdminMobileNav } from "@/features/admin/components/AdminMobileNav";
@@ -19,11 +19,8 @@ type AdminShellProps = {
 
 export function AdminShell({ children }: AdminShellProps) {
   const router = useRouter();
-  const role = useAuthStore((state) => state.role);
   const clearSession = useAuthStore((state) => state.clearSession);
   const [loggingOut, setLoggingOut] = useState(false);
-
-  const visibleLinks = getVisibleAdminLinks(role);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -48,7 +45,7 @@ export function AdminShell({ children }: AdminShellProps) {
           MINAN Admin
         </Link>
         <nav aria-label="Admin navigation" className="mt-8 grid gap-1">
-          {visibleLinks.map((link) => (
+          {adminNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -67,8 +64,7 @@ export function AdminShell({ children }: AdminShellProps) {
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
               <AdminMobileNav
-                visibleLinks={visibleLinks}
-                role={role}
+                visibleLinks={adminNavLinks}
                 loggingOut={loggingOut}
                 onLogout={() => {
                   void handleLogout();
@@ -83,7 +79,7 @@ export function AdminShell({ children }: AdminShellProps) {
             </div>
             <div className="ml-auto flex items-center gap-3">
               <p className="text-xs font-medium uppercase text-foreground/70">
-                {role ?? "admin"}
+                Admin
               </p>
               <Button
                 disabled={loggingOut}

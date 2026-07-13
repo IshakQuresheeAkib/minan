@@ -5,6 +5,7 @@ import {
   type Product,
 } from "@/features/products/schemas/product.schema";
 import type { ProductCardData } from "@/features/products/components/ProductCard";
+import { getProductColorSwatch } from "@/features/products/constants/product-colors";
 import { z } from "zod";
 
 const productListSchema = z.object({
@@ -124,14 +125,6 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptions> {
   return productFilterOptionsSchema.parse(response).data;
 }
 
-const colorClassMap: Record<string, ProductCardData["colors"][number]> = {
-  Black: "bg-foreground",
-  White: "bg-secondary",
-  Blue: "bg-primary",
-  Navy: "bg-primary",
-  "Sky Blue": "bg-primary",
-};
-
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const response = await apiRequest<{ data: Product }>(
@@ -170,8 +163,6 @@ export function mapProductToCard(product: Product): ProductCardData {
     description: product.description,
     price: product.price,
     imageUrl: product.images[0],
-    colors: product.colors.map(
-      (color) => colorClassMap[color] ?? "bg-foreground/70",
-    ),
+    colors: product.colors.map(getProductColorSwatch),
   };
 }

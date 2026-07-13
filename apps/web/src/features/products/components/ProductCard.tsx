@@ -1,10 +1,9 @@
-"use client";
-
-import { ShoppingBag } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/Button";
+import type { ProductColorSwatch } from "@/features/products/constants/product-colors";
 
 export type ProductCardData = {
   slug: string;
@@ -12,14 +11,8 @@ export type ProductCardData = {
   description: string;
   price: number;
   imageUrl?: string;
-  colors: readonly ProductColorClass[];
+  colors: readonly ProductColorSwatch[];
 };
-
-type ProductColorClass =
-  | "bg-primary"
-  | "bg-secondary"
-  | "bg-foreground/70"
-  | "bg-foreground";
 
 type ProductCardProps = {
   imagePriority?: boolean;
@@ -28,6 +21,7 @@ type ProductCardProps = {
 
 export function ProductCard({ imagePriority = false, product }: ProductCardProps) {
   const productHref = `/products/${product.slug}`;
+  const formattedPrice = `BDT ${product.price.toLocaleString("en-BD")}`;
 
   return (
     <article className="rounded-2xl border border-border bg-card p-3 shadow-[0_8px_24px_rgba(151,72,34,0.04)]">
@@ -57,31 +51,33 @@ export function ProductCard({ imagePriority = false, product }: ProductCardProps
           href={productHref}
           size="sm"
           className="absolute right-2 bottom-2 z-10 border-0 bg-primary/70 px-3 py-1.5 text-xs text-foreground shadow-sm backdrop-blur-sm hover:translate-y-0 hover:bg-primary/80 hover:text-foreground hover:shadow-sm"
-          leftIcon={
-            <ShoppingBag
-              className="size-4 text-foreground"
-              aria-hidden="true"
-            />
-          }
-          text="Shop"
+          rightIcon={<ArrowRight className="size-4" aria-hidden="true" />}
+          text="View"
         />
       </div>
       <div>
         <h3 className="mb-1 truncate text-sm font-semibold text-foreground">
-          {product.name}
+          <Link
+            href={productHref}
+            className="transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+          >
+            {product.name}
+          </Link>
         </h3>
         <p className="mb-2 truncate text-xs text-foreground/70">
           {product.description}
         </p>
         <div className="flex items-center justify-between">
           <span className="text-base font-semibold text-foreground">
-            BDT {product.price}
+            {formattedPrice}
           </span>
-          <div className="flex gap-1" aria-hidden="true">
+          <div className="flex gap-1" aria-label="Available colors">
             {product.colors.map((color) => (
               <span
-                key={color}
-                className={`size-3 rounded-full border border-border ${color}`}
+                key={color.name}
+                title={color.name}
+                className="size-3 rounded-full border border-border"
+                style={{ backgroundColor: color.swatch }}
               />
             ))}
           </div>
