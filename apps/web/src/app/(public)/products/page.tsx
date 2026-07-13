@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 
 import {
   ProductCatalog,
@@ -92,6 +93,8 @@ function getSortParam(
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  await connection();
+
   const params = await searchParams;
   const categories = getParamValues(params.category);
   const colors = getParamValues(params.color);

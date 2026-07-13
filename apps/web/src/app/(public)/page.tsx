@@ -1,11 +1,14 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 
 import { HomeCatalog } from "@/features/home/components/HomeCatalog";
 import { HeroCarousel } from "@/features/home/components/HeroCarousel";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { getCachedProducts } from "@/features/products/services/product.cache";
 
-export default function HomePage() {
+export default async function HomePage() {
+  await connection();
+
   return (
     <>
       <HeroCarousel />
