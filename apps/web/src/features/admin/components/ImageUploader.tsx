@@ -78,6 +78,10 @@ export function ImageUploader({
   }
 
   function removeImage(index: number) {
+    if (uploading) {
+      return;
+    }
+
     const nextImages = images.filter((_, imageIndex) => imageIndex !== index);
     onChange(nextImages);
 
@@ -87,6 +91,10 @@ export function ImageUploader({
   }
 
   function setMainImage(index: number) {
+    if (uploading) {
+      return;
+    }
+
     const selectedImage = images[index];
 
     if (!selectedImage || index === 0) {
@@ -166,6 +174,7 @@ export function ImageUploader({
                 size="icon"
                 variant="secondary"
                 aria-label="Remove main image"
+                disabled={uploading}
                 className="absolute top-3 right-3 size-9 border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
                 onClick={() => removeImage(0)}
               >
@@ -217,6 +226,7 @@ export function ImageUploader({
                         size="icon"
                         variant="secondary"
                         aria-label={`Remove gallery image ${offset + 1}`}
+                        disabled={uploading}
                         className="absolute top-2 right-2 size-8 border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
                         onClick={() => removeImage(imageIndex)}
                       >
@@ -228,6 +238,7 @@ export function ImageUploader({
                         type="button"
                         size="sm"
                         variant="secondary"
+                        disabled={uploading}
                         className="w-full px-3 py-2 text-xs"
                         leftIcon={
                           <Star className="size-3.5" aria-hidden="true" />
@@ -269,6 +280,7 @@ export function ImageUploader({
               type="button"
               size="sm"
               variant="secondary"
+              disabled={uploading}
               className="absolute top-1 right-1 h-6 border-destructive px-2 text-xs text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
               onClick={() => removeImage(index)}
             >

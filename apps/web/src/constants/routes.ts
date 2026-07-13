@@ -3,6 +3,7 @@ export const publicRoutes = {
   products: "/products",
   cart: "/cart",
   checkout: "/checkout",
+  buyNowCheckout: "/checkout/buy-now",
   adminLogin: "/admin/login",
 } as const;
 

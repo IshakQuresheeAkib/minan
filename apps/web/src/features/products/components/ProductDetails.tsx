@@ -20,7 +20,8 @@ import { SizeColorSelector } from "@/features/products/components/SizeColorSelec
 import { TrustBadges } from "@/features/products/components/TrustBadges";
 import type { Product } from "@/features/products/schemas/product.schema";
 import { openWhatsAppOrder } from "@/lib/analytics/whatsapp";
-import { useCartStore } from "@/store/cart.store";
+import { useBuyNowStore } from "@/store/buy-now.store";
+import { useCartStore, type CartItemInput } from "@/store/cart.store";
 
 const DESCRIPTION_PREVIEW_LENGTH = 120;
 
@@ -35,6 +36,7 @@ export function ProductDetails({
 }: ProductDetailsProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
+  const setBuyNowItem = useBuyNowStore((state) => state.setItem);
   const galleryRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
 
@@ -123,20 +125,20 @@ export function ProductDetails({
     await navigator.clipboard.writeText(window.location.href);
   };
 
-  const addSelectedItemToCart = () => {
+  const getSelectedCartItem = (): CartItemInput | null => {
     if (isProductUnavailable) {
-      return false;
+      return null;
     }
 
     if (product.sizes.length > 0 && !selectedSize) {
-      return false;
+      return null;
     }
 
     if (product.colors.length > 0 && !selectedColor) {
-      return false;
+      return null;
     }
 
-    addItem({
+    return {
       productId: product._id,
       slug: product.slug,
       name: product.name,
@@ -145,20 +147,24 @@ export function ProductDetails({
       size: selectedSize ?? undefined,
       color: selectedColor ?? undefined,
       imageUrl: product.images[0],
-    });
-
-    return true;
+    };
   };
 
   const handleAddToCart = () => {
-    if (addSelectedItemToCart()) {
+    const selectedItem = getSelectedCartItem();
+
+    if (selectedItem) {
+      addItem(selectedItem);
       router.push(publicRoutes.cart);
     }
   };
 
   const handleBuyNow = () => {
-    if (addSelectedItemToCart()) {
-      router.push(publicRoutes.checkout);
+    const selectedItem = getSelectedCartItem();
+
+    if (selectedItem) {
+      setBuyNowItem(selectedItem);
+      router.push(publicRoutes.buyNowCheckout);
     }
   };
 
