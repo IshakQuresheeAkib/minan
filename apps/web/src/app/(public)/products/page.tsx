@@ -1,11 +1,9 @@
-import { Suspense } from "react";
 import { connection } from "next/server";
 
 import {
   ProductCatalog,
   type ProductCatalogFilters,
 } from "@/features/products/components/ProductCatalog";
-import { ProductCatalogSkeleton } from "@/features/products/components/ProductCatalogSkeleton";
 import {
   getCachedProductFilterOptions,
   getCachedProducts,
@@ -114,31 +112,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     maxPrice,
     sort,
   };
-
-  return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-normal">
-          {search ? `Search results for "${search}"` : "Products"}
-        </h1>
-        <p className="max-w-2xl text-sm leading-6 text-foreground/70">
-          {search
-            ? "Browse matching pieces from the current MINAN collection."
-            : "Premium daily wear selected for fast browsing and easy ordering."}
-        </p>
-      </div>
-      <Suspense fallback={<ProductCatalogSkeleton />}>
-        <ProductsCatalogContent filters={filters} />
-      </Suspense>
-    </section>
-  );
-}
-
-async function ProductsCatalogContent({
-  filters,
-}: {
-  filters: ProductCatalogFilters;
-}) {
   const [products, filterOptions] = await Promise.all([
     getCachedProducts({
       category: filters.categories,
@@ -155,10 +128,22 @@ async function ProductsCatalogContent({
   ]);
 
   return (
-    <ProductCatalog
-      filters={filters}
-      filterOptions={filterOptions}
-      initialData={products}
-    />
+    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-8 flex flex-col gap-2">
+        <h1 className="text-3xl font-semibold tracking-normal">
+          {search ? `Search results for "${search}"` : "Products"}
+        </h1>
+        <p className="max-w-2xl text-sm leading-6 text-foreground/70">
+          {search
+            ? "Browse matching pieces from the current MINAN collection."
+            : "Premium daily wear selected for fast browsing and easy ordering."}
+        </p>
+      </div>
+      <ProductCatalog
+        filters={filters}
+        filterOptions={filterOptions}
+        initialData={products}
+      />
+    </section>
   );
 }

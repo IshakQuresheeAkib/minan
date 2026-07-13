@@ -1,5 +1,6 @@
 "use client";
 
+import { ImagePlus, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ type ImageUploaderProps = {
   images: string[];
   onChange: (images: string[]) => void;
   multiple?: boolean;
+  showProductRoles?: boolean;
 };
 
 export function ImageUploader({
@@ -21,9 +23,11 @@ export function ImageUploader({
   images,
   onChange,
   multiple = true,
+  showProductRoles = false,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const usesProductRoles = multiple && showProductRoles;
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) {
@@ -74,7 +78,186 @@ export function ImageUploader({
   }
 
   function removeImage(index: number) {
-    onChange(images.filter((_, imageIndex) => imageIndex !== index));
+    if (uploading) {
+      return;
+    }
+
+    const nextImages = images.filter((_, imageIndex) => imageIndex !== index);
+    onChange(nextImages);
+
+    if (usesProductRoles && index === 0 && nextImages.length > 0) {
+      toast.success("Main image removed. Next image is now main.");
+    }
+  }
+
+  function setMainImage(index: number) {
+    if (uploading) {
+      return;
+    }
+
+    const selectedImage = images[index];
+
+    if (!selectedImage || index === 0) {
+      return;
+    }
+
+    onChange([
+      selectedImage,
+      ...images.filter((_, imageIndex) => imageIndex !== index),
+    ]);
+    toast.success("Main image updated");
+  }
+
+  const uploadButton = (
+    <div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple={multiple}
+        className="hidden"
+        onChange={(event) => {
+          void handleFiles(event.target.files);
+        }}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={uploading}
+        leftIcon={<ImagePlus className="size-4" aria-hidden="true" />}
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploading
+          ? "Uploading..."
+          : multiple
+            ? "Upload images"
+            : "Upload image"}
+      </Button>
+    </div>
+  );
+
+  if (usesProductRoles) {
+    const mainImage = images[0];
+    const galleryImages = images.slice(1);
+
+    return (
+      <div className="space-y-4">
+        {mainImage ? (
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Main image
+                </p>
+                <p className="text-xs leading-relaxed text-foreground/65">
+                  Shown on product cards, catalog pages, and the first product
+                  preview.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 px-2.5 py-1 text-xs font-semibold text-foreground">
+                <Star className="size-3.5 fill-current" aria-hidden="true" />
+                Main
+              </span>
+            </div>
+
+            <div className="relative aspect-[4/3] overflow-hidden rounded-md border border-primary/25 bg-foreground/5">
+              <Image
+                src={mainImage}
+                alt="Main product image"
+                fill
+                className="object-cover"
+                sizes="(min-width: 640px) 480px, calc(100vw - 48px)"
+                unoptimized
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                aria-label="Remove main image"
+                disabled={uploading}
+                className="absolute top-3 right-3 size-9 border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
+                onClick={() => removeImage(0)}
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed border-foreground/25 bg-foreground/5 p-5 text-sm text-foreground/70">
+            Upload product images. The first image becomes the main storefront
+            image.
+          </div>
+        )}
+
+        {galleryImages.length > 0 ? (
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-foreground">
+                Gallery images
+              </p>
+              <p className="text-xs leading-relaxed text-foreground/65">
+                These appear after the main image on the product page.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {galleryImages.map((url, offset) => {
+                const imageIndex = offset + 1;
+
+                return (
+                  <div
+                    key={`${url}-${imageIndex}`}
+                    className="overflow-hidden rounded-md border border-border bg-background"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-foreground/5">
+                      <Image
+                        src={url}
+                        alt={`Gallery product image ${offset + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="(min-width: 640px) 150px, 45vw"
+                        unoptimized
+                      />
+                      <span className="absolute top-2 left-2 rounded-full bg-background/90 px-2 py-1 text-[11px] font-semibold text-foreground shadow-sm">
+                        Gallery {offset + 1}
+                      </span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="secondary"
+                        aria-label={`Remove gallery image ${offset + 1}`}
+                        disabled={uploading}
+                        className="absolute top-2 right-2 size-8 border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
+                        onClick={() => removeImage(imageIndex)}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden="true" />
+                      </Button>
+                    </div>
+                    <div className="p-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={uploading}
+                        className="w-full px-3 py-2 text-xs"
+                        leftIcon={
+                          <Star className="size-3.5" aria-hidden="true" />
+                        }
+                        onClick={() => setMainImage(imageIndex)}
+                      >
+                        Set as main
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {uploadButton}
+      </div>
+    );
   }
 
   return (
@@ -97,6 +280,7 @@ export function ImageUploader({
               type="button"
               size="sm"
               variant="secondary"
+              disabled={uploading}
               className="absolute top-1 right-1 h-6 border-destructive px-2 text-xs text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
               onClick={() => removeImage(index)}
             >
@@ -106,30 +290,7 @@ export function ImageUploader({
         ))}
       </div>
 
-      <div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          multiple={multiple}
-          className="hidden"
-          onChange={(event) => {
-            void handleFiles(event.target.files);
-          }}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading
-            ? "Uploading..."
-            : multiple
-              ? "Upload images"
-              : "Upload image"}
-        </Button>
-      </div>
+      {uploadButton}
     </div>
   );
 }

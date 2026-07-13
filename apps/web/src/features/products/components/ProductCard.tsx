@@ -38,7 +38,8 @@ export function ProductCard({ imagePriority = false, product }: ProductCardProps
               fill
               priority={imagePriority}
               sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-              className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
+              className="transition-transform duration-500 ease-out group-hover:scale-105"
+              style={{ objectFit: "cover", objectPosition: "center top" }}
             />
           </Link>
         ) : (
