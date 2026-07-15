@@ -2,18 +2,27 @@
 
 import { ImagePlus, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { fetchUploadSignature } from "@/features/admin/actions/products.actions";
+import {
+  deleteUploadedImages,
+  fetchUploadSignature,
+} from "@/features/admin/actions/products.actions";
 import { Button } from "@/components/ui/Button";
+import type {
+  AdminImageAsset,
+  ManagedImageAsset,
+} from "@/features/admin/types";
 import { uploadImageToCloudinary } from "@/lib/cloudinary/upload";
 import { ApiError } from "@/lib/api/client";
 
 type ImageUploaderProps = {
   accessToken: string;
-  images: string[];
-  onChange: (images: string[]) => void;
+  images: AdminImageAsset[];
+  onChange: (images: AdminImageAsset[]) => void;
+  onUploadStateChange?: (uploading: boolean) => void;
+  onUploaded?: (assets: ManagedImageAsset[]) => void;
   multiple?: boolean;
   showProductRoles?: boolean;
 };
@@ -22,12 +31,28 @@ export function ImageUploader({
   accessToken,
   images,
   onChange,
+  onUploadStateChange,
+  onUploaded,
   multiple = true,
   showProductRoles = false,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
   const [uploading, setUploading] = useState(false);
   const usesProductRoles = multiple && showProductRoles;
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  function updateUploading(nextUploading: boolean) {
+    setUploading(nextUploading);
+    onUploadStateChange?.(nextUploading);
+  }
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) {
@@ -44,24 +69,46 @@ export function ImageUploader({
       return;
     }
 
-    setUploading(true);
+    updateUploading(true);
+    const uploadedAssets: ManagedImageAsset[] = [];
 
     try {
       const signature = await fetchUploadSignature(accessToken);
-      const uploadedUrls: string[] = [];
 
-      for (const file of files) {
-        const url = await uploadImageToCloudinary(file, signature);
-        uploadedUrls.push(url);
+      if (!mountedRef.current) {
+        return;
       }
 
-      onChange(multiple ? [...images, ...uploadedUrls] : uploadedUrls);
+      for (const file of files) {
+        const asset = await uploadImageToCloudinary(file, signature);
+
+        if (!mountedRef.current) {
+          await deleteUploadedImages(accessToken, [asset.publicId]).catch(
+            (error) => {
+              console.error(
+                "Failed to clean up upload completed after navigation",
+                error,
+              );
+            },
+          );
+          return;
+        }
+
+        uploadedAssets.push(asset);
+        onUploaded?.([asset]);
+      }
+
+      onChange(multiple ? [...images, ...uploadedAssets] : uploadedAssets);
       toast.success(
-        uploadedUrls.length === 1
+        uploadedAssets.length === 1
           ? "Image uploaded"
-          : `${uploadedUrls.length} images uploaded`,
+          : `${uploadedAssets.length} images uploaded`,
       );
     } catch (error) {
+      if (!mountedRef.current) {
+        return;
+      }
+
       const message =
         error instanceof ApiError
           ? error.message
@@ -69,10 +116,21 @@ export function ImageUploader({
             ? error.message
             : "Upload failed";
       toast.error(message);
+
+      if (uploadedAssets.length > 0) {
+        onChange(multiple ? [...images, ...uploadedAssets] : uploadedAssets);
+        toast.success(
+          uploadedAssets.length === 1
+            ? "1 image finished uploading"
+            : `${uploadedAssets.length} images finished uploading`,
+        );
+      }
     } finally {
-      setUploading(false);
-      if (inputRef.current) {
-        inputRef.current.value = "";
+      if (mountedRef.current) {
+        updateUploading(false);
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
       }
     }
   }
@@ -162,7 +220,7 @@ export function ImageUploader({
 
             <div className="relative aspect-[4/3] overflow-hidden rounded-md border border-primary/25 bg-foreground/5">
               <Image
-                src={mainImage}
+                src={mainImage.url}
                 alt="Main product image"
                 fill
                 className="object-cover"
@@ -206,12 +264,12 @@ export function ImageUploader({
 
                 return (
                   <div
-                    key={`${url}-${imageIndex}`}
+                    key={`${url.url}-${imageIndex}`}
                     className="overflow-hidden rounded-md border border-border bg-background"
                   >
                     <div className="relative aspect-square overflow-hidden bg-foreground/5">
                       <Image
-                        src={url}
+                        src={url.url}
                         alt={`Gallery product image ${offset + 1}`}
                         fill
                         className="object-cover"
@@ -263,13 +321,13 @@ export function ImageUploader({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
-        {images.map((url, index) => (
+        {images.map((image, index) => (
           <div
-            key={`${url}-${index}`}
+            key={`${image.url}-${index}`}
             className="relative size-20 overflow-hidden rounded-md border"
           >
             <Image
-              src={url}
+              src={image.url}
               alt=""
               fill
               className="object-cover"

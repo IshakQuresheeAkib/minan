@@ -12,6 +12,7 @@ import type {
 } from "../schemas/admin.schemas.js";
 import type { ProductListResponse } from "../types/product.types.js";
 import { serializeProduct } from "../utils/serializeProduct.js";
+import { cleanupRemovedManagedImages } from "./adminMediaCleanup.service.js";
 
 export type AdminProductStatusFilter = "all" | "active" | "inactive";
 
@@ -181,6 +182,8 @@ export async function updateAdminProduct(
     throw new AppError("Product not found", 404);
   }
 
+  const previousImages = [...product.images];
+
   if (input.category_id) {
     await ensureCategoryExists(input.category_id);
     product.category_id = new Types.ObjectId(input.category_id);
@@ -227,6 +230,10 @@ export async function updateAdminProduct(
     await product.populate("category_id");
     const serializedProduct = serializeProduct(product);
     await revalidateStorefront();
+    await cleanupRemovedManagedImages({
+      previousUrls: previousImages,
+      nextUrls: product.images,
+    });
     return serializedProduct;
   } catch (error) {
     throwIfDuplicateKey(error, "Product slug already exists");

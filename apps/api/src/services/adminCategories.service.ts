@@ -12,6 +12,7 @@ import type {
 } from "../schemas/admin.schemas.js";
 import type { CategoryListResponse } from "../types/admin.types.js";
 import { serializeCategory } from "../utils/serializeCategory.js";
+import { cleanupRemovedManagedImages } from "./adminMediaCleanup.service.js";
 
 async function resolveUniqueSlug(
   baseSlug: string,
@@ -90,6 +91,8 @@ export async function updateAdminCategory(
     throw new AppError("Category not found", 404);
   }
 
+  const previousImageUrl = category.image_url;
+
   if (input.name !== undefined) {
     category.name = input.name;
   }
@@ -114,6 +117,10 @@ export async function updateAdminCategory(
     await category.save();
     const serializedCategory = serializeCategory(category);
     await revalidateStorefront();
+    await cleanupRemovedManagedImages({
+      previousUrls: [previousImageUrl],
+      nextUrls: [category.image_url],
+    });
     return serializedCategory;
   } catch (error) {
     throwIfDuplicateKey(error, "Category slug already exists");

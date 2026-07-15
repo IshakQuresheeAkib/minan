@@ -14,7 +14,8 @@ import {
   adminCategoryFormSchema,
   type AdminCategoryFormInput,
 } from "@/features/admin/schemas/admin.schemas";
-import type { AdminCategory } from "@/features/admin/types";
+import { useSessionImageCleanup } from "@/features/admin/hooks/useSessionImageCleanup";
+import type { AdminCategory, AdminImageAsset } from "@/features/admin/types";
 import { Button } from "@/components/ui/Button";
 import {
   Dialog,
@@ -43,19 +44,35 @@ type CategoryFormProps = {
 
 type CategoryFormFieldsProps = {
   accessToken: string;
+  uploadingImages: boolean;
   category: AdminCategory | null;
+  onUploadStateChange: (uploading: boolean) => void;
   onSaved: () => void;
   onClose: () => void;
 };
 
+function toImageAssets(url: string): AdminImageAsset[] {
+  return url ? [{ url }] : [];
+}
+
 function CategoryFormFields({
   accessToken,
+  uploadingImages,
   category,
+  onUploadStateChange,
   onSaved,
   onClose,
 }: CategoryFormFieldsProps) {
-  const [imageUrl, setImageUrl] = useState(category?.image_url ?? "");
+  const [images, setImages] = useState<AdminImageAsset[]>(() =>
+    toImageAssets(category?.image_url ?? ""),
+  );
   const [saving, setSaving] = useState(false);
+  const {
+    cleanupRemovedSessionAssets,
+    markAssetsSaved,
+    registerUploadedAssets,
+  } = useSessionImageCleanup(accessToken);
+  const imageUrl = images[0]?.url ?? "";
 
   const form = useForm<AdminCategoryFormInput>({
     resolver: zodResolver(adminCategoryFormSchema),
@@ -67,6 +84,11 @@ function CategoryFormFields({
   });
 
   async function onSubmit(values: AdminCategoryFormInput) {
+    if (uploadingImages) {
+      toast.warning("Wait for image upload to finish");
+      return;
+    }
+
     if (!imageUrl) {
       toast.error("Upload a category image");
       return;
@@ -89,6 +111,7 @@ function CategoryFormFields({
         toast.success("Category created");
       }
 
+      markAssetsSaved(images);
       onSaved();
       onClose();
     } catch (error) {
@@ -98,6 +121,13 @@ function CategoryFormFields({
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleImagesChange(nextImages: AdminImageAsset[]) {
+    setImages((previousImages) => {
+      cleanupRemovedSessionAssets(previousImages, nextImages);
+      return nextImages;
+    });
   }
 
   return (
@@ -140,18 +170,22 @@ function CategoryFormFields({
           <p className="text-sm font-medium">Image</p>
           <ImageUploader
             accessToken={accessToken}
-            images={imageUrl ? [imageUrl] : []}
+            images={images}
             multiple={false}
-            onChange={(urls) => setImageUrl(urls[0] ?? "")}
+            onChange={handleImagesChange}
+            onUploadStateChange={onUploadStateChange}
+            onUploaded={registerUploadedAssets}
           />
         </div>
 
-        <Button disabled={saving} type="submit">
-          {saving
-            ? "Saving..."
-            : category
-              ? "Update category"
-              : "Create category"}
+        <Button disabled={saving || uploadingImages} type="submit">
+          {uploadingImages
+            ? "Uploading image..."
+            : saving
+              ? "Saving..."
+              : category
+                ? "Update category"
+                : "Create category"}
         </Button>
       </form>
     </Form>
@@ -165,8 +199,23 @@ export function CategoryForm({
   onOpenChange,
   onSaved,
 }: CategoryFormProps) {
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && uploadingImages) {
+      toast.warning("Wait for image upload to finish");
+      return;
+    }
+
+    if (!nextOpen) {
+      setUploadingImages(false);
+    }
+
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
@@ -178,7 +227,9 @@ export function CategoryForm({
           <CategoryFormFields
             key={category?._id ?? "new"}
             accessToken={accessToken}
+            uploadingImages={uploadingImages}
             category={category}
+            onUploadStateChange={setUploadingImages}
             onSaved={onSaved}
             onClose={() => onOpenChange(false)}
           />
