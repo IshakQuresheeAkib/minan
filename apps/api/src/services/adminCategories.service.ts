@@ -120,7 +120,6 @@ export async function updateAdminCategory(
     await cleanupRemovedManagedImages({
       previousUrls: [previousImageUrl],
       nextUrls: [category.image_url],
-      categoryId: id,
     });
     return serializedCategory;
   } catch (error) {

@@ -2,10 +2,13 @@
 
 import { ImagePlus, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { fetchUploadSignature } from "@/features/admin/actions/products.actions";
+import {
+  deleteUploadedImages,
+  fetchUploadSignature,
+} from "@/features/admin/actions/products.actions";
 import { Button } from "@/components/ui/Button";
 import type {
   AdminImageAsset,
@@ -34,8 +37,17 @@ export function ImageUploader({
   showProductRoles = false,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
   const [uploading, setUploading] = useState(false);
   const usesProductRoles = multiple && showProductRoles;
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   function updateUploading(nextUploading: boolean) {
     setUploading(nextUploading);
@@ -63,12 +75,29 @@ export function ImageUploader({
     try {
       const signature = await fetchUploadSignature(accessToken);
 
-      for (const file of files) {
-        const asset = await uploadImageToCloudinary(file, signature);
-        uploadedAssets.push(asset);
+      if (!mountedRef.current) {
+        return;
       }
 
-      onUploaded?.(uploadedAssets);
+      for (const file of files) {
+        const asset = await uploadImageToCloudinary(file, signature);
+
+        if (!mountedRef.current) {
+          await deleteUploadedImages(accessToken, [asset.publicId]).catch(
+            (error) => {
+              console.error(
+                "Failed to clean up upload completed after navigation",
+                error,
+              );
+            },
+          );
+          return;
+        }
+
+        uploadedAssets.push(asset);
+        onUploaded?.([asset]);
+      }
+
       onChange(multiple ? [...images, ...uploadedAssets] : uploadedAssets);
       toast.success(
         uploadedAssets.length === 1
@@ -76,6 +105,10 @@ export function ImageUploader({
           : `${uploadedAssets.length} images uploaded`,
       );
     } catch (error) {
+      if (!mountedRef.current) {
+        return;
+      }
+
       const message =
         error instanceof ApiError
           ? error.message
@@ -85,7 +118,6 @@ export function ImageUploader({
       toast.error(message);
 
       if (uploadedAssets.length > 0) {
-        onUploaded?.(uploadedAssets);
         onChange(multiple ? [...images, ...uploadedAssets] : uploadedAssets);
         toast.success(
           uploadedAssets.length === 1
@@ -94,9 +126,11 @@ export function ImageUploader({
         );
       }
     } finally {
-      updateUploading(false);
-      if (inputRef.current) {
-        inputRef.current.value = "";
+      if (mountedRef.current) {
+        updateUploading(false);
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
       }
     }
   }

@@ -5,6 +5,8 @@ import type {
   UploadSignature,
 } from "@/features/admin/types";
 
+const UPLOAD_DELETE_BATCH_SIZE = 50;
+
 export type AdminProductStatusFilter = "all" | "active" | "inactive";
 
 type FetchAdminProductsOptions = {
@@ -117,14 +119,27 @@ export async function deleteUploadedImages(
     return;
   }
 
-  await apiRequest<{ data: { publicId: string; result: string }[] }>(
-    "/api/admin/uploads/delete",
-    {
-      method: "POST",
-      accessToken,
-      body: {
-        publicIds,
+  const uniquePublicIds = Array.from(new Set(publicIds));
+
+  for (
+    let batchStart = 0;
+    batchStart < uniquePublicIds.length;
+    batchStart += UPLOAD_DELETE_BATCH_SIZE
+  ) {
+    const publicIdBatch = uniquePublicIds.slice(
+      batchStart,
+      batchStart + UPLOAD_DELETE_BATCH_SIZE,
+    );
+
+    await apiRequest<{ data: { publicId: string; result: string }[] }>(
+      "/api/admin/uploads/delete",
+      {
+        method: "POST",
+        accessToken,
+        body: {
+          publicIds: publicIdBatch,
+        },
       },
-    },
-  );
+    );
+  }
 }

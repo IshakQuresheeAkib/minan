@@ -233,7 +233,6 @@ export async function updateAdminProduct(
     await cleanupRemovedManagedImages({
       previousUrls: previousImages,
       nextUrls: product.images,
-      productId: id,
     });
     return serializedProduct;
   } catch (error) {
