@@ -1,7 +1,8 @@
 "use client";
 
+import { Home } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -19,6 +20,7 @@ type AdminShellProps = {
 
 export function AdminShell({ children }: AdminShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const clearSession = useAuthStore((state) => state.clearSession);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -37,26 +39,53 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <div className="min-h-dvh bg-muted/30">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-background px-4 py-6 lg:block">
-        <Link
-          href={adminRoutes.dashboard}
-          className="block text-lg font-semibold tracking-normal"
-        >
-          MINAN Admin
-        </Link>
-        <nav aria-label="Admin navigation" className="mt-8 grid gap-1">
-          {adminNavLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium text-foreground/70 transition-colors",
-                "hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-background px-4 py-6 lg:flex">
+        <div>
+          <Link
+            href={adminRoutes.dashboard}
+            className="block text-lg font-semibold tracking-normal"
+          >
+            MINAN Admin
+          </Link>
+          <nav aria-label="Admin navigation" className="mt-8 grid gap-1">
+            {adminNavLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = pathname === link.href;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-secondary text-foreground"
+                      : "text-foreground/70 hover:bg-secondary/60 hover:text-foreground",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden="true" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <nav aria-label="Storefront navigation" className="mt-auto border-t pt-2">
+          <Link
+            href={publicRoutes.home}
+            aria-current={pathname === publicRoutes.home ? "page" : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              pathname === publicRoutes.home
+                ? "bg-secondary text-foreground"
+                : "text-foreground/70 hover:bg-secondary/60 hover:text-foreground",
+            )}
+          >
+            <Home className="size-4 shrink-0" aria-hidden="true" />
+            Home
+          </Link>
         </nav>
       </aside>
       <div className="lg:pl-64">

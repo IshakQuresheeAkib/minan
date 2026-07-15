@@ -16,8 +16,13 @@ function getSessionPublicIds(assets: AdminImageAsset[]): string[] {
 }
 
 export function useSessionImageCleanup(accessToken: string) {
+  const accessTokenRef = useRef(accessToken);
   const savedRef = useRef(false);
   const sessionPublicIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    accessTokenRef.current = accessToken;
+  }, [accessToken]);
 
   const cleanupSessionPublicIds = useCallback(
     async (publicIds: string[], showToast = false) => {
@@ -97,11 +102,16 @@ export function useSessionImageCleanup(accessToken: string) {
       }
 
       const publicIds = Array.from(sessionPublicIds);
-      void deleteUploadedImages(accessToken, publicIds).catch((error) => {
-        console.error("Failed to clean up abandoned Cloudinary uploads", error);
-      });
+      void deleteUploadedImages(accessTokenRef.current, publicIds).catch(
+        (error) => {
+          console.error(
+            "Failed to clean up abandoned Cloudinary uploads",
+            error,
+          );
+        },
+      );
     };
-  }, [accessToken]);
+  }, []);
 
   return {
     cleanupRemovedSessionAssets,
