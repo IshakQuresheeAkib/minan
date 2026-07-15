@@ -86,3 +86,13 @@ export type UploadSignature = {
   cloudName: string;
   folder: string;
 };
+
+export type ManagedImageAsset = {
+  url: string;
+  publicId: string;
+};
+
+export type AdminImageAsset = {
+  url: string;
+  publicId?: string;
+};

@@ -56,6 +56,13 @@ export const categoryUpdateSchema = z
     message: "At least one field is required",
   });
 
+export const uploadDeleteSchema = z.object({
+  publicIds: z
+    .array(z.string().trim().min(1, "publicIds cannot contain empty values"))
+    .min(1, "At least one publicId is required")
+    .max(50, "Cannot delete more than 50 images at once"),
+});
+
 export const leadUpdateSchema = z
   .object({
     status: leadStatusSchema.optional(),
@@ -83,6 +90,7 @@ export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
 export type CategoryUpdateInput = z.infer<typeof categoryUpdateSchema>;
+export type UploadDeleteInput = z.infer<typeof uploadDeleteSchema>;
 export type LeadUpdateInput = z.infer<typeof leadUpdateSchema>;
 export type AdminCreateInput = z.infer<typeof adminCreateSchema>;
 export type AdminUpdateInput = z.infer<typeof adminUpdateSchema>;

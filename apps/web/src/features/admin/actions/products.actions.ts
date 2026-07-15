@@ -108,3 +108,23 @@ export async function fetchUploadSignature(
     accessToken,
   });
 }
+
+export async function deleteUploadedImages(
+  accessToken: string,
+  publicIds: string[],
+): Promise<void> {
+  if (publicIds.length === 0) {
+    return;
+  }
+
+  await apiRequest<{ data: { publicId: string; result: string }[] }>(
+    "/api/admin/uploads/delete",
+    {
+      method: "POST",
+      accessToken,
+      body: {
+        publicIds,
+      },
+    },
+  );
+}

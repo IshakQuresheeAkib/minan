@@ -24,7 +24,10 @@ import {
   listAdminUsersHandler,
   updateAdminUserHandler,
 } from "../controllers/admin/admins.controller.js";
-import { getUploadSignatureHandler } from "../controllers/admin/uploads.controller.js";
+import {
+  deleteUploadsHandler,
+  getUploadSignatureHandler,
+} from "../controllers/admin/uploads.controller.js";
 import { requireCsrfHeader } from "../middleware/csrf.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 
@@ -105,4 +108,10 @@ adminRouter.get(
   "/uploads/signature",
   requireAuth,
   getUploadSignatureHandler,
+);
+adminRouter.post(
+  "/uploads/delete",
+  requireAuth,
+  requireCsrfHeader,
+  deleteUploadsHandler,
 );

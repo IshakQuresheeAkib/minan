@@ -16,7 +16,12 @@ import {
   parseCommaList,
   type AdminProductFormInput,
 } from "@/features/admin/schemas/admin.schemas";
-import type { AdminCategory, AdminProduct } from "@/features/admin/types";
+import { useSessionImageCleanup } from "@/features/admin/hooks/useSessionImageCleanup";
+import type {
+  AdminCategory,
+  AdminImageAsset,
+  AdminProduct,
+} from "@/features/admin/types";
 import { Button } from "@/components/ui/Button";
 import {
   Dialog,
@@ -53,20 +58,35 @@ type ProductFormProps = {
 
 type ProductFormFieldsProps = {
   accessToken: string;
+  uploadingImages: boolean;
   product: AdminProduct | null;
+  onUploadStateChange: (uploading: boolean) => void;
   onSaved: () => void;
   onClose: () => void;
 };
 
+function toImageAssets(urls: string[]): AdminImageAsset[] {
+  return urls.map((url) => ({ url }));
+}
+
 function ProductFormFields({
   accessToken,
+  uploadingImages,
   product,
+  onUploadStateChange,
   onSaved,
   onClose,
 }: ProductFormFieldsProps) {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [images, setImages] = useState<string[]>(product?.images ?? []);
+  const [images, setImages] = useState<AdminImageAsset[]>(() =>
+    toImageAssets(product?.images ?? []),
+  );
   const [saving, setSaving] = useState(false);
+  const {
+    cleanupRemovedSessionAssets,
+    markAssetsSaved,
+    registerUploadedAssets,
+  } = useSessionImageCleanup(accessToken);
 
   const form = useForm<AdminProductFormInput>({
     resolver: zodResolver(adminProductFormSchema),
@@ -96,6 +116,11 @@ function ProductFormFields({
   }, [accessToken]);
 
   async function onSubmit(values: AdminProductFormInput) {
+    if (uploadingImages) {
+      toast.warning("Wait for image upload to finish");
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -106,7 +131,7 @@ function ProductFormFields({
       category_id: values.category_id,
       sizes: parseCommaList(values.sizes),
       colors: parseCommaList(values.colors),
-      images,
+      images: images.map((image) => image.url),
     };
 
     try {
@@ -118,6 +143,7 @@ function ProductFormFields({
         toast.success("Product created");
       }
 
+      markAssetsSaved(images);
       onSaved();
       onClose();
     } catch (error) {
@@ -127,6 +153,13 @@ function ProductFormFields({
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleImagesChange(nextImages: AdminImageAsset[]) {
+    setImages((previousImages) => {
+      cleanupRemovedSessionAssets(previousImages, nextImages);
+      return nextImages;
+    });
   }
 
   return (
@@ -266,12 +299,20 @@ function ProductFormFields({
             accessToken={accessToken}
             images={images}
             showProductRoles
-            onChange={setImages}
+            onChange={handleImagesChange}
+            onUploadStateChange={onUploadStateChange}
+            onUploaded={registerUploadedAssets}
           />
         </div>
 
-        <Button disabled={saving} type="submit">
-          {saving ? "Saving..." : product ? "Update product" : "Create product"}
+        <Button disabled={saving || uploadingImages} type="submit">
+          {uploadingImages
+            ? "Uploading images..."
+            : saving
+              ? "Saving..."
+              : product
+                ? "Update product"
+                : "Create product"}
         </Button>
       </form>
     </Form>
@@ -285,8 +326,23 @@ export function ProductForm({
   onOpenChange,
   onSaved,
 }: ProductFormProps) {
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && uploadingImages) {
+      toast.warning("Wait for image upload to finish");
+      return;
+    }
+
+    if (!nextOpen) {
+      setUploadingImages(false);
+    }
+
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
@@ -298,7 +354,9 @@ export function ProductForm({
           <ProductFormFields
             key={product?._id ?? "new"}
             accessToken={accessToken}
+            uploadingImages={uploadingImages}
             product={product}
+            onUploadStateChange={setUploadingImages}
             onSaved={onSaved}
             onClose={() => onOpenChange(false)}
           />

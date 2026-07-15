@@ -1,6 +1,10 @@
-import type { UploadSignature } from "@/features/admin/types";
+import type {
+  ManagedImageAsset,
+  UploadSignature,
+} from "@/features/admin/types";
 
 type CloudinaryUploadResponse = {
+  public_id?: string;
   secure_url?: string;
   error?: { message?: string };
 };
@@ -8,7 +12,7 @@ type CloudinaryUploadResponse = {
 export async function uploadImageToCloudinary(
   file: File,
   signature: UploadSignature,
-): Promise<string> {
+): Promise<ManagedImageAsset> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("api_key", signature.apiKey);
@@ -26,9 +30,12 @@ export async function uploadImageToCloudinary(
 
   const payload = (await response.json()) as CloudinaryUploadResponse;
 
-  if (!response.ok || !payload.secure_url) {
+  if (!response.ok || !payload.secure_url || !payload.public_id) {
     throw new Error(payload.error?.message ?? "Image upload failed");
   }
 
-  return payload.secure_url;
+  return {
+    url: payload.secure_url,
+    publicId: payload.public_id,
+  };
 }
