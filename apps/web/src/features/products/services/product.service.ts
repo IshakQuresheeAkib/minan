@@ -22,6 +22,12 @@ const productFilterOptionsSchema = z.object({
       z.object({
         name: z.string().min(1),
         slug: z.string().min(1),
+        subcategories: z.array(
+          z.object({
+            name: z.string().min(1),
+            slug: z.string().min(1),
+          }),
+        ),
       }),
     ),
     colors: z.array(z.string()),
@@ -45,6 +51,7 @@ export type ProductFilterOptions = z.infer<
 
 export type GetProductsOptions = {
   category?: string | readonly string[];
+  subcategories?: readonly string[];
   search?: string;
   page?: number;
   limit?: number;
@@ -79,6 +86,7 @@ export async function getProducts(
   const params = new URLSearchParams();
 
   appendValues(params, "category", options.category);
+  appendValues(params, "subcategory", options.subcategories);
 
   if (options.search) {
     params.set("search", options.search);

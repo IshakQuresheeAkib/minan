@@ -14,6 +14,20 @@ import type { CategoryListResponse } from "../types/admin.types.js";
 import { serializeCategory } from "../utils/serializeCategory.js";
 import { cleanupRemovedManagedImages } from "./adminMediaCleanup.service.js";
 
+async function assertCategoryCanDeactivate(categoryId: Types.ObjectId) {
+  const activeProductCount = await Product.countDocuments({
+    category_id: categoryId,
+    is_active: true,
+  });
+
+  if (activeProductCount > 0) {
+    throw new AppError(
+      "Cannot deactivate category while active products reference it",
+      409,
+    );
+  }
+}
+
 async function resolveUniqueSlug(
   baseSlug: string,
   excludeId?: string,
@@ -110,6 +124,9 @@ export async function updateAdminCategory(
   }
 
   if (input.is_active !== undefined) {
+    if (!input.is_active) {
+      await assertCategoryCanDeactivate(category._id);
+    }
     category.is_active = input.is_active;
   }
 
@@ -137,17 +154,7 @@ export async function deactivateAdminCategory(id: string) {
     throw new AppError("Category not found", 404);
   }
 
-  const activeProductCount = await Product.countDocuments({
-    category_id: category._id,
-    is_active: true,
-  });
-
-  if (activeProductCount > 0) {
-    throw new AppError(
-      "Cannot deactivate category while active products reference it",
-      409,
-    );
-  }
+  await assertCategoryCanDeactivate(category._id);
 
   category.is_active = false;
   await category.save();

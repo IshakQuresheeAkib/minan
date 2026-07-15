@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -10,6 +10,7 @@ import {
   updateAdminProduct,
 } from "@/features/admin/actions/products.actions";
 import { fetchAdminCategories } from "@/features/admin/actions/categories.actions";
+import { fetchAdminSubcategories } from "@/features/admin/actions/subcategories.actions";
 import { ImageUploader } from "@/features/admin/components/ImageUploader";
 import {
   adminProductFormSchema,
@@ -21,6 +22,7 @@ import type {
   AdminCategory,
   AdminImageAsset,
   AdminProduct,
+  AdminSubcategory,
 } from "@/features/admin/types";
 import { Button } from "@/components/ui/Button";
 import {
@@ -78,6 +80,7 @@ function ProductFormFields({
   onClose,
 }: ProductFormFieldsProps) {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [subcategories, setSubcategories] = useState<AdminSubcategory[]>([]);
   const [images, setImages] = useState<AdminImageAsset[]>(() =>
     toImageAssets(product?.images ?? []),
   );
@@ -96,6 +99,7 @@ function ProductFormFields({
       description: product?.description ?? "",
       price: product?.price ?? 0,
       category_id: product?.category_id ?? "",
+      subcategory_id: product?.subcategory_id ?? "",
       sizes: product?.sizes.join(", ") ?? "",
       colors: product?.colors.join(", ") ?? "",
     },
@@ -104,20 +108,71 @@ function ProductFormFields({
   useEffect(() => {
     let cancelled = false;
 
-    void fetchAdminCategories(accessToken).then((response) => {
-      if (!cancelled) {
-        setCategories(response.data);
-      }
-    });
+    void Promise.all([
+      fetchAdminCategories(accessToken),
+      fetchAdminSubcategories(accessToken),
+    ])
+      .then(([categoryResponse, subcategoryResponse]) => {
+        if (!cancelled) {
+          setCategories(categoryResponse.data);
+          setSubcategories(subcategoryResponse.data);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "Failed to load product classifications",
+          );
+        }
+      });
 
     return () => {
       cancelled = true;
     };
   }, [accessToken]);
 
+  const selectedCategoryId = useWatch({
+    control: form.control,
+    name: "category_id",
+  });
+  const selectedSubcategoryId = useWatch({
+    control: form.control,
+    name: "subcategory_id",
+  });
+  const activeSubcategories = subcategories.filter(
+    (subcategory) =>
+      subcategory.category_id === selectedCategoryId &&
+      subcategory.is_active,
+  );
+  const currentInactiveSubcategory = subcategories.find(
+    (subcategory) =>
+      subcategory._id === selectedSubcategoryId &&
+      subcategory.category_id === selectedCategoryId &&
+      !subcategory.is_active,
+  );
+
   async function onSubmit(values: AdminProductFormInput) {
     if (uploadingImages) {
       toast.warning("Wait for image upload to finish");
+      return;
+    }
+
+    const selectedSubcategory = subcategories.find(
+      (subcategory) => subcategory._id === values.subcategory_id,
+    );
+    if (activeSubcategories.length > 0 && !values.subcategory_id) {
+      form.setError("subcategory_id", {
+        message: "Subcategory is required for this category",
+      });
+      return;
+    }
+
+    if (values.subcategory_id && !selectedSubcategory?.is_active) {
+      form.setError("subcategory_id", {
+        message: "Select an active subcategory",
+      });
       return;
     }
 
@@ -129,6 +184,7 @@ function ProductFormFields({
       description: values.description,
       price: values.price,
       category_id: values.category_id,
+      subcategory_id: values.subcategory_id || null,
       sizes: parseCommaList(values.sizes),
       colors: parseCommaList(values.colors),
       images: images.map((image) => image.url),
@@ -240,7 +296,19 @@ function ProductFormFields({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  if (value !== field.value) {
+                    form.setValue("subcategory_id", "", {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    form.clearErrors("subcategory_id");
+                  }
+                  field.onChange(value);
+                }}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
@@ -250,6 +318,59 @@ function ProductFormFields({
                   {categories.map((category) => (
                     <SelectItem key={category._id} value={category._id}>
                       {category.name}
+                      {category.is_active ? "" : " (Inactive)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="subcategory_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Subcategory</FormLabel>
+              <Select
+                disabled={
+                  !selectedCategoryId ||
+                  (activeSubcategories.length === 0 &&
+                    !currentInactiveSubcategory)
+                }
+                value={field.value || undefined}
+                onValueChange={field.onChange}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        selectedCategoryId
+                          ? activeSubcategories.length > 0
+                            ? "Select subcategory"
+                            : "Not used for this category"
+                          : "Select category first"
+                      }
+                    />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {currentInactiveSubcategory ? (
+                    <SelectItem
+                      disabled
+                      value={currentInactiveSubcategory._id}
+                    >
+                      {currentInactiveSubcategory.name} (Inactive)
+                    </SelectItem>
+                  ) : null}
+                  {activeSubcategories.map((subcategory) => (
+                    <SelectItem
+                      key={subcategory._id}
+                      value={subcategory._id}
+                    >
+                      {subcategory.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

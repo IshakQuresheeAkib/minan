@@ -2,6 +2,7 @@ import type { Types } from "mongoose";
 
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
+import { Subcategory } from "../models/Subcategory.js";
 import type { ProductFilterOptionsResponse } from "../types/product.types.js";
 import { serializeProduct } from "../utils/serializeProduct.js";
 
@@ -13,6 +14,7 @@ export type ProductSortOption =
 
 export type ListProductsOptions = {
   categorySlugs?: string[];
+  subcategorySlugs?: string[];
   search?: string;
   page?: number;
   limit?: number;
@@ -33,6 +35,7 @@ type SearchCondition = {
 type ProductFilter = {
   is_active: boolean;
   category_id?: Types.ObjectId | { $in: Types.ObjectId[] };
+  subcategory_id?: Types.ObjectId | { $in: Types.ObjectId[] };
   slug?: { $ne: string };
   colors?: { $in: string[] };
   sizes?: { $in: string[] };
@@ -71,6 +74,7 @@ function getSort(sort: ProductSortOption | undefined): ProductSort {
 
 export async function listProducts(options: ListProductsOptions = {}) {
   const filter: ProductFilter = { is_active: true };
+  let selectedCategoryIds: Types.ObjectId[] | undefined;
 
   if (options.categorySlugs && options.categorySlugs.length > 0) {
     const categories = await Category.find({
@@ -85,7 +89,34 @@ export async function listProducts(options: ListProductsOptions = {}) {
       return { data: [], total: 0, page, limit, hasMore: false };
     }
 
-    filter.category_id = { $in: categories.map((category) => category._id) };
+    selectedCategoryIds = categories.map((category) => category._id);
+    filter.category_id = { $in: selectedCategoryIds };
+  }
+
+  if (
+    selectedCategoryIds &&
+    options.subcategorySlugs &&
+    options.subcategorySlugs.length > 0
+  ) {
+    const subcategories = await Subcategory.find({
+      slug: { $in: options.subcategorySlugs },
+      category_id: { $in: selectedCategoryIds },
+      is_active: true,
+    }).select("_id");
+
+    const requestedSubcategoryCount = new Set(
+      options.subcategorySlugs,
+    ).size;
+    if (subcategories.length !== requestedSubcategoryCount) {
+      const page = Math.max(1, options.page ?? 1);
+      const limit = Math.max(0, options.limit ?? 0);
+
+      return { data: [], total: 0, page, limit, hasMore: false };
+    }
+
+    filter.subcategory_id = {
+      $in: subcategories.map((subcategory) => subcategory._id),
+    };
   }
 
   if (options.excludeSlug) {
@@ -123,7 +154,7 @@ export async function listProducts(options: ListProductsOptions = {}) {
   }
 
   let query = Product.find(filter)
-    .populate("category_id")
+    .populate(["category_id", "subcategory_id"])
     .sort(getSort(options.sort));
 
   const page = Math.max(1, options.page ?? 1);
@@ -148,12 +179,20 @@ export async function listProducts(options: ListProductsOptions = {}) {
 }
 
 export async function getProductBySlug(slug: string) {
-  return Product.findOne({ slug, is_active: true }).populate("category_id");
+  return Product.findOne({ slug, is_active: true }).populate([
+    "category_id",
+    "subcategory_id",
+  ]);
 }
 
 export async function getProductFilterOptions(): Promise<ProductFilterOptionsResponse> {
-  const [categories, colors, sizes, priceRange] = await Promise.all([
+  const [categories, referencedSubcategoryIds, colors, sizes, priceRange] =
+    await Promise.all([
     Category.find({ is_active: true }).sort({ name: 1 }).select("name slug"),
+    Product.distinct("subcategory_id", {
+      is_active: true,
+      subcategory_id: { $ne: null },
+    }),
     Product.distinct("colors", { is_active: true }),
     Product.distinct("sizes", { is_active: true }),
     Product.aggregate<{ min: number; max: number }>([
@@ -168,6 +207,25 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptionsRes
     ]),
   ]);
 
+  const subcategories = await Subcategory.find({
+    _id: { $in: referencedSubcategoryIds },
+    category_id: { $in: categories.map((category) => category._id) },
+    is_active: true,
+  })
+    .sort({ display_order: 1, name: 1 })
+    .select("category_id name slug");
+  const subcategoriesByCategoryId = new Map<
+    string,
+    { name: string; slug: string }[]
+  >();
+
+  subcategories.forEach((subcategory) => {
+    const categoryId = String(subcategory.category_id);
+    const current = subcategoriesByCategoryId.get(categoryId) ?? [];
+    current.push({ name: subcategory.name, slug: subcategory.slug });
+    subcategoriesByCategoryId.set(categoryId, current);
+  });
+
   const price = priceRange[0] ?? { min: 0, max: 0 };
 
   return {
@@ -175,6 +233,8 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptionsRes
       categories: categories.map((category) => ({
         name: category.name,
         slug: category.slug,
+        subcategories:
+          subcategoriesByCategoryId.get(category._id.toString()) ?? [],
       })),
       colors: colors.sort((first, second) => first.localeCompare(second)),
       sizes: sizes.sort((first, second) => first.localeCompare(second)),

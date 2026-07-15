@@ -17,6 +17,28 @@ export type CategoryListResponse = {
   limit: number;
 };
 
+export type SubcategoryResponse = {
+  _id: string;
+  category_id: string;
+  category: {
+    name: string;
+    slug: string;
+  } | null;
+  name: string;
+  slug: string;
+  display_order: number;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SubcategoryListResponse = {
+  data: SubcategoryResponse[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export type LeadResponse = {
   _id: string;
   name: string;

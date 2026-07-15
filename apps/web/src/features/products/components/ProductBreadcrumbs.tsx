@@ -2,15 +2,20 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { publicRoutes } from "@/constants/routes";
-import type { ProductCategory } from "@/features/products/schemas/product.schema";
+import type {
+  ProductCategory,
+  ProductSubcategory,
+} from "@/features/products/schemas/product.schema";
 
 type ProductBreadcrumbsProps = {
   category: ProductCategory | null;
+  subcategory: ProductSubcategory | null;
   productName: string;
 };
 
 export function ProductBreadcrumbs({
   category,
+  subcategory,
   productName,
 }: ProductBreadcrumbsProps) {
   return (
@@ -59,6 +64,21 @@ export function ProductBreadcrumbs({
             </li>
           </>
         )}
+        {category && subcategory ? (
+          <>
+            <li>
+              <Link
+                href={`${publicRoutes.products}?category=${encodeURIComponent(category.slug)}&subcategory=${encodeURIComponent(subcategory.slug)}`}
+                className="transition-colors hover:text-foreground"
+              >
+                {subcategory.name}
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="size-3.5" />
+            </li>
+          </>
+        ) : null}
         <li>
           <span aria-current="page" className="font-medium text-foreground">
             {productName}

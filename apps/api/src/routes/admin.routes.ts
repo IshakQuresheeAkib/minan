@@ -14,6 +14,14 @@ import {
   updateAdminProductHandler,
 } from "../controllers/admin/products.controller.js";
 import {
+  createAdminSubcategoryHandler,
+  deactivateAdminSubcategoryHandler,
+  listAdminSubcategoriesHandler,
+  reactivateAdminSubcategoryHandler,
+  reorderAdminSubcategoriesHandler,
+  updateAdminSubcategoryHandler,
+} from "../controllers/admin/subcategories.controller.js";
+import {
   getAdminLeadHandler,
   listAdminLeadsHandler,
   updateAdminLeadHandler,
@@ -73,6 +81,38 @@ adminRouter.patch(
   requireAuth,
   requireCsrfHeader,
   deactivateAdminCategoryHandler,
+);
+
+adminRouter.get("/subcategories", requireAuth, listAdminSubcategoriesHandler);
+adminRouter.post(
+  "/subcategories",
+  requireAuth,
+  requireCsrfHeader,
+  createAdminSubcategoryHandler,
+);
+adminRouter.patch(
+  "/subcategories/reorder",
+  requireAuth,
+  requireCsrfHeader,
+  reorderAdminSubcategoriesHandler,
+);
+adminRouter.patch(
+  "/subcategories/:id",
+  requireAuth,
+  requireCsrfHeader,
+  updateAdminSubcategoryHandler,
+);
+adminRouter.patch(
+  "/subcategories/:id/deactivate",
+  requireAuth,
+  requireCsrfHeader,
+  deactivateAdminSubcategoryHandler,
+);
+adminRouter.patch(
+  "/subcategories/:id/reactivate",
+  requireAuth,
+  requireCsrfHeader,
+  reactivateAdminSubcategoryHandler,
 );
 
 adminRouter.get("/leads", requireAuth, listAdminLeadsHandler);

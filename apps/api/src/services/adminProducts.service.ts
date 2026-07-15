@@ -6,6 +6,7 @@ import { revalidateStorefront } from "../lib/revalidateStorefront.js";
 import { slugify } from "../lib/slugify.js";
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
+import { Subcategory } from "../models/Subcategory.js";
 import type {
   ProductCreateInput,
   ProductUpdateInput,
@@ -38,14 +39,57 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function ensureCategoryExists(categoryId: string): Promise<void> {
-  if (!Types.ObjectId.isValid(categoryId)) {
-    throw new AppError("Invalid category id", 400);
+function parseObjectId(value: string, label: string): Types.ObjectId {
+  if (!Types.ObjectId.isValid(value)) {
+    throw new AppError(`Invalid ${label} id`, 400);
   }
 
-  const category = await Category.findById(categoryId);
+  return new Types.ObjectId(value);
+}
+
+function getReferenceId(
+  value: Types.ObjectId | { _id: unknown },
+): Types.ObjectId {
+  if (typeof value === "object" && value !== null && "_id" in value) {
+    return new Types.ObjectId(String(value._id));
+  }
+
+  return new Types.ObjectId(String(value));
+}
+
+async function validateProductClassification(
+  categoryId: Types.ObjectId,
+  subcategoryId: Types.ObjectId | null,
+): Promise<void> {
+  const [category, activeSubcategoryCount, selectedSubcategory] =
+    await Promise.all([
+      Category.findById(categoryId).select("_id"),
+      Subcategory.countDocuments({
+        category_id: categoryId,
+        is_active: true,
+      }),
+      subcategoryId
+        ? Subcategory.findOne({
+            _id: subcategoryId,
+            category_id: categoryId,
+            is_active: true,
+          }).select("_id")
+        : Promise.resolve(null),
+    ]);
+
   if (!category) {
     throw new AppError("Category not found", 404);
+  }
+
+  if (subcategoryId && !selectedSubcategory) {
+    throw new AppError(
+      "Select an active subcategory that belongs to the selected category",
+      400,
+    );
+  }
+
+  if (activeSubcategoryCount > 0 && !subcategoryId) {
+    throw new AppError("Subcategory is required for this category", 400);
   }
 }
 
@@ -121,7 +165,7 @@ export async function listAdminProducts(options: {
 
   const [products, total] = await Promise.all([
     Product.find(filter)
-      .populate("category_id")
+      .populate(["category_id", "subcategory_id"])
       .sort({ createdAt: -1 })
       .skip(options.skip)
       .limit(options.limit),
@@ -138,7 +182,11 @@ export async function listAdminProducts(options: {
 }
 
 export async function createAdminProduct(input: ProductCreateInput) {
-  await ensureCategoryExists(input.category_id);
+  const categoryId = parseObjectId(input.category_id, "category");
+  const subcategoryId = input.subcategory_id
+    ? parseObjectId(input.subcategory_id, "subcategory")
+    : null;
+  await validateProductClassification(categoryId, subcategoryId);
 
   const baseSlug = slugify(input.slug ?? input.name);
   if (!baseSlug) {
@@ -153,14 +201,15 @@ export async function createAdminProduct(input: ProductCreateInput) {
       slug,
       description: input.description,
       price: input.price,
-      category_id: input.category_id,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
       sizes: input.sizes,
       colors: input.colors,
       images: input.images,
       is_active: true,
     });
 
-    await product.populate("category_id");
+    await product.populate(["category_id", "subcategory_id"]);
     const serializedProduct = serializeProduct(product);
     await revalidateStorefront();
     return serializedProduct;
@@ -183,10 +232,35 @@ export async function updateAdminProduct(
   }
 
   const previousImages = [...product.images];
+  const currentCategoryId = getReferenceId(product.category_id);
+  const categoryId = input.category_id
+    ? parseObjectId(input.category_id, "category")
+    : currentCategoryId;
+  const categoryChanged = !categoryId.equals(currentCategoryId);
+  let subcategoryId = product.subcategory_id
+    ? getReferenceId(product.subcategory_id)
+    : null;
 
-  if (input.category_id) {
-    await ensureCategoryExists(input.category_id);
-    product.category_id = new Types.ObjectId(input.category_id);
+  if (input.subcategory_id !== undefined) {
+    subcategoryId = input.subcategory_id
+      ? parseObjectId(input.subcategory_id, "subcategory")
+      : null;
+  } else if (categoryChanged) {
+    subcategoryId = null;
+  }
+
+  const isOnlyDeactivation =
+    input.is_active === false && Object.keys(input).length === 1;
+  if (!isOnlyDeactivation) {
+    await validateProductClassification(categoryId, subcategoryId);
+  }
+
+  if (input.category_id !== undefined) {
+    product.category_id = categoryId;
+  }
+
+  if (input.subcategory_id !== undefined || categoryChanged) {
+    product.subcategory_id = subcategoryId;
   }
 
   if (input.name !== undefined) {
@@ -227,7 +301,7 @@ export async function updateAdminProduct(
 
   try {
     await product.save();
-    await product.populate("category_id");
+    await product.populate(["category_id", "subcategory_id"]);
     const serializedProduct = serializeProduct(product);
     await revalidateStorefront();
     await cleanupRemovedManagedImages({
@@ -252,7 +326,7 @@ export async function deactivateAdminProduct(id: string) {
 
   product.is_active = false;
   await product.save();
-  await product.populate("category_id");
+  await product.populate(["category_id", "subcategory_id"]);
   const serializedProduct = serializeProduct(product);
   await revalidateStorefront();
   return serializedProduct;

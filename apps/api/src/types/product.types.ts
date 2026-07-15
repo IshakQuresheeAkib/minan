@@ -3,6 +3,15 @@ export type ProductCategorySummary = {
   slug: string;
 };
 
+export type ProductSubcategorySummary = {
+  name: string;
+  slug: string;
+};
+
+export type ProductFilterCategory = ProductCategorySummary & {
+  subcategories: ProductSubcategorySummary[];
+};
+
 export type ProductResponse = {
   _id: string;
   name: string;
@@ -11,6 +20,8 @@ export type ProductResponse = {
   price: number;
   category_id: string;
   category: ProductCategorySummary | null;
+  subcategory_id: string | null;
+  subcategory: ProductSubcategorySummary | null;
   sizes: string[];
   colors: string[];
   images: string[];
@@ -33,7 +44,7 @@ export type ProductDetailResponse = {
 
 export type ProductFilterOptionsResponse = {
   data: {
-    categories: ProductCategorySummary[];
+    categories: ProductFilterCategory[];
     colors: string[];
     sizes: string[];
     price: {

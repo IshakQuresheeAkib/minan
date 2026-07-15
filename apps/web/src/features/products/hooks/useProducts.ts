@@ -20,6 +20,7 @@ type InitialProductsData = {
 
 type UseProductsOptions = {
   category?: string | readonly string[];
+  subcategories?: readonly string[];
   search?: string;
   colors?: readonly string[];
   sizes?: readonly string[];
@@ -49,6 +50,7 @@ function fromKey(key: string) {
 export function useProducts(options: UseProductsOptions = {}) {
   const { initialData, maxPrice, minPrice, search, sort = "newest" } = options;
   const categoryKey = toKey(normalizeValues(options.category));
+  const subcategoryKey = toKey(normalizeValues(options.subcategories));
   const colorKey = toKey(normalizeValues(options.colors));
   const sizeKey = toKey(normalizeValues(options.sizes));
   const [isLoading, setIsLoading] = useState(!initialData);
@@ -74,6 +76,7 @@ export function useProducts(options: UseProductsOptions = {}) {
   const fetchGenerationRef = useRef(0);
   const filtersKey = [
     categoryKey,
+    subcategoryKey,
     colorKey,
     sizeKey,
     minPrice ?? "",
@@ -124,6 +127,7 @@ export function useProducts(options: UseProductsOptions = {}) {
           page: pageToFetch,
           limit: PAGE_SIZE,
           category: fromKey(categoryKey),
+          subcategories: fromKey(subcategoryKey),
           colors: fromKey(colorKey),
           sizes: fromKey(sizeKey),
           minPrice,
@@ -185,6 +189,7 @@ export function useProducts(options: UseProductsOptions = {}) {
       search,
       sizeKey,
       sort,
+      subcategoryKey,
     ],
   );
 

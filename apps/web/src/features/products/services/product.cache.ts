@@ -11,9 +11,10 @@ const CATALOG_TAG = "catalog";
 
 type NormalizedGetProductsOptions = Omit<
   GetProductsOptions,
-  "category" | "colors" | "sizes"
+  "category" | "subcategories" | "colors" | "sizes"
 > & {
   category?: readonly string[];
+  subcategories?: readonly string[];
   colors?: readonly string[];
   sizes?: readonly string[];
 };
@@ -39,6 +40,7 @@ function normalizeProductsOptions(
   return {
     ...options,
     category: normalizeValues(options.category),
+    subcategories: normalizeValues(options.subcategories),
     colors: normalizeValues(options.colors),
     sizes: normalizeValues(options.sizes),
   };

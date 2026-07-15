@@ -4,13 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { fetchAdminCategories } from "@/features/admin/actions/categories.actions";
+import { fetchAdminSubcategories } from "@/features/admin/actions/subcategories.actions";
 import {
   fetchAdminProducts,
   type AdminProductStatusFilter,
 } from "@/features/admin/actions/products.actions";
 import { ProductForm } from "@/features/admin/components/ProductForm";
 import { ProductsTable } from "@/features/admin/components/ProductsTable";
-import type { AdminCategory, AdminProduct } from "@/features/admin/types";
+import type {
+  AdminCategory,
+  AdminProduct,
+  AdminSubcategory,
+} from "@/features/admin/types";
 import { adminRoutes } from "@/constants/routes";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth.store";
@@ -87,6 +92,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
   const appliedFilterDraftKey = getFilterDraftKey(appliedFilterDraft);
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [subcategories, setSubcategories] = useState<AdminSubcategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +179,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
 
     let cancelled = false;
 
-    async function loadCategories(token: string) {
+    async function loadClassifications(token: string) {
       await Promise.resolve();
 
       if (cancelled) {
@@ -184,14 +190,21 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
       setCategoriesError(null);
 
       try {
-        const response = await fetchAdminCategories(token);
+        const [categoryResponse, subcategoryResponse] = await Promise.all([
+          fetchAdminCategories(token),
+          fetchAdminSubcategories(token),
+        ]);
         if (!cancelled) {
-          setCategories(response.data);
+          setCategories(categoryResponse.data);
+          setSubcategories(subcategoryResponse.data);
         }
       } catch (loadError) {
         if (!cancelled) {
           setCategoriesError(
-            getErrorMessage(loadError, "Failed to load categories."),
+            getErrorMessage(
+              loadError,
+              "Failed to load product classifications.",
+            ),
           );
         }
       } finally {
@@ -201,7 +214,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
       }
     }
 
-    void loadCategories(categoryAccessToken);
+    void loadClassifications(categoryAccessToken);
 
     return () => {
       cancelled = true;
@@ -279,6 +292,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
         accessToken={accessToken ?? ""}
         products={products}
         categories={categories}
+        subcategories={subcategories}
         loading={loading}
         categoriesLoading={categoriesLoading}
         categoriesError={categoriesError}

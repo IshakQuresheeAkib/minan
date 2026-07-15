@@ -53,6 +53,7 @@ const sortLabels: Record<ProductSortOption, string> = {
 
 export type ProductCatalogFilters = {
   categories: string[];
+  subcategories: string[];
   colors: string[];
   sizes: string[];
   search?: string;
@@ -67,7 +68,7 @@ type ProductCatalogProps = {
   initialData: ApiList<Product>;
 };
 
-type MultiFilterKey = "category" | "color" | "size";
+type MultiFilterKey = "category" | "subcategory" | "color" | "size";
 
 function formatPrice(value: number) {
   return `BDT ${value.toLocaleString("en-BD")}`;
@@ -111,6 +112,7 @@ export function ProductCatalog({
   const { products, isLoading, isRefreshing, error, loadMore, hasMore, total } =
     useProducts({
       category: filters.categories,
+      subcategories: filters.subcategories,
       colors: filters.colors,
       sizes: filters.sizes,
       minPrice: filters.minPrice,
@@ -153,12 +155,31 @@ export function ProductCatalog({
       ),
     [filterOptions.categories],
   );
+  const subcategoryDetailsBySlug = useMemo(
+    () =>
+      new Map(
+        filterOptions.categories.flatMap((category) =>
+          category.subcategories.map((subcategory) => [
+            subcategory.slug,
+            {
+              categoryName: category.name,
+              categorySlug: category.slug,
+              name: subcategory.name,
+            },
+          ] as const),
+        ),
+      ),
+    [filterOptions.categories],
+  );
 
   function buildUrl(nextFilters: ProductCatalogFilters) {
     const params = new URLSearchParams();
 
     nextFilters.categories.forEach((category) => {
       params.append("category", category);
+    });
+    nextFilters.subcategories.forEach((subcategory) => {
+      params.append("subcategory", subcategory);
     });
     nextFilters.colors.forEach((color) => {
       params.append("color", color);
@@ -200,6 +221,7 @@ export function ProductCatalog({
   ) {
     const map = {
       category: filters.categories,
+      subcategory: filters.subcategories,
       color: filters.colors,
       size: filters.sizes,
     };
@@ -208,9 +230,22 @@ export function ProductCatalog({
       ? [...new Set([...current, value])]
       : current.filter((item) => item !== value);
 
+    const nextCategories =
+      key === "category" ? nextValues : filters.categories;
+    const nextSubcategories =
+      key === "subcategory"
+        ? nextValues
+        : key === "category" && !checked
+          ? filters.subcategories.filter((subcategory) => {
+              const details = subcategoryDetailsBySlug.get(subcategory);
+              return details?.categorySlug !== value;
+            })
+          : filters.subcategories;
+
     pushFilters({
       ...filters,
-      categories: key === "category" ? nextValues : filters.categories,
+      categories: nextCategories,
+      subcategories: nextSubcategories,
       colors: key === "color" ? nextValues : filters.colors,
       sizes: key === "size" ? nextValues : filters.sizes,
     });
@@ -250,6 +285,7 @@ export function ProductCatalog({
   function resetFilters() {
     pushFilters({
       categories: [],
+      subcategories: [],
       colors: [],
       sizes: [],
       sort: "newest",
@@ -273,6 +309,7 @@ export function ProductCatalog({
 
   const activeFilterCount =
     filters.categories.length +
+    filters.subcategories.length +
     filters.colors.length +
     filters.sizes.length +
     (filters.search ? 1 : 0) +
@@ -403,6 +440,22 @@ export function ProductCatalog({
                 onRemove={() => toggleMultiFilter("category", category, false)}
               />
             ))}
+            {filters.subcategories.map((subcategory) => {
+              const details = subcategoryDetailsBySlug.get(subcategory);
+              return (
+                <FilterChip
+                  key={subcategory}
+                  label={
+                    details
+                      ? `${details.categoryName}: ${details.name}`
+                      : subcategory
+                  }
+                  onRemove={() =>
+                    toggleMultiFilter("subcategory", subcategory, false)
+                  }
+                />
+              );
+            })}
             {filters.colors.map((color) => (
               <FilterChip
                 key={color}
@@ -521,6 +574,10 @@ function FilterPanel({
   priceRange,
   sizes,
 }: FilterPanelProps) {
+  const selectedCategories = categories.filter((category) =>
+    filters.categories.includes(category.slug),
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -554,6 +611,37 @@ function FilterPanel({
           />
         ))}
       </FilterGroup>
+
+      {selectedCategories.some(
+        (category) => category.subcategories.length > 0,
+      ) ? (
+        <FilterGroup title="Subcategory">
+          <div className="space-y-4">
+            {selectedCategories.map((category) =>
+              category.subcategories.length > 0 ? (
+                <div key={category.slug} className="space-y-1">
+                  <h4 className="px-2 text-xs font-semibold text-foreground/65">
+                    {category.name}
+                  </h4>
+                  {category.subcategories.map((subcategory) => (
+                    <CheckboxRow
+                      key={subcategory.slug}
+                      checked={isChecked(
+                        filters.subcategories,
+                        subcategory.slug,
+                      )}
+                      label={subcategory.name}
+                      onCheckedChange={(checked) =>
+                        onToggle("subcategory", subcategory.slug, checked)
+                      }
+                    />
+                  ))}
+                </div>
+              ) : null,
+            )}
+          </div>
+        </FilterGroup>
+      ) : null}
 
       <FilterGroup title="Color">
         <div className="grid grid-cols-2 gap-2">
@@ -749,7 +837,8 @@ function EmptyProductsState({ onReset }: { onReset: () => void }) {
         No pieces match these filters
       </h2>
       <p className="mt-2 max-w-md text-sm leading-6 text-foreground/70">
-        Try widening the price range or removing a color, size, or category.
+        Try widening the price range or removing a category, subcategory,
+        color, or size.
       </p>
       <Button
         type="button"
