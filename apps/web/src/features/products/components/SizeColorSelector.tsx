@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const colorSwatchMap: Record<string, string> = {
   Black: "bg-foreground",
-  White: "bg-card border border-border",
+  White: "bg-background border border-secondary",
   Blue: "bg-primary",
   Navy: "bg-primary",
   Red: "bg-destructive",
@@ -48,7 +48,7 @@ export function SizeColorSelector({
                     "flex size-[52px] items-center justify-center rounded-full text-sm transition-transform active:scale-95 shadow-inner shadow-primary/70",
                     isActive
                       ? "bg-foreground font-semibold text-primary"
-                      : "bg-card font-medium text-foreground shadow-sm",
+                      : "bg-background font-medium text-foreground shadow-sm",
                   )}
                 >
                   {size}
@@ -78,7 +78,7 @@ export function SizeColorSelector({
                     "flex size-[52px] items-center justify-center rounded-full transition-transform active:scale-95",
                     isActive
                       ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                      : "ring-1 ring-border",
+                      : "ring-1 ring-secondary",
                   )}
                 >
                   <span

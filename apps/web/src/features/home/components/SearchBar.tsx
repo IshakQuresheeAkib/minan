@@ -192,7 +192,7 @@ export function SearchBar({
           }
           variant="secondary"
           size="icon"
-          className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-primary hover:shadow-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-primary hover:shadow-none focus-visible:ring-2 focus-visible:ring-primary/60"
           onClick={() => {
             if (!isCatalog && !trimmedQuery) {
               expandAndFocus();
@@ -213,7 +213,7 @@ export function SearchBar({
           aria-controls={resultsId}
           autoComplete="off"
           className={cn(
-            "h-12 w-12 rounded-full border border-primary/45 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-ring/50",
+            "h-12 w-12 rounded-full border border-primary/45 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-primary/50",
             expanded &&
               "w-full rounded-full pl-3 text-foreground placeholder:text-foreground/70 focus-visible:ring-primary/45",
             isCatalog &&
@@ -292,7 +292,7 @@ export function SearchBar({
                 href={`/products/${product.slug}`}
                 role="option"
                 onClick={reset}
-                className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-none"
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-foreground">

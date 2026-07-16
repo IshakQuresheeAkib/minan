@@ -9,16 +9,9 @@
   --font-display: var(--font-display);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
   --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -27,21 +20,11 @@
 
 :root {
   --radius: 0.75rem;
-
-  /* Core palette — 8 named colors */
   --background: #fcf9f8;
   --foreground: #262626;
   --primary: #f5b836;
   --secondary: #fed65b;
-  --accent: #ff724bf1;
-  --destructive: #ba1a1a;
-  --muted: #f0eded;
-  --border: #dbc1b8;
-
-  /* Derived tokens */
-  --card: var(--background);
-  --input: var(--border);
-  --ring: var(--primary);
+  --destructive: #c42222d7;
 }
 
 .dark {
@@ -50,21 +33,12 @@
   --foreground: #f3f0f0;
   --primary: #ffb597;
   --secondary: #574500;
-  --accent: #974822;
   --destructive: #ffb4ab;
-  --muted: #2a2826;
-  --border: oklch(1 0 0 / 12%);
-
-  /* Derived tokens */
-  --card: color-mix(in srgb, var(--foreground) 8%, var(--background));
-  --foreground: var(--foreground);
-  --input: var(--border);
-  --ring: var(--primary);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-secondary outline-primary/50;
   }
 
   html {

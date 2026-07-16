@@ -38,7 +38,7 @@ export function AdminShell({ children }: AdminShellProps) {
   }
 
   return (
-    <div className="min-h-dvh bg-muted/30">
+    <div className="min-h-dvh bg-background/30">
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-background px-4 py-6 lg:flex">
         <div>
           <Link
@@ -72,7 +72,10 @@ export function AdminShell({ children }: AdminShellProps) {
           </nav>
         </div>
 
-        <nav aria-label="Storefront navigation" className="mt-auto border-t pt-2">
+        <nav
+          aria-label="Storefront navigation"
+          className="mt-auto border-t pt-2"
+        >
           <Link
             href={publicRoutes.home}
             aria-current={pathname === publicRoutes.home ? "page" : undefined}

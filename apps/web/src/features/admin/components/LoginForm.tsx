@@ -64,7 +64,7 @@ export function LoginForm() {
         Email
         <input
           autoComplete="email"
-          className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+          className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
           type="email"
           {...form.register("email")}
         />
@@ -79,7 +79,7 @@ export function LoginForm() {
         Password
         <input
           autoComplete="current-password"
-          className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+          className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
           type="password"
           {...form.register("password")}
         />

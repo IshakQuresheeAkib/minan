@@ -18,9 +18,7 @@ export function HeroFirstSlideShell() {
       <Navbar />
 
       <div className="relative h-[min(600px,calc(100svh-5rem))] min-h-[540px] w-full overflow-hidden sm:min-h-[600px] lg:h-[90svh] lg:min-h-[640px]">
-        <div
-          className={cn("absolute inset-0 bg-linear-to-br", slide.accent)}
-        />
+        <div className={cn("absolute inset-0 bg-linear-to-br", slide.accent)} />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
         <div className="absolute right-0 top-0 hidden h-full w-[56%] overflow-hidden md:block">
           <div
@@ -31,7 +29,7 @@ export function HeroFirstSlideShell() {
           />
         </div>
 
-        <div className="absolute inset-x-4 top-4 h-[228px] overflow-hidden rounded-[1.5rem] border border-background/25 bg-muted shadow-2xl shadow-foreground/10 sm:top-6 sm:h-[280px] sm:rounded-[2rem] md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
+        <div className="absolute inset-x-4 top-4 h-[228px] overflow-hidden rounded-[1.5rem] border border-background/25 bg-background shadow-2xl shadow-foreground/10 sm:top-6 sm:h-[280px] sm:rounded-[2rem] md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
           <Image
             src={slide.imageSrc}
             alt={slide.imageAlt}
@@ -84,9 +82,7 @@ export function HeroFirstSlideShell() {
               <span
                 className={cn(
                   "block h-2.5 rounded-full",
-                  index === 0
-                    ? "w-8 bg-primary"
-                    : "w-2.5 bg-foreground/20",
+                  index === 0 ? "w-8 bg-primary" : "w-2.5 bg-foreground/20",
                 )}
               />
             </span>

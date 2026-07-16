@@ -78,11 +78,7 @@ function normalizePriceRange(
   minPrice: number | undefined,
   maxPrice: number | undefined,
 ) {
-  if (
-    minPrice !== undefined &&
-    maxPrice !== undefined &&
-    minPrice > maxPrice
-  ) {
+  if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
     return {
       minPrice: maxPrice,
       maxPrice: minPrice,
@@ -159,14 +155,17 @@ export function ProductCatalog({
     () =>
       new Map(
         filterOptions.categories.flatMap((category) =>
-          category.subcategories.map((subcategory) => [
-            subcategory.slug,
-            {
-              categoryName: category.name,
-              categorySlug: category.slug,
-              name: subcategory.name,
-            },
-          ] as const),
+          category.subcategories.map(
+            (subcategory) =>
+              [
+                subcategory.slug,
+                {
+                  categoryName: category.name,
+                  categorySlug: category.slug,
+                  name: subcategory.name,
+                },
+              ] as const,
+          ),
         ),
       ),
     [filterOptions.categories],
@@ -230,8 +229,7 @@ export function ProductCatalog({
       ? [...new Set([...current, value])]
       : current.filter((item) => item !== value);
 
-    const nextCategories =
-      key === "category" ? nextValues : filters.categories;
+    const nextCategories = key === "category" ? nextValues : filters.categories;
     const nextSubcategories =
       key === "subcategory"
         ? nextValues
@@ -340,7 +338,7 @@ export function ProductCatalog({
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       <aside className="hidden lg:block">
-        <div className="sticky top-24 rounded-2xl border border-border/80 bg-card/80 p-4 shadow-[0_16px_48px_rgba(151,72,34,0.08)] backdrop-blur">
+        <div className="sticky top-24 rounded-2xl border border-secondary/80 bg-background/80 p-4 shadow-[0_16px_48px_rgba(151,72,34,0.08)] backdrop-blur">
           {renderFilterPanel()}
         </div>
       </aside>
@@ -354,7 +352,7 @@ export function ProductCatalog({
           className="mb-5"
         />
 
-        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/80 p-3 shadow-[0_12px_36px_rgba(151,72,34,0.06)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-secondary/80 bg-background/80 p-3 shadow-[0_12px_36px_rgba(151,72,34,0.06)] sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-foreground">
               {total.toLocaleString("en-BD")} result{total === 1 ? "" : "s"}
@@ -383,14 +381,14 @@ export function ProductCatalog({
                 side="left"
                 className="w-[88vw] max-w-sm overflow-y-auto p-0"
               >
-                <SheetHeader className="border-b border-border/70 px-5 py-4">
+                <SheetHeader className="border-b border-secondary/70 px-5 py-4">
                   <SheetTitle>Filters</SheetTitle>
                   <SheetDescription>
                     Refine the collection by fit, shade, and price.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="px-5 py-4">{renderFilterPanel()}</div>
-                <SheetFooter className="border-t border-border/70">
+                <SheetFooter className="border-t border-secondary/70">
                   <Button
                     type="button"
                     variant="secondary"
@@ -496,7 +494,7 @@ export function ProductCatalog({
               type="button"
               variant="secondary"
               size="sm"
-              className="h-9 border-border bg-transparent px-4 shadow-none hover:shadow-none"
+              className="h-9 border-secondary bg-transparent px-4 shadow-none hover:shadow-none"
               leftIcon={<RotateCcw className="size-4" />}
               onClick={resetFilters}
               text="Reset"
@@ -534,7 +532,10 @@ export function ProductCatalog({
           )}
           {error && hasCards && (
             <div className="mt-4">
-              <CatalogErrorState error={error} onRetry={() => router.refresh()} />
+              <CatalogErrorState
+                error={error}
+                onRetry={() => router.refresh()}
+              />
             </div>
           )}
           {isPaginating && (
@@ -591,7 +592,7 @@ function FilterPanel({
           type="button"
           variant="secondary"
           size="icon"
-          className="size-9 border-border bg-transparent shadow-none hover:shadow-none"
+          className="size-9 border-secondary bg-transparent shadow-none hover:shadow-none"
           onClick={onReset}
           aria-label="Reset filters"
         >
@@ -657,12 +658,14 @@ function FilterPanel({
                 "flex h-10 cursor-pointer items-center gap-2 rounded-full border px-3 text-left text-xs font-semibold transition-all",
                 isChecked(filters.colors, color)
                   ? "border-foreground bg-foreground text-background shadow-md shadow-primary/30"
-                  : "border-border bg-background text-foreground hover:border-primary",
+                  : "border-secondary bg-background text-foreground hover:border-primary",
               )}
             >
               <span
-                className="size-4 rounded-full border border-border"
-                style={{ backgroundColor: productColorSwatches[color] ?? color }}
+                className="size-4 rounded-full border border-secondary"
+                style={{
+                  backgroundColor: productColorSwatches[color] ?? color,
+                }}
                 aria-hidden="true"
               />
               <span className="truncate">{color}</span>
@@ -685,7 +688,7 @@ function FilterPanel({
                 "h-9 min-w-11 cursor-pointer rounded-full border px-3 text-sm font-semibold transition-all",
                 isChecked(filters.sizes, size)
                   ? "border-foreground bg-foreground text-background shadow-md shadow-primary/30"
-                  : "border-border bg-background text-foreground hover:border-primary",
+                  : "border-secondary bg-background text-foreground hover:border-primary",
               )}
             >
               {size}
@@ -753,7 +756,7 @@ type FilterGroupProps = {
 
 function FilterGroup({ children, title }: FilterGroupProps) {
   return (
-    <div className="space-y-3 border-t border-border/70 pt-4">
+    <div className="space-y-3 border-t border-secondary/70 pt-4">
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       {children}
     </div>
@@ -768,7 +771,7 @@ type CheckboxRowProps = {
 
 function CheckboxRow({ checked, label, onCheckedChange }: CheckboxRowProps) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-2 py-2 text-sm transition-colors hover:bg-muted/70">
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-2 py-2 text-sm transition-colors hover:bg-background/70">
       <span>{label}</span>
       <Checkbox
         checked={checked}
@@ -794,7 +797,7 @@ function FilterChip({ label, onRemove, swatch }: FilterChipProps) {
     >
       {swatch && (
         <span
-          className="size-3 rounded-full border border-border"
+          className="size-3 rounded-full border border-secondary"
           style={{ backgroundColor: swatch }}
           aria-hidden="true"
         />
@@ -829,7 +832,7 @@ function CatalogErrorState({
 
 function EmptyProductsState({ onReset }: { onReset: () => void }) {
   return (
-    <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
+    <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-secondary bg-background/30 px-6 py-12 text-center">
       <div className="mb-4 grid size-14 place-items-center rounded-full bg-primary/20 text-foreground">
         <Filter className="size-6" aria-hidden="true" />
       </div>
@@ -837,8 +840,8 @@ function EmptyProductsState({ onReset }: { onReset: () => void }) {
         No pieces match these filters
       </h2>
       <p className="mt-2 max-w-md text-sm leading-6 text-foreground/70">
-        Try widening the price range or removing a category, subcategory,
-        color, or size.
+        Try widening the price range or removing a category, subcategory, color,
+        or size.
       </p>
       <Button
         type="button"

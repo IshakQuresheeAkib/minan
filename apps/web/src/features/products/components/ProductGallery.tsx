@@ -17,7 +17,7 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
 
   if (!activeImage) {
     return (
-      <div className="mb-8 flex h-[380px] items-center justify-center rounded-[32px] bg-muted text-sm text-foreground/70 lg:mb-0 lg:h-[520px] lg:rounded-2xl">
+      <div className="mb-8 flex h-[380px] items-center justify-center rounded-[32px] bg-background text-sm text-foreground/70 lg:mb-0 lg:h-[520px] lg:rounded-2xl">
         No image available
       </div>
     );
@@ -45,7 +45,7 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
                   onClick={() => setActiveIndex(index)}
                   className={cn(
                     "relative size-16 shrink-0 overflow-hidden rounded-xl border-2 transition-colors",
-                    isActive ? "border-primary" : "border-border",
+                    isActive ? "border-primary" : "border-secondary",
                   )}
                 >
                   <Image
@@ -61,7 +61,7 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
           </div>
         ) : null}
 
-        <div className="relative h-[380px] w-full overflow-hidden rounded-[32px] bg-card shadow-sm lg:h-[520px] lg:flex-1 lg:rounded-2xl">
+        <div className="relative h-[380px] w-full overflow-hidden rounded-[32px] bg-background shadow-sm lg:h-[520px] lg:flex-1 lg:rounded-2xl">
           <Image
             src={activeImage}
             alt={name}
@@ -71,7 +71,7 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
             className="object-cover object-top"
           />
           <div className="absolute bottom-4 right-4 flex items-end gap-2 lg:hidden">
-            <div className="flex items-center gap-2 rounded-full bg-card py-2 pr-5 pl-2 shadow-lg">
+            <div className="flex items-center gap-2 rounded-full bg-background py-2 pr-5 pl-2 shadow-lg">
               <div className="flex size-8 items-center justify-center rounded-full bg-primary text-background">
                 <span className="text-xs font-semibold">৳</span>
               </div>
@@ -79,7 +79,7 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
                 Shop
               </span>
             </div>
-            <div className="rounded-full bg-card px-5 py-3 shadow-lg">
+            <div className="rounded-full bg-background px-5 py-3 shadow-lg">
               <span className="text-[15px] font-bold text-foreground">
                 BDT {price.toLocaleString("en-BD")}
               </span>

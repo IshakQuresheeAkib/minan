@@ -39,7 +39,7 @@ export function SizeGuideModal() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-border text-foreground/70">
+              <tr className="border-b border-secondary text-foreground/70">
                 <th className="py-2 pr-4 font-medium">Size</th>
                 <th className="py-2 pr-4 font-medium">Chest</th>
                 <th className="py-2 pr-4 font-medium">Length</th>
@@ -48,7 +48,7 @@ export function SizeGuideModal() {
             </thead>
             <tbody>
               {sizeChart.map((row) => (
-                <tr key={row.size} className="border-b border-border/60">
+                <tr key={row.size} className="border-b border-secondary/60">
                   <td className="py-2.5 pr-4 font-semibold text-foreground">
                     {row.size}
                   </td>

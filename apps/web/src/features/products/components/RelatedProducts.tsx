@@ -15,7 +15,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
   return (
     <section
       aria-labelledby="related-products-heading"
-      className="mt-12 border-t border-border pt-10 lg:mt-16 lg:pt-12"
+      className="mt-12 border-t border-secondary pt-10 lg:mt-16 lg:pt-12"
     >
       <h2
         id="related-products-heading"

@@ -265,7 +265,7 @@ export function ImageUploader({
                 return (
                   <div
                     key={`${url.url}-${imageIndex}`}
-                    className="overflow-hidden rounded-md border border-border bg-background"
+                    className="overflow-hidden rounded-md border border-secondary bg-background"
                   >
                     <div className="relative aspect-square overflow-hidden bg-foreground/5">
                       <Image

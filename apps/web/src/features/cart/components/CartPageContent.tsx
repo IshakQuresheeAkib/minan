@@ -27,29 +27,29 @@ export function CartPageContent() {
     return (
       <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
         <div>
-          <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
+          <div className="h-9 w-24 animate-pulse rounded-md bg-background" />
           <div className="mt-6 grid gap-4">
             {[0, 1].map((item) => (
               <div
                 key={item}
-                className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-card p-3 shadow-sm sm:grid-cols-[104px_1fr_auto]"
+                className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-background p-3 shadow-sm sm:grid-cols-[104px_1fr_auto]"
               >
-                <div className="aspect-square animate-pulse rounded-md bg-muted" />
+                <div className="aspect-square animate-pulse rounded-md bg-background" />
                 <div className="space-y-3 py-1">
-                  <div className="h-5 w-3/4 animate-pulse rounded-md bg-muted" />
-                  <div className="h-4 w-32 animate-pulse rounded-md bg-muted" />
-                  <div className="h-4 w-24 animate-pulse rounded-md bg-muted" />
+                  <div className="h-5 w-3/4 animate-pulse rounded-md bg-background" />
+                  <div className="h-4 w-32 animate-pulse rounded-md bg-background" />
+                  <div className="h-4 w-24 animate-pulse rounded-md bg-background" />
                 </div>
-                <div className="col-span-2 h-10 animate-pulse rounded-md bg-muted sm:col-span-1 sm:w-28" />
+                <div className="col-span-2 h-10 animate-pulse rounded-md bg-background sm:col-span-1 sm:w-28" />
               </div>
             ))}
           </div>
         </div>
 
-        <aside className="h-fit rounded-lg border bg-card p-5 shadow-sm">
-          <div className="h-6 w-36 animate-pulse rounded-md bg-muted" />
-          <div className="mt-5 h-4 w-full animate-pulse rounded-md bg-muted" />
-          <div className="mt-5 h-11 w-full animate-pulse rounded-md bg-muted" />
+        <aside className="h-fit rounded-lg border bg-background p-5 shadow-sm">
+          <div className="h-6 w-36 animate-pulse rounded-md bg-background" />
+          <div className="mt-5 h-4 w-full animate-pulse rounded-md bg-background" />
+          <div className="mt-5 h-11 w-full animate-pulse rounded-md bg-background" />
         </aside>
       </section>
     );
@@ -58,7 +58,7 @@ export function CartPageContent() {
   if (items.length === 0) {
     return (
       <section className="mx-auto flex min-h-[60dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center sm:px-6 lg:px-8">
-        <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+        <div className="flex size-14 items-center justify-center rounded-full bg-background">
           <ShoppingBag className="size-6" aria-hidden="true" />
         </div>
         <h1 className="mt-5 text-2xl font-semibold tracking-normal">
@@ -84,9 +84,9 @@ export function CartPageContent() {
           {items.map((item) => (
             <article
               key={item.lineId}
-              className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-card p-3 text-foreground shadow-sm sm:grid-cols-[104px_1fr_auto]"
+              className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-background p-3 text-foreground shadow-sm sm:grid-cols-[104px_1fr_auto]"
             >
-              <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
+              <div className="relative aspect-square overflow-hidden rounded-md bg-background">
                 {item.imageUrl ? (
                   <Image
                     src={item.imageUrl}
@@ -117,7 +117,7 @@ export function CartPageContent() {
                     aria-label={`Decrease ${item.name} quantity`}
                     variant="secondary"
                     size="icon"
-                    className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none disabled:opacity-40"
+                    className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none disabled:opacity-40"
                     disabled={item.quantity <= 1}
                     onClick={() =>
                       updateQuantity(item.lineId, item.quantity - 1)
@@ -132,7 +132,7 @@ export function CartPageContent() {
                     aria-label={`Increase ${item.name} quantity`}
                     variant="secondary"
                     size="icon"
-                    className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none"
+                    className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none"
                     onClick={() =>
                       updateQuantity(item.lineId, item.quantity + 1)
                     }
@@ -143,7 +143,7 @@ export function CartPageContent() {
                 <button
                   type="button"
                   aria-label={`Remove ${item.name}`}
-                  className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-muted hover:text-destructive"
+                  className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-background hover:text-destructive"
                   onClick={() => removeItem(item.lineId)}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
@@ -154,7 +154,7 @@ export function CartPageContent() {
         </div>
       </div>
 
-      <aside className="h-fit rounded-lg border bg-card p-5 text-foreground shadow-sm">
+      <aside className="h-fit rounded-lg border bg-background p-5 text-foreground shadow-sm">
         <h2 className="text-lg font-semibold">Order Summary</h2>
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="text-foreground/70">Items</span>
