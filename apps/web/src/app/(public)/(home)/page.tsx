@@ -6,9 +6,7 @@ import { HeroCarousel } from "@/features/home/components/HeroCarousel";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { getCachedProducts } from "@/features/products/services/product.cache";
 
-export default async function HomePage() {
-  await connection();
-
+export default function HomePage() {
   return (
     <>
       <HeroCarousel />
@@ -22,6 +20,8 @@ export default async function HomePage() {
 }
 
 async function HomeCatalogContent() {
+  await connection();
+
   const initialProducts = await getCachedProducts({ page: 1, limit: 20 });
 
   return <HomeCatalog initialProducts={initialProducts} />;
