@@ -4,6 +4,7 @@ export type ProductSeed = {
   description: string;
   price: number;
   categorySlug: string;
+  subcategorySlug?: string;
   sizes: string[];
   colors: string[];
   images: string[];
@@ -36,6 +37,7 @@ export const productSeeds: ProductSeed[] = [
     description: "Everyday comfort, premium feel.",
     price: 950,
     categorySlug: "t-shirts",
+    subcategorySlug: "round-neck-t-shirt",
     sizes: ["S", "M", "L", "XL"],
     colors: ["White", "Black"],
     images: ["https://picsum.photos/seed/premium-cotton-tee/600/800"],
@@ -46,6 +48,7 @@ export const productSeeds: ProductSeed[] = [
     description: "Sharp lines for work and weekend.",
     price: 1450,
     categorySlug: "shirts",
+    subcategorySlug: "full-sleeve-shirt",
     sizes: ["S", "M", "L", "XL"],
     colors: ["White", "Blue"],
     images: ["https://picsum.photos/seed/oxford-shirt/600/800"],
@@ -56,6 +59,7 @@ export const productSeeds: ProductSeed[] = [
     description: "Tailored fit with all-day stretch.",
     price: 1350,
     categorySlug: "pants",
+    subcategorySlug: "twill-pant",
     sizes: ["S", "M", "L", "XL"],
     colors: ["Beige", "Navy"],
     images: ["https://picsum.photos/seed/slim-fit-chinos/600/800"],
@@ -76,6 +80,7 @@ export const productSeeds: ProductSeed[] = [
     description: "Minimal buckle, durable full-grain leather.",
     price: 850,
     categorySlug: "accessories",
+    subcategorySlug: "belt",
     sizes: ["S", "M", "L"],
     colors: ["Brown", "Black"],
     images: ["https://picsum.photos/seed/leather-belt/600/800"],
@@ -86,6 +91,7 @@ export const productSeeds: ProductSeed[] = [
     description: "Lightweight everyday sneakers with cushioned sole.",
     price: 1800,
     categorySlug: "footwear",
+    subcategorySlug: "sneakers",
     sizes: ["40", "41", "42", "43"],
     colors: ["White", "Navy"],
     images: ["https://picsum.photos/seed/canvas-sneakers/600/800"],
@@ -96,6 +102,7 @@ export const productSeeds: ProductSeed[] = [
     description: "Breathable linen for hot Bangladesh summers.",
     price: 1250,
     categorySlug: "shirts",
+    subcategorySlug: "half-sleeve-shirt",
     sizes: ["S", "M", "L", "XL"],
     colors: ["White", "Sky Blue"],
     images: ["https://picsum.photos/seed/linen-summer-shirt/600/800"],

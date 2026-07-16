@@ -19,13 +19,16 @@ type ProductCardProps = {
   product: ProductCardData;
 };
 
-export function ProductCard({ imagePriority = false, product }: ProductCardProps) {
+export function ProductCard({
+  imagePriority = false,
+  product,
+}: ProductCardProps) {
   const productHref = `/products/${product.slug}`;
   const formattedPrice = `BDT ${product.price.toLocaleString("en-BD")}`;
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-3 shadow-[0_8px_24px_rgba(151,72,34,0.04)]">
-      <div className="relative mb-3 aspect-4/5 overflow-hidden rounded-xl bg-muted">
+    <article className="rounded-2xl border border-secondary bg-background p-3 shadow-[0_8px_24px_rgba(151,72,34,0.04)]">
+      <div className="relative mb-3 aspect-4/5 overflow-hidden rounded-xl bg-background">
         {product.imageUrl ? (
           <Link
             href={productHref}
@@ -44,7 +47,7 @@ export function ProductCard({ imagePriority = false, product }: ProductCardProps
           </Link>
         ) : (
           <div
-            className="absolute inset-0 bg-linear-to-b from-muted to-input"
+            className="absolute inset-0 bg-linear-to-b from-background to-secondary"
             aria-hidden="true"
           />
         )}
@@ -60,7 +63,7 @@ export function ProductCard({ imagePriority = false, product }: ProductCardProps
         <h3 className="mb-1 truncate text-sm font-semibold text-foreground">
           <Link
             href={productHref}
-            className="transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+            className="transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
           >
             {product.name}
           </Link>
@@ -77,7 +80,7 @@ export function ProductCard({ imagePriority = false, product }: ProductCardProps
               <span
                 key={color.name}
                 title={color.name}
-                className="size-3 rounded-full border border-border"
+                className="size-3 rounded-full border border-secondary"
                 style={{ backgroundColor: color.swatch }}
               />
             ))}

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import {
@@ -10,21 +11,38 @@ import {
 } from "@/features/products/services/product.cache";
 import { type ProductSortOption } from "@/features/products/services/product.service";
 
-export const metadata = {
-  title: "Products",
+type ProductSearchParams = {
+  category?: string | string[];
+  subcategory?: string | string[];
+  color?: string | string[];
+  size?: string | string[];
+  search?: string | string[];
+  minPrice?: string | string[];
+  maxPrice?: string | string[];
+  sort?: string | string[];
 };
 
 type ProductsPageProps = {
-  searchParams: Promise<{
-    category?: string | string[];
-    color?: string | string[];
-    size?: string | string[];
-    search?: string | string[];
-    minPrice?: string | string[];
-    maxPrice?: string | string[];
-    sort?: string | string[];
-  }>;
+  searchParams: Promise<ProductSearchParams>;
 };
+
+function hasFilters(params: ProductSearchParams): boolean {
+  return Object.values(params).some((value) =>
+    Array.isArray(value) ? value.some(Boolean) : Boolean(value),
+  );
+}
+
+export async function generateMetadata({
+  searchParams,
+}: ProductsPageProps): Promise<Metadata> {
+  const filtered = hasFilters(await searchParams);
+
+  return {
+    title: "Products",
+    alternates: { canonical: "/products" },
+    robots: filtered ? { index: false, follow: true } : undefined,
+  };
+}
 
 function getFirstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -95,6 +113,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   const params = await searchParams;
   const categories = getParamValues(params.category);
+  const subcategories =
+    categories.length > 0 ? getParamValues(params.subcategory) : [];
   const colors = getParamValues(params.color);
   const sizes = getParamValues(params.size);
   const search = getFirstParam(params.search)?.trim();
@@ -105,6 +125,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const sort = getSortParam(params.sort);
   const filters: ProductCatalogFilters = {
     categories,
+    subcategories,
     colors,
     sizes,
     search,
@@ -115,6 +136,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const [products, filterOptions] = await Promise.all([
     getCachedProducts({
       category: filters.categories,
+      subcategories: filters.subcategories,
       colors: filters.colors,
       sizes: filters.sizes,
       search: filters.search,

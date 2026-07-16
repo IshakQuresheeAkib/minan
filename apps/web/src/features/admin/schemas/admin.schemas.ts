@@ -6,6 +6,7 @@ export const adminProductFormSchema = z.object({
   description: z.string().trim().min(1, "Description is required"),
   price: z.number().min(0, "Price must be at least 0"),
   category_id: z.string().trim().min(1, "Category is required"),
+  subcategory_id: z.string(),
   sizes: z.string(),
   colors: z.string(),
 });
@@ -19,6 +20,16 @@ export const adminCategoryFormSchema = z.object({
 });
 
 export type AdminCategoryFormInput = z.infer<typeof adminCategoryFormSchema>;
+
+export const adminSubcategoryFormSchema = z.object({
+  category_id: z.string().trim().min(1, "Category is required"),
+  name: z.string().trim().min(1, "Name is required"),
+  slug: z.string().trim().optional(),
+});
+
+export type AdminSubcategoryFormInput = z.infer<
+  typeof adminSubcategoryFormSchema
+>;
 
 export const adminLeadUpdateSchema = z.object({
   status: z.enum(["pending", "confirmed", "cancelled"]),

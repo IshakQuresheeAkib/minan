@@ -30,10 +30,7 @@ type ProductDetailsProps = {
   product: Product;
 };
 
-export function ProductDetails({
-  children,
-  product,
-}: ProductDetailsProps) {
+export function ProductDetails({ children, product }: ProductDetailsProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const setBuyNowItem = useBuyNowStore((state) => state.setItem);
@@ -190,7 +187,7 @@ export function ProductDetails({
           type="button"
           aria-label="Go back"
           onClick={() => router.back()}
-          className="flex size-11 items-center justify-center rounded-full bg-card shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-transform active:scale-95"
+          className="flex size-11 items-center justify-center rounded-full bg-background shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-transform active:scale-95"
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </button>
@@ -201,7 +198,7 @@ export function ProductDetails({
           onClick={() => {
             void handleShare();
           }}
-          className="flex size-11 items-center justify-center rounded-full bg-card shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-transform active:scale-95"
+          className="flex size-11 items-center justify-center rounded-full bg-background shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-transform active:scale-95"
         >
           <Share2 className="size-5" aria-hidden="true" />
         </button>
@@ -210,6 +207,7 @@ export function ProductDetails({
       <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-64 lg:px-8 lg:pb-16 lg:pt-6">
         <ProductBreadcrumbs
           category={product.category}
+          subcategory={product.subcategory}
           productName={product.name}
         />
 
@@ -239,7 +237,7 @@ export function ProductDetails({
                   onClick={() => {
                     void handleShare();
                   }}
-                  className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-card transition-colors hover:bg-muted"
+                  className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-secondary bg-background transition-colors hover:bg-background"
                 >
                   <Share2 className="size-4" aria-hidden="true" />
                 </button>
@@ -270,7 +268,7 @@ export function ProductDetails({
                 <span className="text-sm font-semibold text-foreground">
                   Quantity
                 </span>
-                <div className="flex h-12 items-center gap-3 rounded-full border border-border bg-card px-2">
+                <div className="flex h-12 items-center gap-3 rounded-full border border-secondary bg-background px-2">
                   <Button
                     type="button"
                     aria-label="Decrease quantity"
@@ -280,7 +278,7 @@ export function ProductDetails({
                     }
                     variant="secondary"
                     size="icon"
-                    className="size-9 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none disabled:opacity-40"
+                    className="size-9 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none disabled:opacity-40"
                     icon={<Minus className="size-4" aria-hidden="true" />}
                   />
                   <span className="w-4 text-center text-base font-semibold">
@@ -351,7 +349,7 @@ export function ProductDetails({
         </Button>
 
         <div className="flex items-center gap-4">
-          <div className="flex h-14 items-center gap-3 rounded-full border border-foreground/5 bg-card px-2 shadow-sm">
+          <div className="flex h-14 items-center gap-3 rounded-full border border-foreground/5 bg-background px-2 shadow-sm">
             <Button
               type="button"
               aria-label="Decrease quantity"
@@ -359,7 +357,7 @@ export function ProductDetails({
               onClick={() => setQuantity((current) => Math.max(1, current - 1))}
               variant="secondary"
               size="icon"
-              className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-muted hover:text-foreground hover:shadow-none active:bg-muted disabled:opacity-40"
+              className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none active:bg-background disabled:opacity-40"
               icon={<Minus className="size-4" aria-hidden="true" />}
             />
             <span className="w-4 text-center text-[17px] font-semibold">
@@ -380,7 +378,7 @@ export function ProductDetails({
             onClick={handleAddToCart}
             disabled={isProductUnavailable}
             variant="secondary"
-            className="h-14 flex-1 border-border bg-card text-[15px] font-semibold text-foreground shadow-sm hover:translate-y-0 hover:bg-muted hover:text-foreground hover:shadow-sm active:scale-95"
+            className="h-14 flex-1 border-secondary bg-background text-[15px] font-semibold text-foreground shadow-sm hover:translate-y-0 hover:bg-background hover:text-foreground hover:shadow-sm active:scale-95"
             text={isProductUnavailable ? "Sold Out" : "Add to Cart"}
           />
         </div>
@@ -402,7 +400,7 @@ export function ProductDetails({
           onClick={handleAddToCart}
           disabled={isProductUnavailable}
           variant="secondary"
-          className="h-14 cursor-pointer rounded-full bg-card px-8 text-base font-semibold text-foreground shadow-[0_8px_24px_rgba(151,72,34,0.18)] hover:translate-y-0 hover:bg-muted hover:text-foreground"
+          className="h-14 cursor-pointer rounded-full bg-background px-8 text-base font-semibold text-foreground shadow-[0_8px_24px_rgba(151,72,34,0.18)] hover:translate-y-0 hover:bg-background hover:text-foreground"
         >
           {isProductUnavailable ? "Sold Out" : "Add to Cart"}
         </Button>

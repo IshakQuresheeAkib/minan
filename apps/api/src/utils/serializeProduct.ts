@@ -1,13 +1,26 @@
 import type { CategoryDocument } from "../models/Category.js";
 import type { ProductDocument } from "../models/Product.js";
+import type { SubcategoryDocument } from "../models/Subcategory.js";
 import type {
   ProductCategorySummary,
   ProductResponse,
+  ProductSubcategorySummary,
 } from "../types/product.types.js";
 
 function isPopulatedCategory(
   value: ProductDocument["category_id"],
 ): value is CategoryDocument {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    "slug" in value
+  );
+}
+
+function isPopulatedSubcategory(
+  value: ProductDocument["subcategory_id"],
+): value is SubcategoryDocument {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -24,6 +37,35 @@ function getCategoryId(product: ProductDocument): string {
   }
 
   return String(categoryId);
+}
+
+function getSubcategoryId(product: ProductDocument): string | null {
+  const { subcategory_id: subcategoryId } = product;
+
+  if (!subcategoryId) {
+    return null;
+  }
+
+  if (isPopulatedSubcategory(subcategoryId)) {
+    return subcategoryId._id.toString();
+  }
+
+  return String(subcategoryId);
+}
+
+function getSubcategorySummary(
+  product: ProductDocument,
+): ProductSubcategorySummary | null {
+  const { subcategory_id: subcategoryId } = product;
+
+  if (!isPopulatedSubcategory(subcategoryId)) {
+    return null;
+  }
+
+  return {
+    name: subcategoryId.name,
+    slug: subcategoryId.slug,
+  };
 }
 
 function getCategorySummary(
@@ -50,6 +92,8 @@ export function serializeProduct(product: ProductDocument): ProductResponse {
     price: product.price,
     category_id: getCategoryId(product),
     category: getCategorySummary(product),
+    subcategory_id: getSubcategoryId(product),
+    subcategory: getSubcategorySummary(product),
     sizes: product.sizes,
     colors: product.colors,
     images: product.images,

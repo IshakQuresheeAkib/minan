@@ -107,7 +107,7 @@ function LeadDetailFields({
       </dl>
 
       {lead.cart_snapshot ? (
-        <section className="mt-5 rounded-lg border bg-muted/30 p-4">
+        <section className="mt-5 rounded-lg border bg-background/30 p-4">
           <h3 className="text-sm font-semibold">Order Items</h3>
           <div className="mt-3 grid gap-3">
             {lead.cart_snapshot.items.map((item) => (

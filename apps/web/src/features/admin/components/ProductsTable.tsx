@@ -7,7 +7,11 @@ import {
   updateAdminProduct,
 } from "@/features/admin/actions/products.actions";
 import { TablePagination } from "@/features/admin/components/TablePagination";
-import type { AdminCategory, AdminProduct } from "@/features/admin/types";
+import type {
+  AdminCategory,
+  AdminProduct,
+  AdminSubcategory,
+} from "@/features/admin/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +44,7 @@ type ProductsTableProps = {
   accessToken: string;
   products: AdminProduct[];
   categories: AdminCategory[];
+  subcategories: AdminSubcategory[];
   loading: boolean;
   categoriesLoading: boolean;
   categoriesError: string | null;
@@ -71,6 +76,7 @@ export function ProductsTable({
   accessToken,
   products,
   categories,
+  subcategories,
   loading,
   categoriesLoading,
   categoriesError,
@@ -87,6 +93,11 @@ export function ProductsTable({
   onCreate,
   onEdit,
 }: ProductsTableProps) {
+  const categoryIdsWithSubcategories = new Set(
+    subcategories
+      .filter((subcategory) => subcategory.is_active)
+      .map((subcategory) => subcategory.category_id),
+  );
   const selectedCategoryMissing =
     filterDraft.categoryId !== "" &&
     filterDraft.categoryId !== CATEGORY_ALL_VALUE &&
@@ -249,7 +260,21 @@ export function ProductsTable({
             <TableBody>
               {products.map((product) => (
                 <TableRow key={product._id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{product.name}</div>
+                    <div className="mt-1 text-xs text-foreground/65">
+                      {product.category?.name ?? "Unknown category"}
+                      {product.subcategory
+                        ? ` / ${product.subcategory.name}`
+                        : ""}
+                    </div>
+                    {!product.subcategory &&
+                    categoryIdsWithSubcategories.has(product.category_id) ? (
+                      <Badge className="mt-2" variant="destructive">
+                        Needs subcategory
+                      </Badge>
+                    ) : null}
+                  </TableCell>
                   <TableCell>{product.slug}</TableCell>
                   <TableCell>৳{product.price}</TableCell>
                   <TableCell>

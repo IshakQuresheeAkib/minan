@@ -1,6 +1,7 @@
 import mongoose, { type Document, Schema, type Types } from "mongoose";
 
 import type { CategoryDocument } from "./Category.js";
+import type { SubcategoryDocument } from "./Subcategory.js";
 
 export interface ProductDocument extends Document {
   name: string;
@@ -8,6 +9,7 @@ export interface ProductDocument extends Document {
   description: string;
   price: number;
   category_id: Types.ObjectId | CategoryDocument;
+  subcategory_id?: Types.ObjectId | SubcategoryDocument | null;
   sizes: string[];
   colors: string[];
   images: string[];
@@ -32,6 +34,12 @@ const productSchema = new Schema<ProductDocument>(
       type: Schema.Types.ObjectId,
       ref: "Category",
       required: true,
+    },
+    subcategory_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Subcategory",
+      default: null,
+      index: true,
     },
     sizes: { type: [String], default: [] },
     colors: { type: [String], default: [] },

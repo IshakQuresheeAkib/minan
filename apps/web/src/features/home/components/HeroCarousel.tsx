@@ -14,42 +14,13 @@ import {
 
 import { Navbar } from "@/components/shared/navbar";
 import { Button } from "@/components/ui/Button";
-import { publicRoutes } from "@/constants/routes";
+import { heroSlides } from "@/features/home/data/hero-slides";
 import { cn } from "@/lib/utils";
 
 const SLIDE_INTERVAL = 4000;
 const ANIM_DURATION = 0.65;
 const DRAG_THRESHOLD = 56;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-
-const slides = [
-  {
-    id: "promo-sale",
-    tag: "Limited Offer",
-    heading: ["40%", "Off Now"],
-    body: "Discover our exclusive collection at unbeatable prices. Fresh styles, bold looks.",
-    cta: "Shop Now",
-    href: publicRoutes.products,
-    imageSrc: "/hero/limited-offer.webp",
-    imageAlt: "Golden fashion editorial look from MINAN",
-    accent: "from-[#ff724b]/35 via-[#f5b836]/20 to-background",
-    panel: "bg-[#f5b836]/30",
-    stat: "2k+ looks",
-  },
-  {
-    id: "promo-new",
-    tag: "New Season",
-    heading: ["New", "Arrivals"],
-    body: "Be the first to explore styles fresh from our latest drops this week.",
-    cta: "Explore",
-    href: publicRoutes.products,
-    imageSrc: "/hero/new-arrivals.jpg",
-    imageAlt: "New season fashion arrivals styled for MINAN",
-    accent: "from-[#fed65b]/40 via-[#ff724b]/15 to-background",
-    panel: "bg-[#ff724b]/25",
-    stat: "Fresh drop",
-  },
-] as const;
 
 type Direction = "next" | "prev";
 
@@ -190,7 +161,7 @@ export function HeroCarousel() {
     }
 
     intervalRef.current = setInterval(() => {
-      const next = (currentRef.current + 1) % slides.length;
+      const next = (currentRef.current + 1) % heroSlides.length;
       goTo(next, "next");
     }, SLIDE_INTERVAL);
   }, [clearAutoRotate, goTo, prefersReducedMotion]);
@@ -202,13 +173,14 @@ export function HeroCarousel() {
   }, [clearAutoRotate, resetInterval]);
 
   const handlePrev = useCallback(() => {
-    const prev = (currentRef.current - 1 + slides.length) % slides.length;
+    const prev =
+      (currentRef.current - 1 + heroSlides.length) % heroSlides.length;
     goTo(prev, "prev");
     resetInterval();
   }, [goTo, resetInterval]);
 
   const handleNext = useCallback(() => {
-    const next = (currentRef.current + 1) % slides.length;
+    const next = (currentRef.current + 1) % heroSlides.length;
     goTo(next, "next");
     resetInterval();
   }, [goTo, resetInterval]);
@@ -278,7 +250,7 @@ export function HeroCarousel() {
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        {slides.map((slide, index) => {
+        {heroSlides.map((slide, index) => {
           const isActive = index === current;
 
           return (
@@ -289,7 +261,9 @@ export function HeroCarousel() {
               }}
               className={cn(
                 "absolute inset-0",
-                !isActive && "pointer-events-none",
+                isActive
+                  ? "z-10 opacity-100"
+                  : "pointer-events-none z-0 opacity-0",
               )}
               aria-hidden={!isActive}
               inert={!isActive ? true : undefined}
@@ -307,7 +281,7 @@ export function HeroCarousel() {
                 />
               </div>
 
-              <div className="absolute inset-x-4 top-4 h-[228px] overflow-hidden rounded-[1.5rem] border border-background/25 bg-muted shadow-2xl shadow-foreground/10 sm:top-6 sm:h-[280px] sm:rounded-[2rem] md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
+              <div className="absolute inset-x-4 top-4 h-[228px] overflow-hidden rounded-[1.5rem] border border-background/25 bg-background shadow-2xl shadow-foreground/10 sm:top-6 sm:h-[280px] sm:rounded-[2rem] md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
                 <Image
                   src={slide.imageSrc}
                   alt={slide.imageAlt}
@@ -369,7 +343,7 @@ export function HeroCarousel() {
           type="button"
           onClick={handlePrev}
           aria-label="Previous slide"
-          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:left-6"
+          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:left-6"
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </button>
@@ -378,7 +352,7 @@ export function HeroCarousel() {
           type="button"
           onClick={handleNext}
           aria-label="Next slide"
-          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-card/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-card hover:shadow-lg md:flex lg:right-6"
+          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:right-6"
         >
           <ChevronRight className="size-5" aria-hidden="true" />
         </button>
@@ -388,14 +362,14 @@ export function HeroCarousel() {
           role="group"
           aria-label="Slide controls"
         >
-          {slides.map((slide, index) => (
+          {heroSlides.map((slide, index) => (
             <button
               key={slide.id}
               type="button"
               onClick={() => handleDot(index)}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={index === current ? "true" : undefined}
-              className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-200 hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+              className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-200 hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
             >
               <span
                 className={cn(

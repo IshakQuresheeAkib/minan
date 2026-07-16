@@ -20,7 +20,7 @@ export function AdminDashboard() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="h-28 animate-pulse rounded-lg border bg-muted"
+              className="h-28 animate-pulse rounded-lg border bg-background"
             />
           ))}
         </div>

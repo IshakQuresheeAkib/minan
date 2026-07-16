@@ -69,7 +69,7 @@ export function HomeCatalog({ initialProducts }: HomeCatalogProps) {
           {trustItems.map(({ icon: Icon, label }) => (
             <li
               key={label}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-[0_8px_22px_rgba(151,72,34,0.04)]"
+              className="flex items-center gap-3 rounded-2xl border border-secondary bg-background px-4 py-3 shadow-[0_8px_22px_rgba(151,72,34,0.04)]"
             >
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-foreground">
                 <Icon className="size-4" aria-hidden="true" />
@@ -81,7 +81,7 @@ export function HomeCatalog({ initialProducts }: HomeCatalogProps) {
           ))}
         </ul>
 
-        <div className="flex items-center justify-between gap-4 border-t border-border/70 pt-5">
+        <div className="flex items-center justify-between gap-4 border-t border-secondary/70 pt-5">
           <div>
             <p className="text-sm font-semibold text-foreground">
               {activeLabel}
@@ -92,7 +92,7 @@ export function HomeCatalog({ initialProducts }: HomeCatalogProps) {
           </div>
           <Link
             href={publicRoutes.products}
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
           >
             View all
             <ArrowRight className="size-4" aria-hidden="true" />

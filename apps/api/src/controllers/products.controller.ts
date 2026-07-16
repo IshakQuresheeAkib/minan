@@ -68,6 +68,10 @@ export async function listProductsHandler(
 ): Promise<void> {
   try {
     const categorySlugs = getQueryValues(req.query.category);
+    const subcategorySlugs =
+      categorySlugs.length > 0
+        ? getQueryValues(req.query.subcategory)
+        : [];
     const colors = getQueryValues(req.query.color);
     const sizes = getQueryValues(req.query.size);
     const search = getQueryParam(req, "search")?.trim();
@@ -133,6 +137,7 @@ export async function listProductsHandler(
 
     const result = await listProducts({
       categorySlugs,
+      subcategorySlugs,
       search,
       page,
       limit,

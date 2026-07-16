@@ -6,7 +6,7 @@ type TrafficPanelProps = {
 
 export function TrafficPanel({ trafficSources }: TrafficPanelProps) {
   return (
-    <section className="rounded-lg border bg-card p-5 text-foreground shadow-sm">
+    <section className="rounded-lg border bg-background p-5 text-foreground shadow-sm">
       <h2 className="text-lg font-semibold tracking-normal">Traffic Sources</h2>
       <p className="mt-1 text-sm text-foreground/70">
         UTM breakdown from analytics events.

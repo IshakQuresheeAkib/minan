@@ -62,30 +62,30 @@ export function CheckoutClient() {
     return (
       <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
         <div>
-          <div className="h-9 w-36 animate-pulse rounded-md bg-muted" />
-          <div className="mt-3 h-5 w-full max-w-xl animate-pulse rounded-md bg-muted" />
+          <div className="h-9 w-36 animate-pulse rounded-md bg-background" />
+          <div className="mt-3 h-5 w-full max-w-xl animate-pulse rounded-md bg-background" />
           <div className="mt-8 grid gap-5">
             {[0, 1, 2, 3].map((item) => (
               <div
                 key={item}
-                className="h-12 animate-pulse rounded-md bg-muted"
+                className="h-12 animate-pulse rounded-md bg-background"
               />
             ))}
-            <div className="h-28 animate-pulse rounded-md bg-muted" />
+            <div className="h-28 animate-pulse rounded-md bg-background" />
           </div>
         </div>
 
-        <aside className="h-fit rounded-lg border bg-card p-5 shadow-sm">
-          <div className="h-6 w-36 animate-pulse rounded-md bg-muted" />
+        <aside className="h-fit rounded-lg border bg-background p-5 shadow-sm">
+          <div className="h-6 w-36 animate-pulse rounded-md bg-background" />
           <div className="mt-5 grid gap-4">
             {[0, 1].map((item) => (
               <div key={item} className="flex justify-between gap-4">
-                <div className="h-10 flex-1 animate-pulse rounded-md bg-muted" />
-                <div className="h-5 w-20 animate-pulse rounded-md bg-muted" />
+                <div className="h-10 flex-1 animate-pulse rounded-md bg-background" />
+                <div className="h-5 w-20 animate-pulse rounded-md bg-background" />
               </div>
             ))}
           </div>
-          <div className="mt-5 h-5 w-full animate-pulse rounded-md bg-muted" />
+          <div className="mt-5 h-5 w-full animate-pulse rounded-md bg-background" />
         </aside>
       </section>
     );
@@ -94,7 +94,7 @@ export function CheckoutClient() {
   if (items.length === 0) {
     return (
       <section className="mx-auto flex min-h-[60dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center sm:px-6 lg:px-8">
-        <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+        <div className="flex size-14 items-center justify-center rounded-full bg-background">
           <ShoppingBag className="size-6" aria-hidden="true" />
         </div>
         <h1 className="mt-5 text-2xl font-semibold tracking-normal">
@@ -129,7 +129,7 @@ export function CheckoutClient() {
         />
       </div>
 
-      <aside className="h-fit rounded-lg border bg-card p-5 text-foreground shadow-sm">
+      <aside className="h-fit rounded-lg border bg-background p-5 text-foreground shadow-sm">
         <h2 className="text-lg font-semibold">Order Summary</h2>
         <div className="mt-4 grid gap-4">
           {items.map((item) => (

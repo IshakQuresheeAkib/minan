@@ -20,6 +20,15 @@ export type AdminProduct = {
   description: string;
   price: number;
   category_id: string;
+  category: {
+    name: string;
+    slug: string;
+  } | null;
+  subcategory_id: string | null;
+  subcategory: {
+    name: string;
+    slug: string;
+  } | null;
   sizes: string[];
   colors: string[];
   images: string[];
@@ -33,6 +42,21 @@ export type AdminCategory = {
   name: string;
   slug: string;
   image_url: string;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminSubcategory = {
+  _id: string;
+  category_id: string;
+  category: {
+    name: string;
+    slug: string;
+  } | null;
+  name: string;
+  slug: string;
+  display_order: number;
   is_active: boolean;
   createdAt: string;
   updatedAt: string;
