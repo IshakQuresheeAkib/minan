@@ -3,7 +3,8 @@ import { z } from "zod";
 const objectIdSchema = z
   .string()
   .trim()
-  .regex(/^[a-f\d]{24}$/i, "Invalid product ID");
+  .regex(/^[a-f\d]{24}$/i, "Invalid product ID")
+  .toLowerCase();
 
 export const productQuoteSchema = z.object({
   product_ids: z
