@@ -5,23 +5,18 @@ import Link from "next/link";
 import { useState } from "react";
 import { publicRoutes } from "@/constants/routes";
 import { CategoryChips } from "@/features/home/components/CategoryChips";
-import { ProductsSection } from "@/features/home/components/ProductsSection";
-import type { Product } from "@/features/products/schemas/product.schema";
-import type { ProductFilterOptions } from "@/features/products/services/product.service";
+import {
+  ProductsSection,
+  type HomeCategoryProductGroup,
+} from "@/features/home/components/ProductsSection";
 
 type HomeCatalogProps = {
-  categories: ProductFilterOptions["categories"];
-  initialProducts?: {
-    data: Product[];
-    total: number;
-    page: number;
-    limit: number;
-    hasMore: boolean;
-  };
+  categoryGroups: HomeCategoryProductGroup[];
 };
 
-export function HomeCatalog({ categories, initialProducts }: HomeCatalogProps) {
+export function HomeCatalog({ categoryGroups }: HomeCatalogProps) {
   const [activeCategorySlug, setActiveCategorySlug] = useState<string>();
+  const categories = categoryGroups.map((group) => group.category);
   const activeCategory = categories.find(
     (candidate) => candidate.slug === activeCategorySlug,
   );
@@ -55,9 +50,8 @@ export function HomeCatalog({ categories, initialProducts }: HomeCatalogProps) {
         onCategoryChange={setActiveCategorySlug}
       />
       <ProductsSection
-        categories={categories}
-        category={activeCategorySlug}
-        initialProducts={initialProducts}
+        categoryGroups={categoryGroups}
+        activeCategorySlug={activeCategorySlug}
       />
     </section>
   );

@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/api/client";
 import type { AdminCategory } from "@/features/admin/types";
+import { sortCategories } from "@/lib/catalog/category-order";
 
 type CategoryListResponse = {
   data: AdminCategory[];
@@ -9,9 +10,17 @@ type CategoryListResponse = {
 export async function fetchAdminCategories(
   accessToken: string,
 ): Promise<CategoryListResponse> {
-  return apiRequest<CategoryListResponse>("/api/admin/categories", {
-    accessToken,
-  });
+  const response = await apiRequest<CategoryListResponse>(
+    "/api/admin/categories",
+    {
+      accessToken,
+    },
+  );
+
+  return {
+    ...response,
+    data: sortCategories(response.data),
+  };
 }
 
 export async function createAdminCategory(

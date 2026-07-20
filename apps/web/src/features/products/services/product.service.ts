@@ -5,6 +5,7 @@ import {
   type Product,
 } from "@/features/products/schemas/product.schema";
 import type { ProductCardData } from "@/features/products/components/ProductCard";
+import { sortCategories } from "@/lib/catalog/category-order";
 import { z } from "zod";
 
 const productListSchema = z.object({
@@ -149,7 +150,12 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptions> {
   const response = await apiRequest<z.infer<typeof productFilterOptionsSchema>>(
     "/api/products/filters",
   );
-  return productFilterOptionsSchema.parse(response).data;
+  const { data } = productFilterOptionsSchema.parse(response);
+
+  return {
+    ...data,
+    categories: sortCategories(data.categories),
+  };
 }
 
 export async function getProductPriceQuote(

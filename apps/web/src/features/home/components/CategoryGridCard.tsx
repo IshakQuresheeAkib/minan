@@ -6,19 +6,19 @@ import { publicRoutes } from "@/constants/routes";
 import { productCardShellClassName } from "@/features/products/components/ProductCard";
 
 type CategoryGridCardProps = {
+  imagePriority?: boolean;
   imageUrl: string;
   name: string;
-  slug?: string;
+  slug: string;
 };
 
 export function CategoryGridCard({
+  imagePriority = false,
   imageUrl,
   name,
   slug,
 }: CategoryGridCardProps) {
-  const href = slug
-    ? `${publicRoutes.products}?category=${encodeURIComponent(slug)}`
-    : publicRoutes.products;
+  const href = `${publicRoutes.products}?category=${encodeURIComponent(slug)}`;
 
   return (
     <article className={productCardShellClassName}>
@@ -31,7 +31,7 @@ export function CategoryGridCard({
           src={imageUrl}
           alt={`${name} category`}
           fill
-          priority
+          priority={imagePriority}
           sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover object-top transition-transform duration-500 ease-out motion-safe:group-hover/category:scale-[1.035]"
         />

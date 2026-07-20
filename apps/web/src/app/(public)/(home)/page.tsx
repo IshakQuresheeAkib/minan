@@ -25,15 +25,18 @@ export default function HomePage() {
 async function HomeCatalogContent() {
   await connection();
 
-  const [initialProducts, filterOptions] = await Promise.all([
-    getCachedProducts({ page: 1, limit: 20 }),
-    getCachedProductFilterOptions(),
-  ]);
-
-  return (
-    <HomeCatalog
-      categories={filterOptions.categories}
-      initialProducts={initialProducts}
-    />
+  const filterOptions = await getCachedProductFilterOptions();
+  const categoryGroups = await Promise.all(
+    filterOptions.categories.map(async (category) => ({
+      category,
+      products: await getCachedProducts({
+        category: category.slug,
+        page: 1,
+        limit: 7,
+        sort: "newest",
+      }),
+    })),
   );
+
+  return <HomeCatalog categoryGroups={categoryGroups} />;
 }
