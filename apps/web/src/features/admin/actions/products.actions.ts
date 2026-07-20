@@ -9,6 +9,17 @@ const UPLOAD_DELETE_BATCH_SIZE = 50;
 
 export type AdminProductStatusFilter = "all" | "active" | "inactive";
 
+export type AdminProductDeleteResponse = {
+  data: {
+    productId: string;
+    mediaCleanup: {
+      removed: number;
+      retained: number;
+      failed: number;
+    };
+  };
+};
+
 type FetchAdminProductsOptions = {
   page?: number;
   limit?: number;
@@ -102,6 +113,19 @@ export async function deactivateAdminProduct(
     `/api/admin/products/${id}/deactivate`,
     {
       method: "PATCH",
+      accessToken,
+    },
+  );
+}
+
+export async function deleteAdminProduct(
+  accessToken: string,
+  id: string,
+): Promise<AdminProductDeleteResponse> {
+  return apiRequest<AdminProductDeleteResponse>(
+    `/api/admin/products/${id}`,
+    {
+      method: "DELETE",
       accessToken,
     },
   );

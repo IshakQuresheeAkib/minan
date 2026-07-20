@@ -2,13 +2,15 @@
 
 import { useRef, type MouseEvent, type PointerEvent } from "react";
 
-import type { ProductFilterOptions } from "@/features/products/services/product.service";
 import { cn } from "@/lib/utils";
 
 const DRAG_CLICK_CANCEL_THRESHOLD = 10;
 
 type CategoryChipsProps = {
-  categories: ProductFilterOptions["categories"];
+  categories: readonly {
+    name: string;
+    slug: string;
+  }[];
   activeCategorySlug?: string;
   onCategoryChange: (slug?: string) => void;
 };

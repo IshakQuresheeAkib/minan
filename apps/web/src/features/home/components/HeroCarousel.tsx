@@ -302,7 +302,7 @@ export function HeroCarousel() {
               </div>
 
               <div className="absolute inset-x-0 bottom-5 top-[312px] flex items-start sm:top-[368px] md:inset-0 md:items-center md:pb-0 md:pt-20">
-                <div className="mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
+                <div className="mx-auto w-full max-w-11/12 px-4 md:px-10 lg:px-16">
                   <div className="max-w-xl">
                     <span
                       className={cn(

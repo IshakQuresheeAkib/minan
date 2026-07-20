@@ -10,6 +10,12 @@ type CleanupRemovedImagesOptions = {
   nextUrls: string[];
 };
 
+export type MediaCleanupResult = {
+  removed: number;
+  retained: number;
+  failed: number;
+};
+
 function collectReferencedManagedPublicIds(
   urls: readonly string[],
   candidatePublicIds: ReadonlySet<string>,
@@ -97,14 +103,25 @@ export function findRemovedManagedPublicIds(
 
 export async function cleanupRemovedManagedImages(
   options: CleanupRemovedImagesOptions,
-): Promise<void> {
-  const removedPublicIds = findRemovedManagedPublicIds(
-    options.previousUrls,
-    options.nextUrls,
-  );
+): Promise<MediaCleanupResult> {
+  let removedPublicIds: string[];
+
+  try {
+    removedPublicIds = findRemovedManagedPublicIds(
+      options.previousUrls,
+      options.nextUrls,
+    );
+  } catch (error) {
+    const failed = new Set(options.previousUrls).size;
+    console.error("Failed to resolve managed Cloudinary images", {
+      urls: options.previousUrls,
+      error,
+    });
+    return { removed: 0, retained: 0, failed };
+  }
 
   if (removedPublicIds.length === 0) {
-    return;
+    return { removed: 0, retained: 0, failed: 0 };
   }
 
   let referencedPublicIds: Set<string>;
@@ -118,21 +135,46 @@ export async function cleanupRemovedManagedImages(
       publicIds: removedPublicIds,
       error,
     });
-    return;
+    return { removed: 0, retained: 0, failed: removedPublicIds.length };
   }
+
+  const cleanupResult: MediaCleanupResult = {
+    removed: 0,
+    retained: 0,
+    failed: 0,
+  };
 
   for (const publicId of removedPublicIds) {
     if (referencedPublicIds.has(publicId)) {
+      cleanupResult.retained += 1;
       continue;
     }
 
     try {
-      await destroyManagedImage(publicId);
+      const result = await destroyManagedImage(publicId);
+
+      if (
+        result.result === "ok" ||
+        result.result === "not found" ||
+        result.result === "not_found"
+      ) {
+        cleanupResult.removed += 1;
+        continue;
+      }
+
+      cleanupResult.failed += 1;
+      console.error("Cloudinary returned an unexpected cleanup result", {
+        publicId,
+        result: result.result,
+      });
     } catch (error) {
+      cleanupResult.failed += 1;
       console.error("Failed to clean up removed Cloudinary image", {
         publicId,
         error,
       });
     }
   }
+
+  return cleanupResult;
 }

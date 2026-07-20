@@ -1,18 +1,11 @@
 import { CategoryGridCard } from "@/features/home/components/CategoryGridCard";
 import { ProductCard } from "@/features/products/components/ProductCard";
-import type { Product } from "@/features/products/schemas/product.schema";
 import {
   mapProductToCard,
-  type ProductFilterOptions,
+  type HomeCatalogProductGroup,
 } from "@/features/products/services/product.service";
-import type { ApiList } from "@/types/api.types";
 
-type HomeCategory = ProductFilterOptions["categories"][number];
-
-export type HomeCategoryProductGroup = {
-  category: HomeCategory;
-  products: ApiList<Product>;
-};
+export type HomeCategoryProductGroup = HomeCatalogProductGroup;
 
 type ProductsSectionProps = {
   activeCategorySlug?: string;
@@ -46,12 +39,8 @@ export function ProductsSection({
 
   return (
     <section className="space-y-10 xl:space-y-12" aria-label="Products by category">
-      {visibleGroups.map((group, groupIndex) => (
-        <CategoryProductGrid
-          key={group.category.slug}
-          group={group}
-          imagePriority={groupIndex === 0}
-        />
+      {visibleGroups.map((group) => (
+        <CategoryProductGrid key={group.category.slug} group={group} />
       ))}
     </section>
   );
@@ -59,13 +48,9 @@ export function ProductsSection({
 
 type CategoryProductGridProps = {
   group: HomeCategoryProductGroup;
-  imagePriority: boolean;
 };
 
-function CategoryProductGrid({
-  group,
-  imagePriority,
-}: CategoryProductGridProps) {
+function CategoryProductGrid({ group }: CategoryProductGridProps) {
   const { category, products } = group;
   const cardProducts = products.data.slice(0, 7).map(mapProductToCard);
   const viewMoreHref = `/products?category=${encodeURIComponent(category.slug)}`;
@@ -80,7 +65,6 @@ function CategoryProductGrid({
       </h2>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
         <CategoryGridCard
-          imagePriority={imagePriority}
           imageUrl={category.image_url}
           name={category.name}
           slug={category.slug}
@@ -116,7 +100,6 @@ function CategoryProductGrid({
               className={isDesktopOnly ? "hidden h-full xl:block" : "h-full"}
             >
               <ProductCard
-                imagePriority={imagePriority && index === 0}
                 product={product}
                 wholeCardCta={
                   isDesktopTerminal

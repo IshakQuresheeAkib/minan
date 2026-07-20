@@ -13,6 +13,10 @@ export type ProductFilterCategory = ProductCategorySummary & {
   subcategories: ProductSubcategorySummary[];
 };
 
+export type HomeCatalogCategory = ProductCategorySummary & {
+  image_url: string;
+};
+
 export type ProductResponse = {
   _id: string;
   name: string;
@@ -43,6 +47,13 @@ export type ProductListResponse = {
 
 export type ProductDetailResponse = {
   data: ProductResponse;
+};
+
+export type HomeCatalogResponse = {
+  data: {
+    category: HomeCatalogCategory;
+    products: ProductListResponse;
+  }[];
 };
 
 export type ProductQuoteItemResponse =

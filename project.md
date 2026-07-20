@@ -306,7 +306,7 @@ An admin cannot deactivate their own account:
 ### Mongoose Patterns
 
 - `timestamps: true` on all schemas except `analytics_events`
-- Soft deletes through `is_active`; no hard deletes for products, categories, or admins
+- Products support reversible deactivation through `is_active` and explicit admin-only permanent deletion; categories and admins remain soft-delete-only
 - `populate("category_id")` on product queries when category data is needed
 - Indexes: product/category `slug`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
 - `pre("save")` on admin users hashes passwords
@@ -350,6 +350,7 @@ There is no public `GET /api/categories` route. Public category navigation start
 | POST   | `/api/admin/products`                  | admin | Create product |
 | PATCH  | `/api/admin/products/:id`              | admin | Update product, including `is_active: true` reactivation |
 | PATCH  | `/api/admin/products/:id/deactivate`   | admin | Soft delete |
+| DELETE | `/api/admin/products/:id`              | admin | Permanently delete a product and clean up its unreferenced managed Cloudinary images |
 | GET    | `/api/admin/categories`                | admin | List all categories |
 | POST   | `/api/admin/categories`                | admin | Create category |
 | PATCH  | `/api/admin/categories/:id`            | admin | Update category, including `is_active: true` reactivation |

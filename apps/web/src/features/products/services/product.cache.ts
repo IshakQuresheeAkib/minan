@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 
 import {
+  getHomeCatalog,
   getProductBySlug,
   getProductFilterOptions,
   getProducts,
@@ -76,4 +77,12 @@ export async function getCachedProductFilterOptions() {
   cacheLife("days");
 
   return getProductFilterOptions();
+}
+
+export async function getCachedHomeCatalog() {
+  "use cache";
+  cacheTag(CATALOG_TAG);
+  cacheLife("days");
+
+  return getHomeCatalog();
 }

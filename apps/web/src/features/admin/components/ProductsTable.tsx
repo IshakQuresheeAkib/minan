@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
+import { Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   deactivateAdminProduct,
+  deleteAdminProduct,
   updateAdminProduct,
 } from "@/features/admin/actions/products.actions";
 import { TablePagination } from "@/features/admin/components/TablePagination";
@@ -14,6 +17,14 @@ import type {
 } from "@/features/admin/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -94,6 +105,13 @@ export function ProductsTable({
   onCreate,
   onEdit,
 }: ProductsTableProps) {
+  const [productToDelete, setProductToDelete] =
+    useState<AdminProduct | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(
+    null,
+  );
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deleting = deletingProductId !== null;
   const categoryIdsWithSubcategories = new Set(
     subcategories
       .filter((subcategory) => subcategory.is_active)
@@ -129,6 +147,54 @@ export function ProductsTable({
           ? error.message
           : "Failed to reactivate product",
       );
+    }
+  }
+
+  function handleDeleteDialogOpenChange(open: boolean) {
+    if (!open && !deleting) {
+      setProductToDelete(null);
+      setDeleteError(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!productToDelete || deleting) {
+      return;
+    }
+
+    setDeletingProductId(productToDelete._id);
+    setDeleteError(null);
+
+    try {
+      const response = await deleteAdminProduct(
+        accessToken,
+        productToDelete._id,
+      );
+      const failedImageCount = response.data.mediaCleanup.failed;
+
+      setProductToDelete(null);
+
+      if (failedImageCount > 0) {
+        toast.warning(
+          `Product deleted, but ${failedImageCount} image${failedImageCount === 1 ? "" : "s"} could not be removed from Cloudinary.`,
+        );
+      } else {
+        toast.success("Product permanently deleted");
+      }
+
+      if (products.length === 1 && page > 1) {
+        onPageChange(page - 1);
+      } else {
+        onChanged();
+      }
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : "Failed to permanently delete product";
+      setDeleteError(`${message}. Please try again.`);
+    } finally {
+      setDeletingProductId(null);
     }
   }
 
@@ -252,7 +318,6 @@ export function ProductsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Slug</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -276,7 +341,6 @@ export function ProductsTable({
                       </Badge>
                     ) : null}
                   </TableCell>
-                  <TableCell>{product.slug}</TableCell>
                   <TableCell>
                     <ProductPrice
                       className="max-w-44"
@@ -294,39 +358,55 @@ export function ProductsTable({
                       {product.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="space-x-2 text-right">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => onEdit(product)}
-                    >
-                      Edit
-                    </Button>
-                    {product.is_active ? (
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
                       <Button
                         type="button"
                         size="sm"
                         variant="secondary"
-                        className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
-                        onClick={() => {
-                          void handleDeactivate(product);
-                        }}
+                        onClick={() => onEdit(product)}
                       >
-                        Deactivate
+                        Edit
                       </Button>
-                    ) : (
+                      {product.is_active ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="border-destructive text-destructive shadow-destructive/20 hover:bg-destructive hover:text-background hover:shadow-destructive/40"
+                          onClick={() => {
+                            void handleDeactivate(product);
+                          }}
+                        >
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            void handleReactivate(product);
+                          }}
+                        >
+                          Reactivate
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         size="sm"
                         variant="secondary"
+                        className="border-destructive text-destructive shadow-none hover:bg-destructive hover:text-background hover:shadow-none"
+                        aria-label={`Permanently delete ${product.name}`}
                         onClick={() => {
-                          void handleReactivate(product);
+                          setDeleteError(null);
+                          setProductToDelete(product);
                         }}
                       >
-                        Reactivate
+                        <Trash2 className="size-3.5" aria-hidden="true" />
+                        Delete
                       </Button>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -343,6 +423,74 @@ export function ProductsTable({
         disabled={loading}
         onPageChange={onPageChange}
       />
+
+      <Dialog
+        open={productToDelete !== null}
+        onOpenChange={handleDeleteDialogOpenChange}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-md"
+          onEscapeKeyDown={(event) => {
+            if (deleting) {
+              event.preventDefault();
+            }
+          }}
+          onInteractOutside={(event) => {
+            if (deleting) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <DialogHeader className="text-left">
+            <div className="mb-1 flex size-11 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <TriangleAlert className="size-5" aria-hidden="true" />
+            </div>
+            <DialogTitle>Permanently delete product?</DialogTitle>
+            <DialogDescription className="leading-6">
+              <span className="font-semibold text-foreground">
+                {productToDelete?.name}
+              </span>{" "}
+              will be completely removed from the catalog and cannot be
+              recovered. Its unshared MINAN Cloudinary images will also be
+              deleted.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError ? (
+            <p
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              {deleteError}
+            </p>
+          ) : null}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              autoFocus
+              disabled={deleting}
+              onClick={() => handleDeleteDialogOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="border-destructive bg-destructive text-background shadow-destructive/20 hover:bg-destructive/90 hover:text-background hover:shadow-destructive/30"
+              loading={deleting}
+              loadingText="Deleting..."
+              onClick={() => {
+                void handleDelete();
+              }}
+            >
+              Delete permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
