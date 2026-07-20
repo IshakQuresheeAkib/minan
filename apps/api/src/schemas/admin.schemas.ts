@@ -4,6 +4,12 @@ import { slugify } from "../lib/slugify.js";
 
 const leadStatusSchema = z.enum(["pending", "confirmed", "cancelled"]);
 
+const discountSchema = z
+  .number()
+  .int("Discount must be a whole number")
+  .min(0, "Discount must be at least 0")
+  .max(100, "Discount must be at most 100");
+
 const slugStringSchema = z
   .string()
   .trim()
@@ -17,6 +23,7 @@ export const productCreateSchema = z.object({
   slug: slugStringSchema.optional(),
   description: z.string().trim().min(1, "Description is required"),
   price: z.number().min(0, "Price must be at least 0"),
+  discount: discountSchema.default(0),
   category_id: z.string().trim().min(1, "Category is required"),
   subcategory_id: z.string().trim().min(1).nullable().optional(),
   sizes: z.array(z.string().trim().min(1)).default([]),
@@ -30,6 +37,7 @@ export const productUpdateSchema = z
     slug: slugStringSchema.optional(),
     description: z.string().trim().min(1).optional(),
     price: z.number().min(0).optional(),
+    discount: discountSchema.optional(),
     category_id: z.string().trim().min(1).optional(),
     subcategory_id: z.string().trim().min(1).nullable().optional(),
     sizes: z.array(z.string().trim().min(1)).optional(),

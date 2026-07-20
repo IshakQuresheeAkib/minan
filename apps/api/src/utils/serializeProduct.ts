@@ -6,6 +6,7 @@ import type {
   ProductResponse,
   ProductSubcategorySummary,
 } from "../types/product.types.js";
+import { calculateDiscountedPrice } from "./calculateDiscountedPrice.js";
 
 function isPopulatedCategory(
   value: ProductDocument["category_id"],
@@ -84,12 +85,16 @@ function getCategorySummary(
 }
 
 export function serializeProduct(product: ProductDocument): ProductResponse {
+  const discount = product.discount ?? 0;
+
   return {
     _id: product._id.toString(),
     name: product.name,
     slug: product.slug,
     description: product.description,
     price: product.price,
+    discount,
+    discounted_price: calculateDiscountedPrice(product.price, discount),
     category_id: getCategoryId(product),
     category: getCategorySummary(product),
     subcategory_id: getSubcategoryId(product),

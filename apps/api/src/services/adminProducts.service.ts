@@ -201,6 +201,7 @@ export async function createAdminProduct(input: ProductCreateInput) {
       slug,
       description: input.description,
       price: input.price,
+      discount: input.discount,
       category_id: categoryId,
       subcategory_id: subcategoryId,
       sizes: input.sizes,
@@ -281,6 +282,10 @@ export async function updateAdminProduct(
 
   if (input.price !== undefined) {
     product.price = input.price;
+  }
+
+  if (input.discount !== undefined) {
+    product.discount = input.discount;
   }
 
   if (input.sizes !== undefined) {

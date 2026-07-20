@@ -8,6 +8,7 @@ export interface ProductDocument extends Document {
   slug: string;
   description: string;
   price: number;
+  discount: number;
   category_id: Types.ObjectId | CategoryDocument;
   subcategory_id?: Types.ObjectId | SubcategoryDocument | null;
   sizes: string[];
@@ -30,6 +31,17 @@ const productSchema = new Schema<ProductDocument>(
     },
     description: { type: String, required: true, trim: true },
     price: { type: Number, required: true, min: 0 },
+    discount: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+      max: 100,
+      validate: {
+        validator: (value: number) => Number.isInteger(value),
+        message: "Discount must be a whole number",
+      },
+    },
     category_id: {
       type: Schema.Types.ObjectId,
       ref: "Category",

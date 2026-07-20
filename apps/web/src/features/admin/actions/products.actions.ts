@@ -55,6 +55,7 @@ export async function createAdminProduct(
     slug?: string;
     description: string;
     price: number;
+    discount: number;
     category_id: string;
     subcategory_id: string | null;
     sizes: string[];
@@ -77,6 +78,7 @@ export async function updateAdminProduct(
     slug: string;
     description: string;
     price: number;
+    discount: number;
     category_id: string;
     subcategory_id: string | null;
     sizes: string[];

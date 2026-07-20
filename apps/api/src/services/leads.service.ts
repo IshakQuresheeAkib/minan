@@ -5,6 +5,7 @@ import { Lead, type CartSnapshot } from "../models/Lead.js";
 import { Product } from "../models/Product.js";
 import type { LeadCreateInput } from "../schemas/lead.schemas.js";
 import type { LeadResponse } from "../types/admin.types.js";
+import { calculateDiscountedPrice } from "../utils/calculateDiscountedPrice.js";
 import { serializeLead } from "../utils/serializeLead.js";
 
 const CART_OPTION_FALLBACK = "N/A";
@@ -35,7 +36,7 @@ async function buildVerifiedCartSnapshot(
       $in: uniqueProductIds.map((productId) => new Types.ObjectId(productId)),
     },
     is_active: true,
-  }).select("_id name price sizes colors");
+  }).select("_id name price discount sizes colors");
 
   const productById = new Map(
     products.map((product) => [product._id.toString(), product]),
@@ -59,7 +60,10 @@ async function buildVerifiedCartSnapshot(
     return {
       product_id: product._id.toString(),
       name: product.name,
-      price: product.price,
+      price: calculateDiscountedPrice(
+        product.price,
+        product.discount ?? 0,
+      ),
       size: item.size,
       color: item.color,
       quantity: item.quantity,

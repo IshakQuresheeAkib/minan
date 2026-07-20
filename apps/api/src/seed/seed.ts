@@ -16,6 +16,7 @@ type ProductSeedSet = {
   slug: string;
   description: string;
   price: number;
+  discount: number;
   category_id: Types.ObjectId;
   subcategory_id?: Types.ObjectId;
   sizes: string[];
@@ -89,6 +90,7 @@ async function seed(): Promise<void> {
       slug: product.slug,
       description: product.description,
       price: product.price,
+      discount: 0,
       category_id: categoryId,
       sizes: product.sizes,
       colors: product.colors,

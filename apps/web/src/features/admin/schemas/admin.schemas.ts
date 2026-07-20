@@ -5,6 +5,11 @@ export const adminProductFormSchema = z.object({
   slug: z.string().trim().optional(),
   description: z.string().trim().min(1, "Description is required"),
   price: z.number().min(0, "Price must be at least 0"),
+  discount: z
+    .number()
+    .int("Discount must be a whole number")
+    .min(0, "Discount must be at least 0")
+    .max(100, "Discount must be at most 100"),
   category_id: z.string().trim().min(1, "Category is required"),
   subcategory_id: z.string(),
   sizes: z.string(),
