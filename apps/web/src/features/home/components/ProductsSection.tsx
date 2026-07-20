@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { CategoryGridCard } from "@/features/home/components/CategoryGridCard";
 import { ProductGrid } from "@/features/products/components/ProductGrid";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import type { Product } from "@/features/products/schemas/product.schema";
-import { mapProductToCard } from "@/features/products/services/product.service";
+import {
+  mapProductToCard,
+  type ProductFilterOptions,
+} from "@/features/products/services/product.service";
 import { cn } from "@/lib/utils";
 
 type ProductsSectionProps = {
   category?: string;
+  categories: ProductFilterOptions["categories"];
   initialProducts?: {
     data: Product[];
     total: number;
@@ -21,6 +26,7 @@ type ProductsSectionProps = {
 
 export function ProductsSection({
   category,
+  categories,
   initialProducts,
 }: ProductsSectionProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -56,6 +62,9 @@ export function ProductsSection({
   const showInitialSkeleton = isRefreshing && !hasProducts;
   const showRefreshingProducts = isRefreshing && hasProducts;
   const isPaginating = isLoading && !isRefreshing && products.length > 0;
+  const featuredCategory = category
+    ? categories.find((item) => item.slug === category)
+    : categories[0];
 
   return (
     <section aria-label="All products" aria-busy={isLoading}>
@@ -78,7 +87,18 @@ export function ProductsSection({
             showRefreshingProducts && "opacity-60",
           )}
         >
-          <ProductGrid products={cardProducts} />
+          <ProductGrid
+            products={cardProducts}
+            leadingItem={
+              featuredCategory ? (
+                <CategoryGridCard
+                  imageUrl={featuredCategory.image_url}
+                  name={category ? featuredCategory.name : "All categories"}
+                  slug={category ? featuredCategory.slug : undefined}
+                />
+              ) : undefined
+            }
+          />
         </div>
       )}
       {error && hasProducts && (

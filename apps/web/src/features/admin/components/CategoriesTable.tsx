@@ -70,8 +70,7 @@ export function CategoriesTable({
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Categories</h1>
           <p className="mt-1 text-sm text-foreground/70">
-            Admin-managed categories. Public homepage chips remain static for
-            now.
+            Active categories automatically appear on the public storefront.
           </p>
         </div>
         <Button type="button" onClick={onCreate}>

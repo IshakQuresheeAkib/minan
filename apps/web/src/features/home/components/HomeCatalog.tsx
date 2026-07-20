@@ -3,16 +3,14 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { categorySlugByName } from "@/constants/categories";
 import { publicRoutes } from "@/constants/routes";
-import {
-  CategoryChips,
-  type CategoryChip,
-} from "@/features/home/components/CategoryChips";
+import { CategoryChips } from "@/features/home/components/CategoryChips";
 import { ProductsSection } from "@/features/home/components/ProductsSection";
 import type { Product } from "@/features/products/schemas/product.schema";
+import type { ProductFilterOptions } from "@/features/products/services/product.service";
 
 type HomeCatalogProps = {
+  categories: ProductFilterOptions["categories"];
   initialProducts?: {
     data: Product[];
     total: number;
@@ -22,12 +20,12 @@ type HomeCatalogProps = {
   };
 };
 
-export function HomeCatalog({ initialProducts }: HomeCatalogProps) {
-  const [activeChip, setActiveChip] = useState<CategoryChip>("All");
-
-  const category =
-    activeChip === "All" ? undefined : categorySlugByName[activeChip];
-  const activeLabel = activeChip === "All" ? "FEATURED CATEGORIES" : activeChip;
+export function HomeCatalog({ categories, initialProducts }: HomeCatalogProps) {
+  const [activeCategorySlug, setActiveCategorySlug] = useState<string>();
+  const activeCategory = categories.find(
+    (candidate) => candidate.slug === activeCategorySlug,
+  );
+  const activeLabel = activeCategory?.name ?? "FEATURED CATEGORIES";
 
   return (
     <section className="space-y-6" aria-labelledby="home-catalog-title">
@@ -51,8 +49,16 @@ export function HomeCatalog({ initialProducts }: HomeCatalogProps) {
           </Link>
         </div>
       </div>
-      <CategoryChips activeChip={activeChip} onChipChange={setActiveChip} />
-      <ProductsSection category={category} initialProducts={initialProducts} />
+      <CategoryChips
+        categories={categories}
+        activeCategorySlug={activeCategorySlug}
+        onCategoryChange={setActiveCategorySlug}
+      />
+      <ProductsSection
+        categories={categories}
+        category={activeCategorySlug}
+        initialProducts={initialProducts}
+      />
     </section>
   );
 }

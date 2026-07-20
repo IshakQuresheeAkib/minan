@@ -9,6 +9,7 @@ export type ProductSubcategorySummary = {
 };
 
 export type ProductFilterCategory = ProductCategorySummary & {
+  image_url: string;
   subcategories: ProductSubcategorySummary[];
 };
 

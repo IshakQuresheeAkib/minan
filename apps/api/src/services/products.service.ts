@@ -272,7 +272,9 @@ export async function quoteProducts(
 export async function getProductFilterOptions(): Promise<ProductFilterOptionsResponse> {
   const [categories, referencedSubcategoryIds, colors, sizes, priceRange] =
     await Promise.all([
-    Category.find({ is_active: true }).sort({ name: 1 }).select("name slug"),
+    Category.find({ is_active: true })
+      .sort({ name: 1 })
+      .select("name slug image_url"),
     Product.distinct("subcategory_id", {
       is_active: true,
       subcategory_id: { $ne: null },
@@ -318,6 +320,7 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptionsRes
       categories: categories.map((category) => ({
         name: category.name,
         slug: category.slug,
+        image_url: category.image_url,
         subcategories:
           subcategoriesByCategoryId.get(category._id.toString()) ?? [],
       })),

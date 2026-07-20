@@ -4,13 +4,16 @@ import { connection } from "next/server";
 import { HomeCatalog } from "@/features/home/components/HomeCatalog";
 import { HeroCarousel } from "@/features/home/components/HeroCarousel";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
-import { getCachedProducts } from "@/features/products/services/product.cache";
+import {
+  getCachedProductFilterOptions,
+  getCachedProducts,
+} from "@/features/products/services/product.cache";
 
 export default function HomePage() {
   return (
     <>
       <HeroCarousel />
-      <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-10 sm:px-6 lg:px-10 lg:py-12">
+      <div className="mx-auto w-full max-w-7xl px-2 pt-8 pb-10 sm:px-6 lg:px-10 lg:py-12">
         <Suspense fallback={<ProductGridSkeleton />}>
           <HomeCatalogContent />
         </Suspense>
@@ -22,7 +25,15 @@ export default function HomePage() {
 async function HomeCatalogContent() {
   await connection();
 
-  const initialProducts = await getCachedProducts({ page: 1, limit: 20 });
+  const [initialProducts, filterOptions] = await Promise.all([
+    getCachedProducts({ page: 1, limit: 20 }),
+    getCachedProductFilterOptions(),
+  ]);
 
-  return <HomeCatalog initialProducts={initialProducts} />;
+  return (
+    <HomeCatalog
+      categories={filterOptions.categories}
+      initialProducts={initialProducts}
+    />
+  );
 }

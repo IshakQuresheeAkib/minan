@@ -21,6 +21,7 @@ const productFilterOptionsSchema = z.object({
       z.object({
         name: z.string().min(1),
         slug: z.string().min(1),
+        image_url: z.url(),
         subcategories: z.array(
           z.object({
             name: z.string().min(1),
