@@ -14,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
+import { ProductPrice } from "@/features/products/components/ProductPrice";
 import type { Product } from "@/features/products/schemas/product.schema";
 import { getProducts } from "@/features/products/services/product.service";
 import { cn } from "@/lib/utils";
@@ -302,9 +303,15 @@ export function SearchBar({
                     {product.category?.name ?? "Product"}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs font-semibold text-foreground">
-                  BDT {product.price}
-                </span>
+                <ProductPrice
+                  className="shrink-0 justify-end"
+                  price={product.discounted_price}
+                  originalPrice={product.price}
+                  discount={product.discount}
+                  showBadge={false}
+                  showOriginalPrice={false}
+                  size="sm"
+                />
               </Link>
             ))}
         </div>

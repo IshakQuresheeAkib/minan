@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { LeadForm } from "@/features/checkout/components/LeadForm";
 import type { CartSnapshot } from "@/features/checkout/types";
+import { ProductPrice } from "@/features/products/components/ProductPrice";
+import { useCartPricingSync } from "@/features/products/hooks/useCartPricingSync";
 import { useCartStore } from "@/store/cart.store";
 
 function formatCurrency(value: number): string {
-  return `BDT ${value.toLocaleString("en-BD")}`;
+  return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
 export function CheckoutClient() {
+  useCartPricingSync();
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const clearCart = useCartStore((state) => state.clearCart);
@@ -23,6 +26,15 @@ export function CheckoutClient() {
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [items],
   );
+  const savings = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) => sum + (item.originalPrice - item.price) * item.quantity,
+        0,
+      ),
+    [items],
+  );
+  const hasUnavailableItems = items.some((item) => !item.isAvailable);
 
   const cartSnapshot = useMemo<CartSnapshot>(
     () => ({
@@ -122,11 +134,17 @@ export function CheckoutClient() {
         </p>
         <LeadForm
           cartSnapshot={cartSnapshot}
+          disabled={hasUnavailableItems}
           onSuccess={() => {
             clearCart();
             setSubmitted(true);
           }}
         />
+        {hasUnavailableItems ? (
+          <p className="mt-3 text-sm font-medium text-destructive">
+            Remove unavailable products from your cart before submitting.
+          </p>
+        ) : null}
       </div>
 
       <aside className="h-fit rounded-lg border bg-background p-5 text-foreground shadow-sm">
@@ -143,12 +161,23 @@ export function CheckoutClient() {
                   {item.size} / {item.color} x {item.quantity}
                 </p>
               </div>
-              <span className="shrink-0 font-semibold">
-                {formatCurrency(item.price * item.quantity)}
-              </span>
+              <ProductPrice
+                className="shrink-0 justify-end"
+                price={item.price * item.quantity}
+                originalPrice={item.originalPrice * item.quantity}
+                discount={item.discount}
+                showBadge={false}
+                size="sm"
+              />
             </div>
           ))}
         </div>
+        {savings > 0 ? (
+          <div className="mt-4 flex items-center justify-between text-sm font-semibold">
+            <span>You save</span>
+            <span>{formatCurrency(savings)}</span>
+          </div>
+        ) : null}
         <div className="mt-5 flex items-center justify-between border-t pt-4 text-base font-semibold">
           <span>Total</span>
           <span>{formatCurrency(total)}</span>

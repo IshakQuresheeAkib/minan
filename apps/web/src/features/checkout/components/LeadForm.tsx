@@ -14,10 +14,15 @@ import { ApiError } from "@/lib/api/client";
 
 type LeadFormProps = {
   cartSnapshot: CartSnapshot;
+  disabled?: boolean;
   onSuccess: () => void;
 };
 
-export function LeadForm({ cartSnapshot, onSuccess }: LeadFormProps) {
+export function LeadForm({
+  cartSnapshot,
+  disabled = false,
+  onSuccess,
+}: LeadFormProps) {
   const form = useForm<LeadInput>({
     resolver: zodResolver(leadInputSchema),
     defaultValues: {
@@ -32,10 +37,16 @@ export function LeadForm({ cartSnapshot, onSuccess }: LeadFormProps) {
 
   async function onSubmit(values: LeadInput) {
     try {
-      await submitCheckoutLead({
+      const response = await submitCheckoutLead({
         ...values,
         cart_snapshot: cartSnapshot,
       });
+      if (
+        response.data.cart_snapshot &&
+        response.data.cart_snapshot.total !== cartSnapshot.total
+      ) {
+        toast.info("Your order was updated with the latest product prices.");
+      }
       toast.success("Checkout request submitted");
       onSuccess();
     } catch (error) {
@@ -133,7 +144,7 @@ export function LeadForm({ cartSnapshot, onSuccess }: LeadFormProps) {
       <Button
         className="mt-2 h-11 w-full"
         type="submit"
-        disabled={form.formState.isSubmitting}
+        disabled={disabled || form.formState.isSubmitting}
       >
         {form.formState.isSubmitting ? "Submitting..." : "Submit Checkout"}
       </Button>

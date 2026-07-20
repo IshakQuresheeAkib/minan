@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import type { ProductPriceQuote } from "@/features/products/services/product.service";
+
 export const CART_OPTION_FALLBACK = "N/A";
 
 export type CartItem = {
@@ -9,15 +11,26 @@ export type CartItem = {
   slug: string;
   name: string;
   price: number;
+  originalPrice: number;
+  discount: number;
+  isAvailable: boolean;
   quantity: number;
   size: string;
   color: string;
   imageUrl?: string;
 };
 
-export type CartItemInput = Omit<CartItem, "lineId" | "size" | "color"> & {
+export type CartItemInput = Omit<
+  CartItem,
+  "lineId" | "size" | "color" | "isAvailable"
+> & {
   size?: string;
   color?: string;
+};
+
+export type PricingSyncResult = {
+  priceChanged: boolean;
+  unavailableCount: number;
 };
 
 type CartState = {
@@ -27,6 +40,9 @@ type CartState = {
   addItem: (item: CartItemInput) => void;
   removeItem: (lineId: string) => void;
   updateQuantity: (lineId: string, quantity: number) => void;
+  applyPricingQuote: (
+    quote: readonly ProductPriceQuote[],
+  ) => PricingSyncResult;
   clearCart: () => void;
 };
 
@@ -61,6 +77,21 @@ function getOptionalString(value: unknown): string | undefined {
   return normalized ? normalized : undefined;
 }
 
+function getNonNegativeNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
+function getDiscount(value: unknown): number {
+  return typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 100
+    ? value
+    : 0;
+}
+
 function sanitizeCartItem(value: unknown): CartItem | null {
   if (!isRecord(value)) {
     return null;
@@ -74,9 +105,7 @@ function sanitizeCartItem(value: unknown): CartItem | null {
     !productId ||
     !slug ||
     !name ||
-    typeof value.price !== "number" ||
-    !Number.isFinite(value.price) ||
-    value.price < 0 ||
+    getNonNegativeNumber(value.price) === null ||
     typeof value.quantity !== "number" ||
     !Number.isFinite(value.quantity)
   ) {
@@ -85,13 +114,22 @@ function sanitizeCartItem(value: unknown): CartItem | null {
 
   const size = normalizeCartOption(getOptionalString(value.size));
   const color = normalizeCartOption(getOptionalString(value.color));
+  const price = getNonNegativeNumber(value.price);
+
+  if (price === null) {
+    return null;
+  }
 
   return {
     lineId: createLineId(productId, size, color),
     productId,
     slug,
     name,
-    price: value.price,
+    price,
+    originalPrice: getNonNegativeNumber(value.originalPrice) ?? price,
+    discount: getDiscount(value.discount),
+    isAvailable:
+      typeof value.isAvailable === "boolean" ? value.isAvailable : true,
     quantity: Math.max(1, Math.floor(value.quantity)),
     size,
     color,
@@ -139,7 +177,7 @@ function getPersistedItems(value: unknown): CartItem[] {
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       items: [],
       hasHydrated: false,
       setHasHydrated: (hasHydrated) => {
@@ -160,6 +198,10 @@ export const useCartStore = create<CartState>()(
                 current.lineId === lineId
                   ? {
                       ...current,
+                      price: item.price,
+                      originalPrice: item.originalPrice,
+                      discount: item.discount,
+                      isAvailable: true,
                       quantity: current.quantity + item.quantity,
                     }
                   : current,
@@ -173,6 +215,7 @@ export const useCartStore = create<CartState>()(
                 lineId,
                 size,
                 color,
+                isAvailable: true,
               },
             ];
           })(),
@@ -194,6 +237,46 @@ export const useCartStore = create<CartState>()(
               : item,
           ),
         }));
+      },
+      applyPricingQuote: (quote) => {
+        const quoteByProductId = new Map(
+          quote.map((item) => [item.product_id, item]),
+        );
+        let priceChanged = false;
+
+        const items = get().items.map((item) => {
+          const currentQuote = quoteByProductId.get(item.productId);
+
+          if (!currentQuote) {
+            return item;
+          }
+
+          if (!currentQuote.is_available) {
+            return { ...item, isAvailable: false };
+          }
+
+          if (
+            item.price !== currentQuote.discounted_price ||
+            item.originalPrice !== currentQuote.price ||
+            item.discount !== currentQuote.discount
+          ) {
+            priceChanged = true;
+          }
+
+          return {
+            ...item,
+            price: currentQuote.discounted_price,
+            originalPrice: currentQuote.price,
+            discount: currentQuote.discount,
+            isAvailable: true,
+          };
+        });
+
+        set({ items });
+        return {
+          priceChanged,
+          unavailableCount: items.filter((item) => !item.isAvailable).length,
+        };
       },
       clearCart: () => {
         set({ items: [] });

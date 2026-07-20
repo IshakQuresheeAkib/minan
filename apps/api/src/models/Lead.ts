@@ -6,6 +6,8 @@ export type CartSnapshotItem = {
   product_id: string;
   name: string;
   price: number;
+  original_price?: number;
+  discount?: number;
   size: string;
   color: string;
   quantity: number;
@@ -34,6 +36,8 @@ const cartSnapshotItemSchema = new Schema<CartSnapshotItem>(
     product_id: { type: String, required: true },
     name: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
+    original_price: { type: Number, min: 0 },
+    discount: { type: Number, min: 0, max: 100 },
     size: { type: String, required: true },
     color: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },

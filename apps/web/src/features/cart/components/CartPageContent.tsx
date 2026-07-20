@@ -6,13 +6,16 @@ import { useMemo } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
+import { ProductPrice } from "@/features/products/components/ProductPrice";
+import { useCartPricingSync } from "@/features/products/hooks/useCartPricingSync";
 import { useCartStore } from "@/store/cart.store";
 
 function formatCurrency(value: number): string {
-  return `BDT ${value.toLocaleString("en-BD")}`;
+  return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
 export function CartPageContent() {
+  useCartPricingSync();
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -22,6 +25,15 @@ export function CartPageContent() {
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [items],
   );
+  const savings = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) => sum + (item.originalPrice - item.price) * item.quantity,
+        0,
+      ),
+    [items],
+  );
+  const hasUnavailableItems = items.some((item) => !item.isAvailable);
 
   if (!hasHydrated) {
     return (
@@ -93,7 +105,7 @@ export function CartPageContent() {
                     alt={item.name}
                     fill
                     sizes="104px"
-                    className="object-cover"
+                    className="object-cover object-top"
                   />
                 ) : null}
               </div>
@@ -105,9 +117,20 @@ export function CartPageContent() {
                 <p className="mt-1 text-sm text-foreground/70">
                   {item.size} / {item.color}
                 </p>
-                <p className="mt-2 text-sm font-semibold">
-                  {formatCurrency(item.price)}
-                </p>
+                {!item.isAvailable ? (
+                  <p className="mt-2 text-xs font-semibold text-destructive">
+                    Currently unavailable
+                  </p>
+                ) : (
+                  <ProductPrice
+                    className="mt-2"
+                    price={item.price}
+                    originalPrice={item.originalPrice}
+                    discount={item.discount}
+                    showBadge={false}
+                    size="sm"
+                  />
+                )}
               </div>
 
               <div className="col-span-2 flex items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end">
@@ -118,7 +141,7 @@ export function CartPageContent() {
                     variant="secondary"
                     size="icon"
                     className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none disabled:opacity-40"
-                    disabled={item.quantity <= 1}
+                    disabled={item.quantity <= 1 || !item.isAvailable}
                     onClick={() =>
                       updateQuantity(item.lineId, item.quantity - 1)
                     }
@@ -132,6 +155,7 @@ export function CartPageContent() {
                     aria-label={`Increase ${item.name} quantity`}
                     variant="secondary"
                     size="icon"
+                    disabled={!item.isAvailable}
                     className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none"
                     onClick={() =>
                       updateQuantity(item.lineId, item.quantity + 1)
@@ -160,6 +184,12 @@ export function CartPageContent() {
           <span className="text-foreground/70">Items</span>
           <span>{items.reduce((sum, item) => sum + item.quantity, 0)}</span>
         </div>
+        {savings > 0 ? (
+          <div className="mt-3 flex items-center justify-between text-sm font-semibold">
+            <span>You save</span>
+            <span>{formatCurrency(savings)}</span>
+          </div>
+        ) : null}
         <div className="mt-3 flex items-center justify-between border-t pt-4 text-base font-semibold">
           <span>Total</span>
           <span>{formatCurrency(total)}</span>
@@ -167,7 +197,12 @@ export function CartPageContent() {
         <Button
           className="mt-5 h-11 w-full"
           href={publicRoutes.checkout}
-          text="Proceed to checkout"
+          disabled={hasUnavailableItems}
+          text={
+            hasUnavailableItems
+              ? "Remove unavailable items"
+              : "Proceed to checkout"
+          }
         />
       </aside>
     </section>

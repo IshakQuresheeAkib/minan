@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { ProductBreadcrumbs } from "@/features/products/components/ProductBreadcrumbs";
 import { ProductGallery } from "@/features/products/components/ProductGallery";
+import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { SizeGuideModal } from "@/features/products/components/SizeGuideModal";
 import { SizeColorSelector } from "@/features/products/components/SizeColorSelector";
 import { TrustBadges } from "@/features/products/components/TrustBadges";
@@ -139,7 +140,9 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
       productId: product._id,
       slug: product.slug,
       name: product.name,
-      price: product.price,
+      price: product.discounted_price,
+      originalPrice: product.price,
+      discount: product.discount,
       quantity,
       size: selectedSize ?? undefined,
       color: selectedColor ?? undefined,
@@ -216,7 +219,9 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
             <ProductGallery
               images={product.images}
               name={product.name}
-              price={product.price}
+              price={product.discounted_price}
+              originalPrice={product.price}
+              discount={product.discount}
             />
           </div>
 
@@ -227,9 +232,13 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                   <h1 className="text-3xl font-semibold tracking-normal text-foreground">
                     {product.name}
                   </h1>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    BDT {product.price.toLocaleString("en-BD")}
-                  </p>
+                  <ProductPrice
+                    className="mt-2"
+                    price={product.discounted_price}
+                    originalPrice={product.price}
+                    discount={product.discount}
+                    size="lg"
+                  />
                 </div>
                 <button
                   type="button"
@@ -247,9 +256,12 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                 {product.name}
               </h2>
 
-              <p className="mb-6 text-lg font-bold text-foreground lg:hidden">
-                BDT {product.price.toLocaleString("en-BD")}
-              </p>
+              <ProductPrice
+                className="mb-6 lg:hidden"
+                price={product.discounted_price}
+                originalPrice={product.price}
+                discount={product.discount}
+              />
 
               <div className="mb-4 flex items-center justify-end lg:justify-start">
                 <SizeGuideModal />

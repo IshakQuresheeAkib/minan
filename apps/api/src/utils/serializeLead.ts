@@ -16,6 +16,8 @@ export function serializeLead(lead: LeadDocument): LeadResponse {
             product_id: item.product_id,
             name: item.name,
             price: item.price,
+            original_price: item.original_price ?? item.price,
+            discount: item.discount ?? 0,
             size: item.size,
             color: item.color,
             quantity: item.quantity,

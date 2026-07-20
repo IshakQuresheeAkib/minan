@@ -57,13 +57,14 @@ async function buildVerifiedCartSnapshot(
       throw new AppError(`Invalid color for ${product.name}`, 400);
     }
 
+    const discount = product.discount ?? 0;
+
     return {
       product_id: product._id.toString(),
       name: product.name,
-      price: calculateDiscountedPrice(
-        product.price,
-        product.discount ?? 0,
-      ),
+      price: calculateDiscountedPrice(product.price, discount),
+      original_price: product.price,
+      discount,
       size: item.size,
       color: item.color,
       quantity: item.quantity,

@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import type { ProductPriceQuote } from "@/features/products/services/product.service";
 import type { CartItemInput } from "@/store/cart.store";
+import type { PricingSyncResult } from "@/store/cart.store";
 import { normalizeCartOption } from "@/store/cart.store";
 
 export type BuyNowItem = {
@@ -9,6 +11,9 @@ export type BuyNowItem = {
   slug: string;
   name: string;
   price: number;
+  originalPrice: number;
+  discount: number;
+  isAvailable: boolean;
   quantity: number;
   size: string;
   color: string;
@@ -20,6 +25,9 @@ type BuyNowState = {
   hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
   setItem: (item: CartItemInput) => void;
+  applyPricingQuote: (
+    quote: readonly ProductPriceQuote[],
+  ) => PricingSyncResult;
   clearItem: () => void;
 };
 
@@ -45,12 +53,30 @@ function getOptionalString(value: unknown): string | undefined {
   return normalized ? normalized : undefined;
 }
 
+function getNonNegativeNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
+function getDiscount(value: unknown): number {
+  return typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 100
+    ? value
+    : 0;
+}
+
 function createBuyNowItem(item: CartItemInput): BuyNowItem {
   return {
     productId: item.productId,
     slug: item.slug,
     name: item.name,
     price: item.price,
+    originalPrice: item.originalPrice,
+    discount: item.discount,
+    isAvailable: true,
     quantity: Math.max(1, Math.floor(item.quantity)),
     size: normalizeCartOption(item.size),
     color: normalizeCartOption(item.color),
@@ -71,12 +97,16 @@ function sanitizeBuyNowItem(value: unknown): BuyNowItem | null {
     !productId ||
     !slug ||
     !name ||
-    typeof value.price !== "number" ||
-    !Number.isFinite(value.price) ||
-    value.price < 0 ||
+    getNonNegativeNumber(value.price) === null ||
     typeof value.quantity !== "number" ||
     !Number.isFinite(value.quantity)
   ) {
+    return null;
+  }
+
+  const price = getNonNegativeNumber(value.price);
+
+  if (price === null) {
     return null;
   }
 
@@ -84,7 +114,11 @@ function sanitizeBuyNowItem(value: unknown): BuyNowItem | null {
     productId,
     slug,
     name,
-    price: value.price,
+    price,
+    originalPrice: getNonNegativeNumber(value.originalPrice) ?? price,
+    discount: getDiscount(value.discount),
+    isAvailable:
+      typeof value.isAvailable === "boolean" ? value.isAvailable : true,
     quantity: Math.max(1, Math.floor(value.quantity)),
     size: normalizeCartOption(getOptionalString(value.size)),
     color: normalizeCartOption(getOptionalString(value.color)),
@@ -102,7 +136,7 @@ function getPersistedItem(value: unknown): BuyNowItem | null {
 
 export const useBuyNowStore = create<BuyNowState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       item: null,
       hasHydrated: false,
       setHasHydrated: (hasHydrated) => {
@@ -110,6 +144,45 @@ export const useBuyNowStore = create<BuyNowState>()(
       },
       setItem: (item) => {
         set({ item: createBuyNowItem(item) });
+      },
+      applyPricingQuote: (quote) => {
+        const item = get().item;
+
+        if (!item) {
+          return { priceChanged: false, unavailableCount: 0 };
+        }
+
+        const currentQuote = quote.find(
+          (quoteItem) => quoteItem.product_id === item.productId,
+        );
+
+        if (!currentQuote) {
+          return {
+            priceChanged: false,
+            unavailableCount: item.isAvailable ? 0 : 1,
+          };
+        }
+
+        if (!currentQuote.is_available) {
+          set({ item: { ...item, isAvailable: false } });
+          return { priceChanged: false, unavailableCount: 1 };
+        }
+
+        const priceChanged =
+          item.price !== currentQuote.discounted_price ||
+          item.originalPrice !== currentQuote.price ||
+          item.discount !== currentQuote.discount;
+
+        set({
+          item: {
+            ...item,
+            price: currentQuote.discounted_price,
+            originalPrice: currentQuote.price,
+            discount: currentQuote.discount,
+            isAvailable: true,
+          },
+        });
+        return { priceChanged, unavailableCount: 0 };
       },
       clearItem: () => {
         set({ item: null });

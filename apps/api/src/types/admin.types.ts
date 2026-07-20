@@ -52,6 +52,8 @@ export type LeadResponse = {
       product_id: string;
       name: string;
       price: number;
+      original_price: number;
+      discount: number;
       size: string;
       color: string;
       quantity: number;

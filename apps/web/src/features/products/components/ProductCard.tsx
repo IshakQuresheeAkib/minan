@@ -1,17 +1,16 @@
-import { ArrowRight } from "lucide-react";
+import { ShoppingCart, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/Button";
-import type { ProductColorSwatch } from "@/features/products/constants/product-colors";
+import { ProductPrice } from "@/features/products/components/ProductPrice";
 
 export type ProductCardData = {
   slug: string;
   name: string;
-  description: string;
   price: number;
+  originalPrice: number;
+  discount: number;
   imageUrl?: string;
-  colors: readonly ProductColorSwatch[];
 };
 
 type ProductCardProps = {
@@ -24,16 +23,18 @@ export function ProductCard({
   product,
 }: ProductCardProps) {
   const productHref = `/products/${product.slug}`;
-  const formattedPrice = `BDT ${product.price.toLocaleString("en-BD")}`;
+  const hasDiscount =
+    product.discount > 0 && product.price < product.originalPrice;
+  const savings = product.originalPrice - product.price;
 
   return (
-    <article className="rounded-2xl border border-secondary bg-background p-3 shadow-[0_8px_24px_rgba(151,72,34,0.04)]">
-      <div className="relative mb-3 aspect-4/5 overflow-hidden rounded-xl bg-background">
+    <article className="group/card flex h-full flex-col overflow-hidden rounded-2xl border border-secondary/70 bg-background shadow-[0_8px_24px_rgba(151,72,34,0.05)] transition-[border-color,box-shadow] duration-200 hover:border-primary/70 hover:shadow-[0_14px_34px_rgba(151,72,34,0.11)]">
+      <div className="relative aspect-square w-full overflow-hidden bg-secondary/15">
         {product.imageUrl ? (
           <Link
             href={productHref}
-            aria-label={`View details for ${product.name}`}
-            className="group absolute inset-0 cursor-pointer"
+            aria-label={`View ${product.name}`}
+            className="group/image absolute inset-0 cursor-pointer focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/60 focus-visible:outline-none"
           >
             <Image
               src={product.imageUrl}
@@ -41,50 +42,58 @@ export function ProductCard({
               fill
               priority={imagePriority}
               sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-              className="transition-transform duration-500 ease-out group-hover:scale-105"
-              style={{ objectFit: "cover", objectPosition: "center top" }}
+              className="object-cover object-top transition-transform duration-500 ease-out motion-safe:group-hover/image:scale-[1.035]"
             />
           </Link>
         ) : (
           <div
-            className="absolute inset-0 bg-linear-to-b from-background to-secondary"
+            className="absolute inset-0 bg-linear-to-br from-secondary/25 via-background to-primary/15"
             aria-hidden="true"
           />
         )}
-        <Button
-          href={productHref}
-          size="sm"
-          className="absolute right-2 bottom-2 z-10 border-0 bg-primary/70 px-3 py-1.5 text-xs text-foreground shadow-sm backdrop-blur-sm hover:translate-y-0 hover:bg-primary/80 hover:text-foreground hover:shadow-sm"
-          rightIcon={<ArrowRight className="size-4" aria-hidden="true" />}
-          text="View"
-        />
+
+        {hasDiscount ? (
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-destructive/90 px-2.5 py-1 text-[11px] font-bold tracking-wide text-background shadow-sm sm:left-3 sm:top-3 sm:text-xs">
+            -{product.discount}%
+          </span>
+        ) : null}
       </div>
-      <div>
-        <h3 className="mb-1 truncate text-sm font-semibold text-foreground">
+
+      <div className="flex flex-1 flex-col p-2 sm:p-3">
+        <h3 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-foreground sm:text-base sm:leading-6">
           <Link
             href={productHref}
-            className="transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            className="cursor-pointer transition-colors duration-200 hover:text-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
           >
             {product.name}
           </Link>
         </h3>
-        <p className="mb-2 truncate text-xs text-foreground/70">
-          {product.description}
-        </p>
-        <div className="flex items-center justify-between">
-          <span className="text-base font-semibold text-foreground">
-            {formattedPrice}
-          </span>
-          <div className="flex gap-1" aria-label="Available colors">
-            {product.colors.map((color) => (
-              <span
-                key={color.name}
-                title={color.name}
-                className="size-3 rounded-full border border-secondary"
-                style={{ backgroundColor: color.swatch }}
-              />
-            ))}
+
+        {hasDiscount ? (
+          <div className="-mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-1.5 py-1 text-[10px] font-bold text-foreground">
+            <Tag className="size-3" aria-hidden="true" />
+            Save Tk {savings.toLocaleString("en-BD")}
           </div>
+        ) : null}
+
+        <div className="mt-auto flex items-end justify-between">
+          <ProductPrice
+            className="min-w-0 flex-col items-start gap-0.5"
+            price={product.price}
+            originalPrice={product.originalPrice}
+            discount={product.discount}
+            showBadge={false}
+            size="md"
+          />
+
+          <Link
+            href={productHref}
+            aria-label={`Choose options for ${product.name}`}
+            title="Choose options"
+            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
+          >
+            <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </article>

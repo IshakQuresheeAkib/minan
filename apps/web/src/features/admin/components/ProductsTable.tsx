@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { ApiError } from "@/lib/api/client";
 
 type ProductStatusFilter = "all" | "active" | "inactive";
@@ -276,7 +277,16 @@ export function ProductsTable({
                     ) : null}
                   </TableCell>
                   <TableCell>{product.slug}</TableCell>
-                  <TableCell>৳{product.price}</TableCell>
+                  <TableCell>
+                    <ProductPrice
+                      className="max-w-44"
+                      price={product.discounted_price}
+                      originalPrice={product.price}
+                      discount={product.discount}
+                      showBadge={false}
+                      size="sm"
+                    />
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={product.is_active ? "default" : "secondary"}

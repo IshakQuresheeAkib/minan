@@ -44,6 +44,23 @@ export type ProductDetailResponse = {
   data: ProductResponse;
 };
 
+export type ProductQuoteItemResponse =
+  | {
+      product_id: string;
+      is_available: true;
+      price: number;
+      discount: number;
+      discounted_price: number;
+    }
+  | {
+      product_id: string;
+      is_available: false;
+    };
+
+export type ProductQuoteResponse = {
+  data: ProductQuoteItemResponse[];
+};
+
 export type ProductFilterOptionsResponse = {
   data: {
     categories: ProductFilterCategory[];

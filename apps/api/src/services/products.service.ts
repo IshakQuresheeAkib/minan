@@ -1,9 +1,13 @@
-import type { Types } from "mongoose";
+import type { PipelineStage, Types } from "mongoose";
 
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
 import { Subcategory } from "../models/Subcategory.js";
-import type { ProductFilterOptionsResponse } from "../types/product.types.js";
+import type {
+  ProductFilterOptionsResponse,
+  ProductQuoteItemResponse,
+} from "../types/product.types.js";
+import { calculateDiscountedPrice } from "../utils/calculateDiscountedPrice.js";
 import { serializeProduct } from "../utils/serializeProduct.js";
 
 export type ProductSortOption =
@@ -39,37 +43,53 @@ type ProductFilter = {
   slug?: { $ne: string };
   colors?: { $in: string[] };
   sizes?: { $in: string[] };
-  price?: {
-    $gte?: number;
-    $lte?: number;
-  };
   $or?: SearchCondition[];
 };
 
-type ProductSort = {
-  createdAt?: 1 | -1;
-  price?: 1 | -1;
-  name?: 1 | -1;
+type ProductPageResult = {
+  data: { _id: Types.ObjectId }[];
+  metadata: { total: number }[];
 };
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function getSort(sort: ProductSortOption | undefined): ProductSort {
+function getSort(
+  sort: ProductSortOption | undefined,
+): PipelineStage.Sort["$sort"] {
   if (sort === "price-asc") {
-    return { price: 1 };
+    return { effective_price: 1, _id: 1 };
   }
 
   if (sort === "price-desc") {
-    return { price: -1 };
+    return { effective_price: -1, _id: 1 };
   }
 
   if (sort === "name-asc") {
-    return { name: 1 };
+    return { name: 1, _id: 1 };
   }
 
-  return { createdAt: -1 };
+  return { createdAt: -1, _id: -1 };
+}
+
+function getEffectivePriceExpression() {
+  return {
+    $round: [
+      {
+        $divide: [
+          {
+            $multiply: [
+              "$price",
+              { $subtract: [100, { $ifNull: ["$discount", 0] }] },
+            ],
+          },
+          100,
+        ],
+      },
+      0,
+    ],
+  };
 }
 
 export async function listProducts(options: ListProductsOptions = {}) {
@@ -131,18 +151,6 @@ export async function listProducts(options: ListProductsOptions = {}) {
     filter.sizes = { $in: options.sizes };
   }
 
-  if (options.minPrice !== undefined || options.maxPrice !== undefined) {
-    filter.price = {};
-
-    if (options.minPrice !== undefined) {
-      filter.price.$gte = options.minPrice;
-    }
-
-    if (options.maxPrice !== undefined) {
-      filter.price.$lte = options.maxPrice;
-    }
-  }
-
   const search = options.search?.trim();
   if (search) {
     const escapedSearch = escapeRegex(search);
@@ -153,24 +161,62 @@ export async function listProducts(options: ListProductsOptions = {}) {
     ];
   }
 
-  let query = Product.find(filter)
-    .populate(["category_id", "subcategory_id"])
-    .sort(getSort(options.sort));
-
   const page = Math.max(1, options.page ?? 1);
-  if (options.limit !== undefined && options.limit >= 1) {
-    query = query.skip((page - 1) * options.limit).limit(options.limit);
+  const dataPipeline: PipelineStage.FacetPipelineStage[] = [];
+  if (options.limit !== undefined) {
+    dataPipeline.push({ $skip: (page - 1) * options.limit });
+    dataPipeline.push({ $limit: options.limit });
+  }
+  dataPipeline.push({ $project: { _id: 1 } });
+
+  const pipeline: PipelineStage[] = [
+    { $match: filter },
+    { $addFields: { effective_price: getEffectivePriceExpression() } },
+  ];
+
+  if (options.minPrice !== undefined || options.maxPrice !== undefined) {
+    const effectivePriceFilter: { $gte?: number; $lte?: number } = {};
+
+    if (options.minPrice !== undefined) {
+      effectivePriceFilter.$gte = options.minPrice;
+    }
+
+    if (options.maxPrice !== undefined) {
+      effectivePriceFilter.$lte = options.maxPrice;
+    }
+
+    pipeline.push({ $match: { effective_price: effectivePriceFilter } });
   }
 
-  const [products, total] = await Promise.all([
-    query,
-    Product.countDocuments(filter),
+  pipeline.push(
+    { $sort: getSort(options.sort) },
+    {
+      $facet: {
+        data: dataPipeline,
+        metadata: [{ $count: "total" }],
+      },
+    },
+  );
+
+  const [pageResult] = await Product.aggregate<ProductPageResult>(pipeline);
+  const productIds = pageResult?.data.map((item) => item._id) ?? [];
+  const total = pageResult?.metadata[0]?.total ?? 0;
+  const products = await Product.find({ _id: { $in: productIds } }).populate([
+    "category_id",
+    "subcategory_id",
   ]);
+  const productById = new Map(
+    products.map((product) => [product._id.toString(), product]),
+  );
+  const orderedProducts = productIds.flatMap((productId) => {
+    const product = productById.get(productId.toString());
+    return product ? [product] : [];
+  });
 
   const limit = options.limit ?? total;
 
   return {
-    data: products.map(serializeProduct),
+    data: orderedProducts.map(serializeProduct),
     total,
     page,
     limit,
@@ -185,6 +231,36 @@ export async function getProductBySlug(slug: string) {
   ]);
 }
 
+export async function quoteProducts(
+  productIds: string[],
+): Promise<ProductQuoteItemResponse[]> {
+  const uniqueProductIds = [...new Set(productIds)];
+  const products = await Product.find({
+    _id: { $in: uniqueProductIds },
+    is_active: true,
+  }).select("_id price discount");
+  const productById = new Map(
+    products.map((product) => [product._id.toString(), product]),
+  );
+
+  return uniqueProductIds.map((productId) => {
+    const product = productById.get(productId);
+
+    if (!product) {
+      return { product_id: productId, is_available: false };
+    }
+
+    const discount = product.discount ?? 0;
+    return {
+      product_id: productId,
+      is_available: true,
+      price: product.price,
+      discount,
+      discounted_price: calculateDiscountedPrice(product.price, discount),
+    };
+  });
+}
+
 export async function getProductFilterOptions(): Promise<ProductFilterOptionsResponse> {
   const [categories, referencedSubcategoryIds, colors, sizes, priceRange] =
     await Promise.all([
@@ -197,11 +273,12 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptionsRes
     Product.distinct("sizes", { is_active: true }),
     Product.aggregate<{ min: number; max: number }>([
       { $match: { is_active: true } },
+      { $addFields: { effective_price: getEffectivePriceExpression() } },
       {
         $group: {
           _id: null,
-          min: { $min: "$price" },
-          max: { $max: "$price" },
+          min: { $min: "$effective_price" },
+          max: { $max: "$effective_price" },
         },
       },
     ]),
