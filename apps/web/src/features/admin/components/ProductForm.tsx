@@ -34,6 +34,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -98,6 +99,7 @@ function ProductFormFields({
       slug: product?.slug ?? "",
       description: product?.description ?? "",
       price: product?.price ?? 0,
+      discount: product?.discount ?? 0,
       category_id: product?.category_id ?? "",
       subcategory_id: product?.subcategory_id ?? "",
       sizes: product?.sizes.join(", ") ?? "",
@@ -183,6 +185,7 @@ function ProductFormFields({
       slug: values.slug?.trim() ? values.slug.trim() : undefined,
       description: values.description,
       price: values.price,
+      discount: values.discount,
       category_id: values.category_id,
       subcategory_id: values.subcategory_id || null,
       sizes: parseCommaList(values.sizes),
@@ -285,6 +288,34 @@ function ProductFormFields({
                   }}
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="discount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Discount (%)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={field.value}
+                  onChange={(event) => {
+                    const nextValue = event.target.valueAsNumber;
+                    field.onChange(Number.isNaN(nextValue) ? 0 : nextValue);
+                  }}
+                />
+              </FormControl>
+              <FormDescription>
+                Enter a whole number from 0 to 100. Use 0 for no discount.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

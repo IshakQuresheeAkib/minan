@@ -18,6 +18,7 @@ export type ProductResponse = {
   slug: string;
   description: string;
   price: number;
+  discount: number;
   category_id: string;
   category: ProductCategorySummary | null;
   subcategory_id: string | null;

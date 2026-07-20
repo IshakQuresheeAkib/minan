@@ -19,6 +19,7 @@ export type AdminProduct = {
   slug: string;
   description: string;
   price: number;
+  discount: number;
   category_id: string;
   category: {
     name: string;

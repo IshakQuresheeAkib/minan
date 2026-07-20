@@ -90,6 +90,7 @@ export function serializeProduct(product: ProductDocument): ProductResponse {
     slug: product.slug,
     description: product.description,
     price: product.price,
+    discount: product.discount ?? 0,
     category_id: getCategoryId(product),
     category: getCategorySummary(product),
     subcategory_id: getSubcategoryId(product),
