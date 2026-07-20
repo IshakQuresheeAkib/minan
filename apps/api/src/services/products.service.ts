@@ -75,19 +75,27 @@ function getSort(
 
 function getEffectivePriceExpression() {
   return {
-    $round: [
+    $cond: [
+      { $eq: [{ $ifNull: ["$discount", 0] }, 0] },
+      "$price",
       {
-        $divide: [
-          {
-            $multiply: [
-              "$price",
-              { $subtract: [100, { $ifNull: ["$discount", 0] }] },
-            ],
-          },
-          100,
-        ],
+        $floor: {
+          $add: [
+            {
+              $divide: [
+                {
+                  $multiply: [
+                    "$price",
+                    { $subtract: [100, { $ifNull: ["$discount", 0] }] },
+                  ],
+                },
+                100,
+              ],
+            },
+            0.5,
+          ],
+        },
       },
-      0,
     ],
   };
 }

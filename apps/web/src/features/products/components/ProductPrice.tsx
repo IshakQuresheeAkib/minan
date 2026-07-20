@@ -40,9 +40,7 @@ export function ProductPrice({
   const savings = originalPrice - price;
 
   return (
-    <div
-      className={className}
-    >
+    <div className={cn("flex flex-wrap items-baseline gap-x-2", className)}>
       <span
         className={cn(
           "font-semibold text-foreground",
@@ -54,7 +52,7 @@ export function ProductPrice({
       {hasDiscount && showOriginalPrice ? (
         <del
           className={cn(
-            "pl-2 text-foreground/60 decoration-foreground/45",
+            "text-foreground/60 decoration-foreground/45",
             originalPriceClasses[size],
           )}
         >
@@ -62,7 +60,7 @@ export function ProductPrice({
         </del>
       ) : null}
       {hasDiscount && showBadge ? (
-        <p className="mt-4 flex w-fit items-center gap-1 rounded-full border border-primary/25 bg-primary/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase">
+        <p className="mt-4 flex w-fit basis-full items-center gap-1 rounded-full border border-primary/25 bg-primary/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase">
           <Tag className="size-3" aria-hidden="true" />
           Save Tk {savings.toLocaleString("en-BD")} · {discount}% off
         </p>
