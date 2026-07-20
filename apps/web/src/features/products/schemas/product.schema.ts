@@ -17,6 +17,7 @@ export const productSchema = z.object({
   description: z.string().min(1),
   price: z.number().min(0),
   discount: z.number().int().min(0).max(100),
+  discounted_price: z.number().min(0),
   category_id: z.string().min(1),
   category: productCategorySchema.nullable(),
   subcategory_id: z.string().nullable(),

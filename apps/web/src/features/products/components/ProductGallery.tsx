@@ -3,15 +3,24 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { cn } from "@/lib/utils";
 
 type ProductGalleryProps = {
   images: string[];
   name: string;
   price: number;
+  originalPrice: number;
+  discount: number;
 };
 
-export function ProductGallery({ images, name, price }: ProductGalleryProps) {
+export function ProductGallery({
+  images,
+  name,
+  price,
+  originalPrice,
+  discount,
+}: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex] ?? images[0];
 
@@ -80,9 +89,14 @@ export function ProductGallery({ images, name, price }: ProductGalleryProps) {
               </span>
             </div>
             <div className="rounded-full bg-background px-5 py-3 shadow-lg">
-              <span className="text-[15px] font-bold text-foreground">
-                BDT {price.toLocaleString("en-BD")}
-              </span>
+              <ProductPrice
+                price={price}
+                originalPrice={originalPrice}
+                discount={discount}
+                showBadge={false}
+                showOriginalPrice={false}
+                size="sm"
+              />
             </div>
           </div>
         </div>

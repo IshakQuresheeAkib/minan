@@ -20,6 +20,7 @@ export type AdminProduct = {
   description: string;
   price: number;
   discount: number;
+  discounted_price: number;
   category_id: string;
   category: {
     name: string;
@@ -78,6 +79,8 @@ export type AdminLead = {
       product_id: string;
       name: string;
       price: number;
+      original_price: number;
+      discount: number;
       size: string;
       color: string;
       quantity: number;

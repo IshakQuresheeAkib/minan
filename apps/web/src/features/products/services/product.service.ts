@@ -5,7 +5,6 @@ import {
   type Product,
 } from "@/features/products/schemas/product.schema";
 import type { ProductCardData } from "@/features/products/components/ProductCard";
-import { getProductColorSwatch } from "@/features/products/constants/product-colors";
 import { z } from "zod";
 
 const productListSchema = z.object({
@@ -39,6 +38,24 @@ const productFilterOptionsSchema = z.object({
   }),
 });
 
+const productQuoteItemSchema = z.discriminatedUnion("is_available", [
+  z.object({
+    product_id: z.string().min(1),
+    is_available: z.literal(true),
+    price: z.number().min(0),
+    discount: z.number().int().min(0).max(100),
+    discounted_price: z.number().min(0),
+  }),
+  z.object({
+    product_id: z.string().min(1),
+    is_available: z.literal(false),
+  }),
+]);
+
+const productQuoteResponseSchema = z.object({
+  data: z.array(productQuoteItemSchema),
+});
+
 export type ProductSortOption =
   | "newest"
   | "price-asc"
@@ -48,6 +65,7 @@ export type ProductSortOption =
 export type ProductFilterOptions = z.infer<
   typeof productFilterOptionsSchema
 >["data"];
+export type ProductPriceQuote = z.infer<typeof productQuoteItemSchema>;
 
 export type GetProductsOptions = {
   category?: string | readonly string[];
@@ -133,6 +151,19 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptions> {
   return productFilterOptionsSchema.parse(response).data;
 }
 
+export async function getProductPriceQuote(
+  productIds: readonly string[],
+): Promise<ProductPriceQuote[]> {
+  const response = await apiRequest<
+    z.infer<typeof productQuoteResponseSchema>
+  >("/api/products/quote", {
+    method: "POST",
+    body: { product_ids: [...new Set(productIds)] },
+  });
+
+  return productQuoteResponseSchema.parse(response).data;
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const response = await apiRequest<{ data: Product }>(
@@ -168,9 +199,9 @@ export function mapProductToCard(product: Product): ProductCardData {
   return {
     slug: product.slug,
     name: product.name,
-    description: product.description,
-    price: product.price,
+    price: product.discounted_price,
+    originalPrice: product.price,
+    discount: product.discount,
     imageUrl: product.images[0],
-    colors: product.colors.map(getProductColorSwatch),
   };
 }

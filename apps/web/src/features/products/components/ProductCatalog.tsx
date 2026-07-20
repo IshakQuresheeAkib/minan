@@ -71,7 +71,7 @@ type ProductCatalogProps = {
 type MultiFilterKey = "category" | "subcategory" | "color" | "size";
 
 function formatPrice(value: number) {
-  return `BDT ${value.toLocaleString("en-BD")}`;
+  return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
 function normalizePriceRange(

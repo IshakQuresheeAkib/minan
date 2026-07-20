@@ -1,9 +1,12 @@
 import type { NextFunction, Request, Response } from "express";
 
+import { parseBody } from "../lib/parseBody.js";
+import { productQuoteSchema } from "../schemas/product.schemas.js";
 import {
   getProductFilterOptions,
   getProductBySlug,
   listProducts,
+  quoteProducts,
   type ProductSortOption,
 } from "../services/products.service.js";
 import { serializeProduct } from "../utils/serializeProduct.js";
@@ -149,6 +152,20 @@ export async function listProductsHandler(
       sort,
     });
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function quoteProductsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = parseBody(productQuoteSchema, req.body);
+    const data = await quoteProducts(input.product_ids);
+    res.json({ data });
   } catch (error) {
     next(error);
   }

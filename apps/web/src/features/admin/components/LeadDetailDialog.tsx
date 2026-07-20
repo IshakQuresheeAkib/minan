@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
+import { ProductPrice } from "@/features/products/components/ProductPrice";
 
 type LeadDetailDialogProps = {
   accessToken: string;
@@ -51,7 +52,7 @@ type LeadDetailFieldsProps = {
 };
 
 function formatCurrency(value: number): string {
-  return `BDT ${value.toLocaleString("en-BD")}`;
+  return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
 function LeadDetailFields({
@@ -121,9 +122,14 @@ function LeadDetailFields({
                     {item.size} / {item.color} x {item.quantity}
                   </p>
                 </div>
-                <span className="shrink-0 font-semibold">
-                  {formatCurrency(item.price * item.quantity)}
-                </span>
+                <ProductPrice
+                  className="shrink-0 justify-end"
+                  price={item.price * item.quantity}
+                  originalPrice={item.original_price * item.quantity}
+                  discount={item.discount}
+                  showBadge={false}
+                  size="sm"
+                />
               </div>
             ))}
           </div>

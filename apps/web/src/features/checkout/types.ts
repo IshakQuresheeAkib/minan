@@ -14,4 +14,7 @@ export type CartSnapshot = {
 
 export type CheckoutLead = {
   _id: string;
+  cart_snapshot: {
+    total: number;
+  } | null;
 };

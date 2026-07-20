@@ -145,8 +145,7 @@ function ProductFormFields({
   });
   const activeSubcategories = subcategories.filter(
     (subcategory) =>
-      subcategory.category_id === selectedCategoryId &&
-      subcategory.is_active,
+      subcategory.category_id === selectedCategoryId && subcategory.is_active,
   );
   const currentInactiveSubcategory = subcategories.find(
     (subcategory) =>
@@ -276,7 +275,7 @@ function ProductFormFields({
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Price (BDT)</FormLabel>
+              <FormLabel>Price (Tk)</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -389,18 +388,12 @@ function ProductFormFields({
                 </FormControl>
                 <SelectContent>
                   {currentInactiveSubcategory ? (
-                    <SelectItem
-                      disabled
-                      value={currentInactiveSubcategory._id}
-                    >
+                    <SelectItem disabled value={currentInactiveSubcategory._id}>
                       {currentInactiveSubcategory.name} (Inactive)
                     </SelectItem>
                   ) : null}
                   {activeSubcategories.map((subcategory) => (
-                    <SelectItem
-                      key={subcategory._id}
-                      value={subcategory._id}
-                    >
+                    <SelectItem key={subcategory._id} value={subcategory._id}>
                       {subcategory.name}
                     </SelectItem>
                   ))}
