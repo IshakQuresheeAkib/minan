@@ -40,11 +40,11 @@
 - No Next.js Route Handlers under `app/api/` for data operations. `app/api/revalidate/route.ts` is allowed for cache invalidation only.
 - No Next.js Server Actions: `*.actions.ts` files are plain async functions that call Express.
 - Next.js rewrites `/api/:path*` to `API_PROXY_TARGET`; do not add data route handlers to replace this.
-- GSAP only for animations. Do not use or suggest Framer Motion.
+- Use GSAP for orchestrated page and component motion. CSS/Tailwind transitions and keyframes are allowed for loading states, progress indicators, shadcn/ui state transitions, and small interaction feedback. Do not use or suggest Framer Motion.
 - Zustand only for global client state.
 - React Hook Form + Zod for forms.
 - Do not target Radix UI internal DOM nodes with GSAP.
-- Tailwind v4 utility classes only. No arbitrary CSS-in-JS.
+- Prefer Tailwind v4 utilities for component styling. Global CSS is reserved for theme tokens, base rules, browser-normalization helpers, and shared keyframes. Inline styles are allowed only for calculated runtime values, dynamic color swatches, or third-party component CSS-variable configuration; do not introduce CSS-in-JS libraries.
 - Frontend Zod schemas live in `features/<domain>/schemas/`; backend keeps independent equivalent schemas.
 - `next/image` for images. Never raw `<img>` tags.
 - `next/link` for internal routes. Never raw `<a>` tags for internal navigation.
@@ -98,6 +98,7 @@
 | Meta Pixel + CAPI | Client helpers + server CAPI              | Partial            |
 | GA4               | Traffic + behavior                        | Planned            |
 | Microsoft Clarity | Session recordings + heatmaps             | Planned            |
+| Vercel Speed Insights | Frontend performance telemetry         | Implemented        |
 
 ---
 
@@ -124,7 +125,7 @@ Express sets auth cookies with `AUTH_COOKIE_DOMAIN=.minan.com` in production. Th
 
 | Layer              | Role                                                                   |
 | ------------------ | ---------------------------------------------------------------------- |
-| `proxy.ts`         | Reads httpOnly access token cookie, verifies JWT, redirects if invalid |
+| `proxy.ts`         | Verifies the access-token cookie; redirects or defers refresh-cookie recovery to the admin provider |
 | Next.js Client     | Sends `Authorization: Bearer <token>` from Zustand on API calls        |
 | Next.js Rewrites   | Proxies `/api/:path*` to `API_PROXY_TARGET` from `next.config.ts`      |
 | Next.js Revalidate | Accepts server-to-server storefront cache invalidation at `/api/revalidate` |
@@ -134,7 +135,7 @@ Express sets auth cookies with `AUTH_COOKIE_DOMAIN=.minan.com` in production. Th
 
 ### `proxy.ts`
 
-`proxy.ts` is placed at `apps/web/src/proxy.ts` and exports the standard Next.js proxy function plus static `config.matcher`. It does not need registration in `next.config.ts`.
+`proxy.ts` is placed at `apps/web/src/proxy.ts` and exports the standard Next.js proxy function plus static `config.matcher`. It does not need registration in `next.config.ts`. A missing, expired, or invalid access token is allowed through only when a refresh-token cookie exists; `AdminSessionProvider` then attempts the refresh before rendering the protected admin content. Without a recoverable refresh-token cookie, the proxy redirects to `/admin/login`.
 
 ### Admin Boot Flow
 
@@ -190,13 +191,13 @@ Local development uses `secure: false`, `sameSite: "lax"`, and no cookie domain.
 1. `POST /api/auth/login` -> argon2 verify -> issue access + refresh cookies and return access token in the response body
 2. Express stores `argon2.hash(refreshToken)` on the admin user and clears `previous_refresh_token_hash`
 3. Next.js stores access token in `auth.store.ts`
-4. `proxy.ts` reads the access token cookie and blocks unauthenticated admin renders
+4. `proxy.ts` verifies the access-token cookie; when only a refresh-token cookie is present, it allows `AdminSessionProvider` to attempt recovery before protected content renders
 5. API calls send `Authorization: Bearer <accessToken>` from Zustand
 6. 401 -> `POST /api/auth/refresh` -> Express atomically rotates refresh-token hash and returns a new access token
 7. Concurrent refresh with the immediately previous token returns `409 Concurrent token rotation`
 8. `POST /api/auth/logout` clears cookies and nulls refresh-token hashes
 
-Only the refresh token whose hash matches `refresh_token_hash` is accepted, with a narrow previous-token check for concurrent rotation. Replay of older refresh JWTs fails after rotation. Deactivated admins fail login and refresh.
+Only the refresh token whose hash matches `refresh_token_hash` is accepted, with a narrow previous-token check for concurrent rotation. Replay of older refresh JWTs fails after rotation. Deactivated admins fail login and refresh. Because access tokens are stateless, an access token issued before deactivation can remain valid until its 15-minute expiry.
 
 ### CSRF Mitigation
 
@@ -209,7 +210,7 @@ Only the refresh token whose hash matches `refresh_token_hash` is accepted, with
 
 ## 7. Admin Access
 
-MINAN uses one authenticated admin model. Every active admin account has the full admin feature set: dashboard, product CRUD, category CRUD, lead management, uploads, and admin-user management.
+MINAN uses one authenticated admin model. Every active admin account has the full admin feature set: dashboard, product CRUD, category and subcategory management, lead management, uploads, and admin-user management.
 
 ### Enforcement
 
@@ -240,8 +241,10 @@ An admin cannot deactivate their own account:
 | `name`                    | String                     | required                      |
 | `slug`                    | String                     | required, unique              |
 | `description`             | String                     | required                      |
-| `price`                   | Number                     | required, min: 0              |
+| `price`                   | Number                     | original price, required, min: 0 |
+| `discount`                | Number                     | integer percent, default `0`, min: 0, max: 100 |
 | `category_id`             | ObjectId (ref: `Category`) | required                      |
+| `subcategory_id`          | ObjectId (ref: `Subcategory`) / null | optional, default `null`, indexed |
 | `sizes`                   | [String]                   | default `[]`                  |
 | `colors`                  | [String]                   | default `[]`                  |
 | `images`                  | [String]                   | remote image URLs             |
@@ -259,6 +262,20 @@ An admin cannot deactivate their own account:
 | `is_active`               | Boolean  | default `true`     |
 | `createdAt` / `updatedAt` | Date     | timestamps         |
 
+### `subcategories`
+
+| Field                     | Type                       | Notes |
+| ------------------------- | -------------------------- | ----- |
+| `_id`                     | ObjectId                   | PK |
+| `category_id`             | ObjectId (ref: `Category`) | required |
+| `name`                    | String                     | required |
+| `slug`                    | String                     | required, unique, lowercase |
+| `display_order`           | Number                     | required, default `0`, min: 0 |
+| `is_active`               | Boolean                    | default `true` |
+| `createdAt` / `updatedAt` | Date                       | timestamps |
+
+Subcategories are managed within the admin category experience. Public catalog filters expose active subcategories that are referenced by active products, grouped under their parent categories. A product may omit its subcategory.
+
 ### `leads`
 
 | Field                     | Type     | Notes |
@@ -270,7 +287,7 @@ An admin cannot deactivate their own account:
 | `address`                 | String   | required |
 | `notes`                   | String   | optional |
 | `bkash_txn_id`            | String   | optional |
-| `cart_snapshot`           | Object   | `{ items: Array<{ product_id, name, price, size, color, quantity }>, total }` |
+| `cart_snapshot`           | Object   | `{ items: Array<{ product_id, name, price, original_price, discount, size, color, quantity }>, total }` |
 | `status`                  | String   | `pending | confirmed | cancelled`, default `pending` |
 | `createdAt` / `updatedAt` | Date     | timestamps |
 
@@ -306,9 +323,9 @@ An admin cannot deactivate their own account:
 ### Mongoose Patterns
 
 - `timestamps: true` on all schemas except `analytics_events`
-- Products support reversible deactivation through `is_active` and explicit admin-only permanent deletion; categories and admins remain soft-delete-only
-- `populate("category_id")` on product queries when category data is needed
-- Indexes: product/category `slug`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
+- Products support reversible deactivation through `is_active` and explicit admin-only permanent deletion; categories, subcategories, and admins remain soft-delete-only
+- Product queries populate `category_id` and `subcategory_id` when their related data is needed
+- Indexes: product/category/subcategory `slug`, product `subcategory_id`, subcategory `{ category_id, display_order, name }`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
 - `pre("save")` on admin users hashes passwords
 - `toJSON` transform on admin users strips password and refresh-token hashes
 
@@ -320,8 +337,10 @@ An admin cannot deactivate their own account:
 
 | Method | Route                 | Description |
 | ------ | --------------------- | ----------- |
-| GET    | `/api/products`       | List active products. Query params: `category`, `color`, `size`, `search`, `minPrice`, `maxPrice`, `sort`, `page`, `limit`, `exclude` |
-| GET    | `/api/products/filters` | Active catalog filter options: categories, colors, sizes, min/max price |
+| GET    | `/api/products`       | List active products. Query params: `category`, `subcategory`, `color`, `size`, `search`, `minPrice`, `maxPrice`, `sort`, `page`, `limit`, `exclude` |
+| GET    | `/api/products/home`  | Active categories with up to seven newest active products per category and group totals |
+| GET    | `/api/products/filters` | Active catalog filter options: categories with referenced subcategories, colors, sizes, and effective min/max price |
+| POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
 | POST   | `/api/leads`          | Submit checkout lead, CSRF-header protected, rate-limited 5 req/15 min/IP |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
@@ -336,13 +355,15 @@ An admin cannot deactivate their own account:
 | ------ | --------- | ----------- |
 | GET    | `/health` | API health check with MongoDB connection status. Returns `200 ok` or `503 degraded` |
 
-There is no public `GET /api/categories` route. Public category navigation starts from frontend constants on the homepage and from `/api/products/filters` on the catalog page.
+There is no public `GET /api/categories` route. Homepage category navigation comes from `/api/products/home`; catalog categories and referenced subcategories come from `/api/products/filters`.
+
+The `subcategory` product filter is applied only when at least one `category` filter is also selected. Requested subcategories must be active and belong to the selected categories.
 
 ### Protected Admin
 
 | Method | Route                                  | Role              | Description |
 | ------ | -------------------------------------- | ----------------- | ----------- |
-| GET    | `/api/admin/dashboard`                 | admin | Placeholder metrics response |
+| GET    | `/api/admin/dashboard`                 | admin | Aggregated dashboard metrics for leads, product/category views, and traffic sources |
 | GET    | `/api/admin/leads`                     | admin | List leads |
 | GET    | `/api/admin/leads/:id`                 | admin | Get single lead |
 | PATCH  | `/api/admin/leads/:id`                 | admin | Update lead status + notes |
@@ -355,11 +376,18 @@ There is no public `GET /api/categories` route. Public category navigation start
 | POST   | `/api/admin/categories`                | admin | Create category |
 | PATCH  | `/api/admin/categories/:id`            | admin | Update category, including `is_active: true` reactivation |
 | PATCH  | `/api/admin/categories/:id/deactivate` | admin | Soft delete, blocked when active products reference the category |
+| GET    | `/api/admin/subcategories`             | admin | List subcategories, optionally filtered by `category_id` |
+| POST   | `/api/admin/subcategories`             | admin | Create a subcategory under a category |
+| PATCH  | `/api/admin/subcategories/reorder`     | admin | Replace the complete display order for a category's subcategories |
+| PATCH  | `/api/admin/subcategories/:id`         | admin | Update subcategory name or slug |
+| PATCH  | `/api/admin/subcategories/:id/deactivate` | admin | Soft deactivate, blocked when active products reference the subcategory |
+| PATCH  | `/api/admin/subcategories/:id/reactivate` | admin | Reactivate a subcategory |
 | GET    | `/api/admin/admins`                    | admin | List admins |
 | POST   | `/api/admin/admins`                    | admin | Create admin |
 | PATCH  | `/api/admin/admins/:id`                | admin | Update admin, including `is_active: true` reactivation |
 | PATCH  | `/api/admin/admins/:id/deactivate`     | admin | Soft disable |
 | GET    | `/api/admin/uploads/signature`         | admin | Get Cloudinary signed upload params |
+| POST   | `/api/admin/uploads/delete`            | admin | Delete unreferenced managed Cloudinary uploads by public ID |
 
 Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
@@ -374,6 +402,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `/products/[slug]`  | Product Detail      | Public            |
 | `/cart`             | Cart                | Public            |
 | `/checkout`         | Checkout            | Public            |
+| `/checkout/buy-now` | Buy-now Checkout    | Public            |
 | `/admin/login`      | Admin Login         | Public            |
 | `/admin`            | Dashboard           | Admin             |
 | `/admin/products`   | Product Management  | Admin             |
@@ -396,6 +425,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `features/<domain>/actions/*.actions.ts` are plain async functions calling Express. No `"use server"`.
 - `components/ui/` is shadcn/ui output.
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
+- `features/products/services/product.cache.ts` owns the storefront Cache Component functions. They use `"use cache"`, the shared `catalog` tag, and the `days` cache-life profile.
 - `next.config.ts` rewrites `/api/:path*` to `API_PROXY_TARGET`, defaulting to `http://localhost:3001`.
 - `lib/analytics/pixel.ts` contains client-side Meta Pixel helpers only. CAPI is Express-only.
 - `store/auth.store.ts` keeps the access token in memory only.
@@ -424,12 +454,14 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - Product categories: T-Shirts, Shirts, Pants, Footwear, Accessories, Women, Kids
 - WhatsApp ordering from PDP with pre-filled message and `/api/whatsapp-click`
 - Cart stored in Zustand and persisted to browser `localStorage`
-- Product catalog supports multi-select category/color/size filters, min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
+- Product catalog supports multi-select category/subcategory/color/size filters, effective min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
+- Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`; storefront cards, PDP, cart, buy-now, and verified lead snapshots use the effective discounted price.
 - Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
 - Checkout lead form writes to MongoDB `leads`
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the lead snapshot
-- Authenticated admin CRUD for products, categories, leads, and admins
-- Dashboard screen exists; real metric aggregation is planned
+- Authenticated admin management for products, categories, ordered subcategories, leads, admins, and managed uploads
+- Dashboard aggregates Bangladesh-local daily/monthly leads, top viewed product/category, and traffic sources
+- Vercel Speed Insights is mounted in the root frontend layout
 
 ---
 
@@ -477,12 +509,11 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 ## 15. Performance
 
 - Mobile-first, optimized for Bangladesh 3G/4G users
-- Public home/catalog/product pages use Next.js Cache Components with the shared `catalog` cache tag.
-- Product/category admin writes trigger Express-to-Next revalidation with `revalidateTag("catalog", { expire: 0 })`.
+- Public home/catalog/product pages use explicit `"use cache"` Cache Component functions with `cacheLife("days")` and the shared `catalog` cache tag.
+- Product, category, and subcategory admin writes trigger Express-to-Next revalidation with `revalidateTag("catalog", { expire: 0 })`.
 - Catalog page server-renders the first page and filter options, then the client hook loads more pages with a page size of 20
-- Do not document `use cache` / `dynamicIO` as current behavior until the app explicitly adopts that caching model
 - Turbopack in development
-- MongoDB indexes: product/category `slug`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
+- MongoDB indexes: product/category/subcategory `slug`, product `subcategory_id`, subcategory `{ category_id, display_order, name }`, admin `email`, analytics `{ event_type, createdAt }`, analytics `event_id`
 - GSAP animation should stay on `transform` and `opacity`
 - Render cold start mitigation can use a keep-alive ping if on free-tier instances
 
@@ -537,6 +568,7 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 ### Backend `.env`
 
 ```env
+PORT=3001
 MONGODB_URI=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
@@ -560,11 +592,11 @@ STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
 
 ---
 
-## 18. Planned Admin Dashboard Metrics
+## 18. Admin Dashboard Metrics
 
-`GET /api/admin/dashboard` currently returns placeholder zeros/nulls. The intended future metrics are:
+`GET /api/admin/dashboard` returns live MongoDB aggregations. Day and month boundaries use Bangladesh time (UTC+6).
 
-| Metric              | Intended Query |
+| Metric              | Implemented Query |
 | ------------------- | -------------- |
 | Today's Leads       | `leads` count by current day |
 | This Month's Leads  | `leads` count by current month |
@@ -572,7 +604,7 @@ STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
 | Top Category        | `analytics_events` product_view aggregation by `category_id` |
 | Traffic Source      | `analytics_events` aggregation by `utm_source` |
 
-Do not treat these aggregations as implemented until `dashboard.controller.ts` is updated.
+Top product and category IDs are resolved to their current names. Missing view data returns `null`, and missing/blank `utm_source` values are labeled `direct`. Traffic sources are sorted by event count and limited to eight rows.
 
 ---
 
@@ -590,7 +622,7 @@ Do not treat these aggregations as implemented until `dashboard.controller.ts` i
 
 ## 20. Backend Structure Rules
 
-- `apps/api/src/models/` contains Mongoose models: products, categories, leads, analytics events, admins.
+- `apps/api/src/models/` contains Mongoose models: products, categories, subcategories, leads, analytics events, admins.
 - `apps/api/src/schemas/` contains backend Zod schemas. Backend schemas are independent from frontend schemas.
 - `apps/api/src/services/` owns business logic and DB access.
 - `apps/api/src/controllers/` owns Express request/response handling.
@@ -598,9 +630,9 @@ Do not treat these aggregations as implemented until `dashboard.controller.ts` i
 - `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
-- Public routers: products, leads, analytics, whatsapp-click, auth.
+- Public routers: products (catalog, home groups, filters, quotes, PDP), leads, analytics, whatsapp-click, auth.
 - Admin router is mounted at `/api/admin`.
-- All admin routes are accessible to active authenticated admins.
+- All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh rather than through a database lookup on every request.
 - All admin writes require auth and CSRF header.
 - Slugs are generated through `lib/slugify.ts`; duplicate slugs resolve with suffixes in current admin services.
 - Admin serializers and model transforms must never expose password or refresh-token hashes.
@@ -626,3 +658,10 @@ sequenceDiagram
 **Frontend:** `lib/cloudinary/upload.ts` orchestrates the flow using `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`.
 **Backend:** `lib/cloudinary.ts` signs the upload using `CLOUDINARY_URL`; optional folder via `CLOUDINARY_UPLOAD_FOLDER`.
 **Storage:** Only remote URL strings are persisted in MongoDB. Never store local paths or base64.
+
+### Managed Image Cleanup
+
+- Product and category updates compare previous and next managed Cloudinary URLs and delete removed images only when they are no longer referenced anywhere in the catalog.
+- Permanent product deletion attempts the same unreferenced managed-image cleanup after removing the MongoDB record.
+- The admin uploader can call `POST /api/admin/uploads/delete` to clean up abandoned session uploads by public ID.
+- Cleanup is restricted to the configured managed upload folder. Referenced images are retained, and Cloudinary cleanup failures do not roll back an already-saved product or category mutation.
