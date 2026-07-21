@@ -100,7 +100,7 @@ export function ProductCard({
 
         <div className="mt-auto flex items-end justify-between">
           <ProductPrice
-            className="min-w-0 flex-col items-start gap-0.5"
+            className="min-w-0 flex items-center gap-2"
             price={product.price}
             originalPrice={product.originalPrice}
             discount={product.discount}

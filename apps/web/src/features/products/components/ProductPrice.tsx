@@ -40,7 +40,7 @@ export function ProductPrice({
   const savings = originalPrice - price;
 
   return (
-    <div className={cn("flex flex-wrap items-baseline gap-x-2", className)}>
+    <div className={className}>
       <span
         className={cn(
           "font-semibold text-foreground",
