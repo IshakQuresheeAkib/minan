@@ -12,13 +12,13 @@ type ProductPriceProps = {
 };
 
 const currentPriceClasses = {
-  sm: "text-sm",
+  sm: "text-sm sm:text-base",
   md: "text-base",
   lg: "text-2xl",
 } as const;
 
 const originalPriceClasses = {
-  sm: "text-[11px]",
+  sm: "text-[11px] sm:text-xs",
   md: "text-xs",
   lg: "text-sm",
 } as const;
@@ -34,7 +34,7 @@ export function ProductPrice({
   price,
   showBadge = true,
   showOriginalPrice = true,
-  size = "md",
+  size = "sm",
 }: ProductPriceProps) {
   const hasDiscount = discount > 0 && price < originalPrice;
   const savings = originalPrice - price;
@@ -43,7 +43,7 @@ export function ProductPrice({
     <div className={className}>
       <span
         className={cn(
-          "font-semibold text-foreground",
+          "font-bold text-foreground",
           currentPriceClasses[size],
         )}
       >

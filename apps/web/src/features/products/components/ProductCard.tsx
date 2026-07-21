@@ -78,7 +78,7 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col p-2 sm:p-3">
-        <h3 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-foreground sm:text-base sm:leading-6">
+        <h3 className="line-clamp-2 min-h-7 text-sm font-semibold text-foreground">
           {wholeCardCta ? (
             product.name
           ) : (
@@ -91,33 +91,35 @@ export function ProductCard({
           )}
         </h3>
 
-        {hasDiscount ? (
-          <div className="-mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-1.5 py-1 text-[10px] font-bold text-foreground">
-            <Tag className="size-3" aria-hidden="true" />
-            Save Tk {savings.toLocaleString("en-BD")}
+        <div className="mt-auto flex flex-col">
+          {hasDiscount ? (
+            <div className="-mb-3 mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-1.5 sm:px-2 py-1 text-[9px] font-bold text-foreground">
+              <Tag className="size-2.5" aria-hidden="true" />
+              Save Tk {savings.toLocaleString("en-BD")}
+            </div>
+          ) : null}
+
+          <div className="flex items-end justify-between">
+            <ProductPrice
+              className="min-w-0 flex flex-wrap items-center gap-2"
+              price={product.price}
+              originalPrice={product.originalPrice}
+              discount={product.discount}
+              showBadge={false}
+              size="sm"
+            />
+
+            {!wholeCardCta && (
+              <Link
+                href={productHref}
+                aria-label={`Choose options for ${product.name}`}
+                title="Choose options"
+                className="flex size-8 sm:size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
+              >
+                <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
+              </Link>
+            )}
           </div>
-        ) : null}
-
-        <div className="mt-auto flex items-end justify-between">
-          <ProductPrice
-            className="min-w-0 flex items-center gap-2"
-            price={product.price}
-            originalPrice={product.originalPrice}
-            discount={product.discount}
-            showBadge={false}
-            size="md"
-          />
-
-          {!wholeCardCta && (
-            <Link
-              href={productHref}
-              aria-label={`Choose options for ${product.name}`}
-              title="Choose options"
-              className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
-            >
-              <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
-            </Link>
-          )}
         </div>
       </div>
 
