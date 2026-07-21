@@ -4,6 +4,7 @@ import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
 import { Subcategory } from "../models/Subcategory.js";
 import type {
+  HomeCatalogResponse,
   ProductFilterOptionsResponse,
   ProductQuoteItemResponse,
 } from "../types/product.types.js";
@@ -50,6 +51,14 @@ type ProductPageResult = {
   data: { _id: Types.ObjectId }[];
   metadata: { total: number }[];
 };
+
+type HomeProductGroupResult = {
+  _id: Types.ObjectId;
+  productIds: Types.ObjectId[];
+  total: number;
+};
+
+const HOME_PRODUCTS_PER_CATEGORY = 7;
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -239,6 +248,82 @@ export async function getProductBySlug(slug: string) {
   ]);
 }
 
+export async function getHomeCatalog(): Promise<HomeCatalogResponse> {
+  const categories = await Category.find({ is_active: true })
+    .sort({ name: 1 })
+    .select("name slug image_url");
+
+  if (categories.length === 0) {
+    return { data: [] };
+  }
+
+  const groupedProducts = await Product.aggregate<HomeProductGroupResult>([
+    {
+      $match: {
+        is_active: true,
+        category_id: { $in: categories.map((category) => category._id) },
+      },
+    },
+    { $sort: { category_id: 1, createdAt: -1, _id: -1 } },
+    {
+      $group: {
+        _id: "$category_id",
+        productIds: { $push: "$_id" },
+        total: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        productIds: {
+          $slice: ["$productIds", HOME_PRODUCTS_PER_CATEGORY],
+        },
+        total: 1,
+      },
+    },
+  ]);
+  const groupByCategoryId = new Map(
+    groupedProducts.map((group) => [group._id.toString(), group]),
+  );
+  const productIds = groupedProducts.flatMap((group) => group.productIds);
+  const products =
+    productIds.length > 0
+      ? await Product.find({ _id: { $in: productIds } }).populate([
+          "category_id",
+          "subcategory_id",
+        ])
+      : [];
+  const productById = new Map(
+    products.map((product) => [product._id.toString(), product]),
+  );
+
+  return {
+    data: categories.map((category) => {
+      const group = groupByCategoryId.get(category._id.toString());
+      const total = group?.total ?? 0;
+      const orderedProducts =
+        group?.productIds.flatMap((productId) => {
+          const product = productById.get(productId.toString());
+          return product ? [product] : [];
+        }) ?? [];
+
+      return {
+        category: {
+          name: category.name,
+          slug: category.slug,
+          image_url: category.image_url,
+        },
+        products: {
+          data: orderedProducts.map(serializeProduct),
+          total,
+          page: 1,
+          limit: HOME_PRODUCTS_PER_CATEGORY,
+          hasMore: total > HOME_PRODUCTS_PER_CATEGORY,
+        },
+      };
+    }),
+  };
+}
+
 export async function quoteProducts(
   productIds: string[],
 ): Promise<ProductQuoteItemResponse[]> {
@@ -272,7 +357,9 @@ export async function quoteProducts(
 export async function getProductFilterOptions(): Promise<ProductFilterOptionsResponse> {
   const [categories, referencedSubcategoryIds, colors, sizes, priceRange] =
     await Promise.all([
-    Category.find({ is_active: true }).sort({ name: 1 }).select("name slug"),
+    Category.find({ is_active: true })
+      .sort({ name: 1 })
+      .select("name slug image_url"),
     Product.distinct("subcategory_id", {
       is_active: true,
       subcategory_id: { $ne: null },
@@ -318,6 +405,7 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptionsRes
       categories: categories.map((category) => ({
         name: category.name,
         slug: category.slug,
+        image_url: category.image_url,
         subcategories:
           subcategoriesByCategoryId.get(category._id.toString()) ?? [],
       })),

@@ -1,19 +1,20 @@
 "use client";
 
 import gsap from "gsap";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
+  type MouseEvent,
   type PointerEvent,
 } from "react";
 
 import { Navbar } from "@/components/shared/navbar";
-import { Button } from "@/components/ui/Button";
 import { heroSlides } from "@/features/home/data/hero-slides";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +55,7 @@ export function HeroCarousel() {
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isAnimatingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const suppressClickRef = useRef(false);
   const dragRef = useRef({
     pointerId: -1,
     startX: 0,
@@ -69,10 +71,6 @@ export function HeroCarousel() {
         opacity: index === 0 ? 1 : 0,
         x: 0,
         zIndex: index === 0 ? 10 : 0,
-      });
-      gsap.set(el.querySelectorAll(".hero-reveal"), {
-        y: index === 0 ? 0 : 22,
-        opacity: index === 0 ? 1 : 0,
       });
     });
   }, []);
@@ -91,35 +89,26 @@ export function HeroCarousel() {
       const duration = prefersReducedMotion ? 0 : ANIM_DURATION;
       const xOut = prefersReducedMotion ? 0 : direction === "next" ? -70 : 70;
       const xIn = prefersReducedMotion ? 0 : direction === "next" ? 70 : -70;
-      const outgoingItems = outEl.querySelectorAll(".hero-reveal");
-      const incomingItems = inEl.querySelectorAll(".hero-reveal");
 
       gsap.set(inEl, { x: xIn, opacity: 0, zIndex: 10 });
-      gsap.set(incomingItems, { y: 26, opacity: 0 });
-
-      gsap.to(outEl, {
-        x: xOut,
-        opacity: 0,
-        duration,
-        ease: "power2.inOut",
-        onComplete: () => gsap.set(outEl, { zIndex: 0 }),
-      });
-
-      gsap.to(outgoingItems, {
-        y: direction === "next" ? -16 : 16,
-        opacity: 0,
-        duration: duration * 0.45,
-        ease: "power2.out",
-      });
 
       const tl = gsap.timeline({
         onComplete: () => {
-          gsap.set(outgoingItems, { y: 22, opacity: 0 });
+          gsap.set(outEl, { zIndex: 0 });
           isAnimatingRef.current = false;
         },
       });
 
       tl.to(
+        outEl,
+        {
+          x: xOut,
+          opacity: 0,
+          duration,
+          ease: "power2.inOut",
+        },
+        0,
+      ).to(
         inEl,
         {
           x: 0,
@@ -128,16 +117,6 @@ export function HeroCarousel() {
           ease: "power2.inOut",
         },
         0,
-      ).to(
-        incomingItems,
-        {
-          y: 0,
-          opacity: 1,
-          duration: duration * 0.75,
-          ease: "power3.out",
-          stagger: prefersReducedMotion ? 0 : 0.08,
-        },
-        prefersReducedMotion ? 0 : 0.18,
       );
 
       currentRef.current = nextIndex;
@@ -193,17 +172,17 @@ export function HeroCarousel() {
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    if (event.target instanceof Element && event.target.closest("a, button")) {
+    if (event.target instanceof Element && event.target.closest("button")) {
       return;
     }
 
+    suppressClickRef.current = false;
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       currentX: event.clientX,
       isDragging: true,
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -224,11 +203,12 @@ export function HeroCarousel() {
       const distance = dragRef.current.currentX - dragRef.current.startX;
       dragRef.current.isDragging = false;
 
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-
       if (Math.abs(distance) < DRAG_THRESHOLD) return;
+
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
 
       if (distance < 0) {
         handleNext();
@@ -238,6 +218,13 @@ export function HeroCarousel() {
     },
     [handleNext, handlePrev],
   );
+
+  const handleSlideClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!suppressClickRef.current) return;
+
+    event.preventDefault();
+    suppressClickRef.current = false;
+  };
 
   return (
     <section aria-label="Promotions" className="relative overflow-hidden">
@@ -268,73 +255,24 @@ export function HeroCarousel() {
               aria-hidden={!isActive}
               inert={!isActive ? true : undefined}
             >
-              <div
-                className={cn("absolute inset-0 bg-linear-to-br", slide.accent)}
-              />
-              <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
-              <div className="absolute right-0 top-0 hidden h-full w-[56%] overflow-hidden md:block">
-                <div
-                  className={cn(
-                    "h-full w-full [clip-path:polygon(12%_0%,100%_0%,100%_100%,0%_100%)]",
-                    slide.panel,
-                  )}
-                />
-              </div>
-
-              <div className="absolute inset-x-4 top-4 h-[228px] overflow-hidden rounded-[1.5rem] border border-background/25 bg-background shadow-2xl shadow-foreground/10 sm:top-6 sm:h-[280px] sm:rounded-[2rem] md:inset-x-auto md:right-[6%] md:top-1/2 md:h-[64%] md:w-[38%] md:-translate-y-1/2 lg:h-[68%] lg:rounded-[2.5rem]">
+              <Link
+                href={slide.href}
+                aria-label={`${slide.cta}: ${slide.tag}`}
+                tabIndex={isActive ? undefined : -1}
+                onClick={handleSlideClick}
+                draggable={false}
+                className="absolute inset-0 block cursor-grab focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset focus-visible:outline-none active:cursor-grabbing"
+              >
                 <Image
                   src={slide.imageSrc}
                   alt={slide.imageAlt}
                   fill
                   priority={index === 0}
-                  sizes="(min-width: 1024px) 38vw, (min-width: 768px) 42vw, 100vw"
-                  className="object-cover object-[center_10%]"
+                  sizes="100vw"
+                  className="object-cover"
                   draggable={false}
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-foreground/35 via-transparent to-background/10" />
-                <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-background/30 bg-background/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground shadow-lg backdrop-blur-md">
-                  <Sparkles
-                    className="size-3.5 text-primary"
-                    aria-hidden="true"
-                  />
-                  {slide.stat}
-                </div>
-              </div>
-
-              <div className="absolute inset-x-0 bottom-5 top-[312px] flex items-start sm:top-[368px] md:inset-0 md:items-center md:pb-0 md:pt-20">
-                <div className="mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
-                  <div className="max-w-xl">
-                    <span
-                      className={cn(
-                        "hero-reveal mb-3 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-sm backdrop-blur-md md:mb-5",
-                        index === 0
-                          ? "border border-primary/30 bg-primary/10"
-                          : "border border-foreground/20 bg-secondary/30",
-                      )}
-                    >
-                      {slide.tag}
-                    </span>
-                    <h2 className="hero-reveal mb-3 font-display text-[clamp(2.55rem,12vw,4.5rem)] font-bold leading-[0.92] text-foreground md:mb-5 md:text-[clamp(3.5rem,6vw,5.5rem)]">
-                      {slide.heading.map((line) => (
-                        <span key={line} className="">
-                          {line}{" "}
-                        </span>
-                      ))}
-                    </h2>
-                    <p className="hero-reveal mb-5 max-w-md text-sm leading-relaxed text-foreground/70 md:mb-9 md:text-base">
-                      {slide.body}
-                    </p>
-                    <Button
-                      href={slide.href}
-                      text={slide.cta}
-                      tabIndex={isActive ? undefined : -1}
-                      rightIcon={
-                        <ChevronRight className="size-4" aria-hidden="true" />
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
+              </Link>
             </div>
           );
         })}
@@ -343,7 +281,7 @@ export function HeroCarousel() {
           type="button"
           onClick={handlePrev}
           aria-label="Previous slide"
-          className="absolute left-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:left-6"
+          className="absolute left-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:left-6"
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </button>
@@ -352,13 +290,13 @@ export function HeroCarousel() {
           type="button"
           onClick={handleNext}
           aria-label="Next slide"
-          className="absolute right-4 top-[45%] z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:right-6"
+          className="absolute right-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:right-6"
         >
           <ChevronRight className="size-5" aria-hidden="true" />
         </button>
 
         <div
-          className="absolute top-[258px] left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-background/35 bg-background/75 px-2 py-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md sm:top-[318px] md:top-auto md:bottom-28 lg:bottom-8"
+          className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-background/35 bg-background/75 px-2 py-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md sm:bottom-6 lg:bottom-8"
           role="group"
           aria-label="Slide controls"
         >

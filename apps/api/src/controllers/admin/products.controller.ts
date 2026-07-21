@@ -10,6 +10,7 @@ import {
 import {
   createAdminProduct,
   deactivateAdminProduct,
+  deleteAdminProduct,
   listAdminProducts,
   type AdminProductStatusFilter,
   updateAdminProduct,
@@ -112,6 +113,19 @@ export async function deactivateAdminProductHandler(
   try {
     const product = await deactivateAdminProduct(getIdParam(req));
     res.json({ data: product });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteAdminProductHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const result = await deleteAdminProduct(getIdParam(req));
+    res.json({ data: result });
   } catch (error) {
     next(error);
   }

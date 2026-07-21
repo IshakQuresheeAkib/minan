@@ -9,7 +9,12 @@ export type ProductSubcategorySummary = {
 };
 
 export type ProductFilterCategory = ProductCategorySummary & {
+  image_url: string;
   subcategories: ProductSubcategorySummary[];
+};
+
+export type HomeCatalogCategory = ProductCategorySummary & {
+  image_url: string;
 };
 
 export type ProductResponse = {
@@ -42,6 +47,13 @@ export type ProductListResponse = {
 
 export type ProductDetailResponse = {
   data: ProductResponse;
+};
+
+export type HomeCatalogResponse = {
+  data: {
+    category: HomeCatalogCategory;
+    products: ProductListResponse;
+  }[];
 };
 
 export type ProductQuoteItemResponse =

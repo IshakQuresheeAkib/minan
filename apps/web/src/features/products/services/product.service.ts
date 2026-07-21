@@ -5,6 +5,7 @@ import {
   type Product,
 } from "@/features/products/schemas/product.schema";
 import type { ProductCardData } from "@/features/products/components/ProductCard";
+import { sortCategories } from "@/lib/catalog/category-order";
 import { z } from "zod";
 
 const productListSchema = z.object({
@@ -21,6 +22,7 @@ const productFilterOptionsSchema = z.object({
       z.object({
         name: z.string().min(1),
         slug: z.string().min(1),
+        image_url: z.url(),
         subcategories: z.array(
           z.object({
             name: z.string().min(1),
@@ -36,6 +38,19 @@ const productFilterOptionsSchema = z.object({
       max: z.number(),
     }),
   }),
+});
+
+const homeCatalogSchema = z.object({
+  data: z.array(
+    z.object({
+      category: z.object({
+        name: z.string().min(1),
+        slug: z.string().min(1),
+        image_url: z.url(),
+      }),
+      products: productListSchema,
+    }),
+  ),
 });
 
 const productQuoteItemSchema = z.discriminatedUnion("is_available", [
@@ -65,6 +80,9 @@ export type ProductSortOption =
 export type ProductFilterOptions = z.infer<
   typeof productFilterOptionsSchema
 >["data"];
+export type HomeCatalogProductGroup = z.infer<
+  typeof homeCatalogSchema
+>["data"][number];
 export type ProductPriceQuote = z.infer<typeof productQuoteItemSchema>;
 
 export type GetProductsOptions = {
@@ -148,7 +166,29 @@ export async function getProductFilterOptions(): Promise<ProductFilterOptions> {
   const response = await apiRequest<z.infer<typeof productFilterOptionsSchema>>(
     "/api/products/filters",
   );
-  return productFilterOptionsSchema.parse(response).data;
+  const { data } = productFilterOptionsSchema.parse(response);
+
+  return {
+    ...data,
+    categories: sortCategories(data.categories),
+  };
+}
+
+export async function getHomeCatalog(): Promise<HomeCatalogProductGroup[]> {
+  const response = await apiRequest<z.infer<typeof homeCatalogSchema>>(
+    "/api/products/home",
+  );
+  const { data } = homeCatalogSchema.parse(response);
+  const groupByCategorySlug = new Map(
+    data.map((group) => [group.category.slug, group]),
+  );
+
+  return sortCategories(data.map((group) => group.category)).flatMap(
+    (category) => {
+      const group = groupByCategorySlug.get(category.slug);
+      return group ? [group] : [];
+    },
+  );
 }
 
 export async function getProductPriceQuote(

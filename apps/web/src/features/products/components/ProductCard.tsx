@@ -1,4 +1,4 @@
-import { ShoppingCart, Tag } from "lucide-react";
+import { ArrowRight, ShoppingCart, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -16,11 +16,20 @@ export type ProductCardData = {
 type ProductCardProps = {
   imagePriority?: boolean;
   product: ProductCardData;
+  wholeCardCta?: {
+    href: string;
+    label: string;
+    overlayText: string;
+  };
 };
+
+export const productCardShellClassName =
+  "group/card relative flex h-full flex-col overflow-hidden rounded-2xl border border-secondary/70 bg-background shadow-[0_8px_24px_rgba(151,72,34,0.05)] transition-[border-color,box-shadow] duration-200 hover:border-primary/70 hover:shadow-[0_14px_34px_rgba(151,72,34,0.11)]";
 
 export function ProductCard({
   imagePriority = false,
   product,
+  wholeCardCta,
 }: ProductCardProps) {
   const productHref = `/products/${product.slug}`;
   const hasDiscount =
@@ -28,9 +37,9 @@ export function ProductCard({
   const savings = product.originalPrice - product.price;
 
   return (
-    <article className="group/card flex h-full flex-col overflow-hidden rounded-2xl border border-secondary/70 bg-background shadow-[0_8px_24px_rgba(151,72,34,0.05)] transition-[border-color,box-shadow] duration-200 hover:border-primary/70 hover:shadow-[0_14px_34px_rgba(151,72,34,0.11)]">
+    <article className={productCardShellClassName}>
       <div className="relative aspect-square w-full overflow-hidden bg-secondary/15">
-        {product.imageUrl ? (
+        {product.imageUrl && !wholeCardCta ? (
           <Link
             href={productHref}
             aria-label={`View ${product.name}`}
@@ -45,6 +54,15 @@ export function ProductCard({
               className="object-cover object-top transition-transform duration-500 ease-out motion-safe:group-hover/image:scale-[1.035]"
             />
           </Link>
+        ) : product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt=""
+            fill
+            priority={imagePriority}
+            sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            className="object-cover object-top transition-transform duration-500 ease-out motion-safe:group-hover/card:scale-[1.035]"
+          />
         ) : (
           <div
             className="absolute inset-0 bg-linear-to-br from-secondary/25 via-background to-primary/15"
@@ -61,12 +79,16 @@ export function ProductCard({
 
       <div className="flex flex-1 flex-col p-2 sm:p-3">
         <h3 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-foreground sm:text-base sm:leading-6">
-          <Link
-            href={productHref}
-            className="cursor-pointer transition-colors duration-200 hover:text-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
-          >
-            {product.name}
-          </Link>
+          {wholeCardCta ? (
+            product.name
+          ) : (
+            <Link
+              href={productHref}
+              className="cursor-pointer transition-colors duration-200 hover:text-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            >
+              {product.name}
+            </Link>
+          )}
         </h3>
 
         {hasDiscount ? (
@@ -78,7 +100,7 @@ export function ProductCard({
 
         <div className="mt-auto flex items-end justify-between">
           <ProductPrice
-            className="min-w-0 flex-col items-start gap-0.5"
+            className="min-w-0 flex items-center gap-2"
             price={product.price}
             originalPrice={product.originalPrice}
             discount={product.discount}
@@ -86,16 +108,31 @@ export function ProductCard({
             size="md"
           />
 
-          <Link
-            href={productHref}
-            aria-label={`Choose options for ${product.name}`}
-            title="Choose options"
-            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
-          >
-            <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
-          </Link>
+          {!wholeCardCta && (
+            <Link
+              href={productHref}
+              aria-label={`Choose options for ${product.name}`}
+              title="Choose options"
+              className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
+            >
+              <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
+            </Link>
+          )}
         </div>
       </div>
+
+      {wholeCardCta && (
+        <Link
+          href={wholeCardCta.href}
+          aria-label={wholeCardCta.label}
+          className="group/view-more absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-foreground/70 text-background transition-colors duration-200 hover:bg-foreground/80 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/70 focus-visible:outline-none"
+        >
+          <span className="inline-flex items-center gap-2 rounded-full border border-background/35 bg-foreground/65 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm transition-colors duration-200 group-hover/view-more:border-primary group-hover/view-more:text-primary sm:text-base">
+            {wholeCardCta.overlayText}
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </span>
+        </Link>
+      )}
     </article>
   );
 }

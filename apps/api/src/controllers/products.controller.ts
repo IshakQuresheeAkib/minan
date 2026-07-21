@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { parseBody } from "../lib/parseBody.js";
 import { productQuoteSchema } from "../schemas/product.schemas.js";
 import {
+  getHomeCatalog,
   getProductFilterOptions,
   getProductBySlug,
   listProducts,
@@ -191,6 +192,19 @@ export async function getProductBySlugHandler(
     }
 
     res.json({ data: serializeProduct(product) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getHomeCatalogHandler(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const result = await getHomeCatalog();
+    res.json(result);
   } catch (error) {
     next(error);
   }

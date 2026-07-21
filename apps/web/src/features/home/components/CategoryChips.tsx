@@ -2,22 +2,23 @@
 
 import { useRef, type MouseEvent, type PointerEvent } from "react";
 
-import { productCategories } from "@/constants/categories";
 import { cn } from "@/lib/utils";
 
-const chips = ["All", ...productCategories] as const;
 const DRAG_CLICK_CANCEL_THRESHOLD = 10;
 
-export type CategoryChip = (typeof chips)[number];
-
 type CategoryChipsProps = {
-  activeChip: CategoryChip;
-  onChipChange: (chip: CategoryChip) => void;
+  categories: readonly {
+    name: string;
+    slug: string;
+  }[];
+  activeCategorySlug?: string;
+  onCategoryChange: (slug?: string) => void;
 };
 
 export function CategoryChips({
-  activeChip,
-  onChipChange,
+  categories,
+  activeCategorySlug,
+  onCategoryChange,
 }: CategoryChipsProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({
@@ -104,14 +105,14 @@ export function CategoryChips({
         onPointerUp={handlePointerEnd}
       >
         <div className="inline-flex min-w-max gap-3">
-          {chips.map((chip) => {
-            const isActive = activeChip === chip;
+          {[{ name: "All", slug: undefined }, ...categories].map((category) => {
+            const isActive = activeCategorySlug === category.slug;
 
             return (
               <button
-                key={chip}
+                key={category.slug ?? "all"}
                 type="button"
-                onClick={() => onChipChange(chip)}
+                onClick={() => onCategoryChange(category.slug)}
                 className={cn(
                   "shrink-0 cursor-pointer whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold tracking-wide transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
                   isActive
@@ -119,7 +120,7 @@ export function CategoryChips({
                     : "border border-secondary bg-background text-foreground/85 hover:border-primary hover:text-foreground",
                 )}
               >
-                {chip}
+                {category.name}
               </button>
             );
           })}

@@ -10,6 +10,7 @@ import {
 import {
   createAdminProductHandler,
   deactivateAdminProductHandler,
+  deleteAdminProductHandler,
   listAdminProductsHandler,
   updateAdminProductHandler,
 } from "../controllers/admin/products.controller.js";
@@ -61,6 +62,12 @@ adminRouter.patch(
   requireAuth,
   requireCsrfHeader,
   deactivateAdminProductHandler,
+);
+adminRouter.delete(
+  "/products/:id",
+  requireAuth,
+  requireCsrfHeader,
+  deleteAdminProductHandler,
 );
 
 adminRouter.get("/categories", requireAuth, listAdminCategoriesHandler);

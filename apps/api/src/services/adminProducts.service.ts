@@ -336,3 +336,25 @@ export async function deactivateAdminProduct(id: string) {
   await revalidateStorefront();
   return serializedProduct;
 }
+
+export async function deleteAdminProduct(id: string) {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid product id", 400);
+  }
+
+  const product = await Product.findByIdAndDelete(id);
+  if (!product) {
+    throw new AppError("Product not found", 404);
+  }
+
+  await revalidateStorefront();
+  const mediaCleanup = await cleanupRemovedManagedImages({
+    previousUrls: product.images,
+    nextUrls: [],
+  });
+
+  return {
+    productId: product._id.toString(),
+    mediaCleanup,
+  };
+}
