@@ -166,7 +166,6 @@ export function CheckoutClient() {
                 price={item.price * item.quantity}
                 originalPrice={item.originalPrice * item.quantity}
                 discount={item.discount}
-                showBadge={false}
                 size="sm"
               />
             </div>

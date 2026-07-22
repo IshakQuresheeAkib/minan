@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 
 import {
   destroyManagedImage,
+  getHomeBannerUploadPreset,
   getUploadFolder,
   getUploadSignature,
 } from "../../lib/cloudinary.js";
@@ -19,13 +20,22 @@ type UploadDeleteResult = {
 };
 
 export async function getUploadSignatureHandler(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
-    const folder = getUploadFolder();
-    const signature = getUploadSignature(folder);
+    const purpose =
+      typeof req.query.purpose === "string" ? req.query.purpose : undefined;
+    const baseFolder = getUploadFolder();
+    const isHomeBanner = purpose === "home-banner";
+    const folder = isHomeBanner
+      ? `${baseFolder}/home-banners`
+      : baseFolder;
+    const uploadPreset = isHomeBanner
+      ? getHomeBannerUploadPreset()
+      : undefined;
+    const signature = getUploadSignature(folder, uploadPreset);
     res.json(signature);
   } catch (error) {
     next(error);

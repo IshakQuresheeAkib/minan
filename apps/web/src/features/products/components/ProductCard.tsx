@@ -93,7 +93,7 @@ export function ProductCard({
 
         <div className="mt-auto flex flex-col">
           {hasDiscount ? (
-            <div className="-mb-3 mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-1.5 sm:px-2 py-1 text-[9px] font-bold text-foreground">
+            <div className="-mb-1.5 sm:-mb-3 mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-1.5 sm:px-2 py-1 text-[9px] font-bold text-foreground">
               <Tag className="size-2.5" aria-hidden="true" />
               Save Tk {savings.toLocaleString("en-BD")}
             </div>
@@ -101,15 +101,13 @@ export function ProductCard({
 
           <div className="flex items-end justify-between">
             <ProductPrice
-              className="min-w-0 flex flex-wrap items-center gap-2"
               price={product.price}
               originalPrice={product.originalPrice}
               discount={product.discount}
-              showBadge={false}
               size="sm"
             />
 
-            {!wholeCardCta && (
+            {!wholeCardCta ? (
               <Link
                 href={productHref}
                 aria-label={`Choose options for ${product.name}`}
@@ -118,7 +116,7 @@ export function ProductCard({
               >
                 <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
               </Link>
-            )}
+            ) : <p aria-hidden className=" size-8 sm:size-10 invisible"/>}
           </div>
         </div>
       </div>

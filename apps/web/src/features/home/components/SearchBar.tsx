@@ -308,7 +308,6 @@ export function SearchBar({
                   price={product.discounted_price}
                   originalPrice={product.price}
                   discount={product.discount}
-                  showBadge={false}
                   showOriginalPrice={false}
                   size="sm"
                 />

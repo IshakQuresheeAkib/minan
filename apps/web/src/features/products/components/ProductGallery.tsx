@@ -93,7 +93,6 @@ export function ProductGallery({
                 price={price}
                 originalPrice={originalPrice}
                 discount={discount}
-                showBadge={false}
                 showOriginalPrice={false}
                 size="sm"
               />

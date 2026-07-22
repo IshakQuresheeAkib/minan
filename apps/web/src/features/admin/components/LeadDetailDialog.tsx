@@ -127,7 +127,6 @@ function LeadDetailFields({
                   price={item.price * item.quantity}
                   originalPrice={item.original_price * item.quantity}
                   discount={item.discount}
-                  showBadge={false}
                   size="sm"
                 />
               </div>

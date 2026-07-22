@@ -320,6 +320,17 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `previous_refresh_token_hash` | String/null | selected only when needed, concurrent rotation guard |
 | `createdAt` / `updatedAt`     | Date        | timestamps |
 
+### `home_banner_sets`
+
+| Field                      | Type     | Notes |
+| -------------------------- | -------- | ----- |
+| `key`                      | String   | singleton key `homepage`, unique |
+| `revision`                 | Number   | optimistic-concurrency revision |
+| `banners`                  | Array    | ordered 1-5 items with desktop/mobile image URLs |
+| `storefront_sync_pending`  | Boolean  | retry signal when cache invalidation fails |
+| `pending_cleanup_urls`     | [String] | removed managed images retained until storefront sync succeeds |
+| `createdAt` / `updatedAt`  | Date     | timestamps |
+
 ### Mongoose Patterns
 
 - `timestamps: true` on all schemas except `analytics_events`
@@ -342,6 +353,7 @@ Subcategories are managed within the admin category experience. Public catalog f
 | GET    | `/api/products/filters` | Active catalog filter options: categories with referenced subcategories, colors, sizes, and effective min/max price |
 | POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
+| GET    | `/api/home-banners`   | Ordered homepage banner images; empty until the singleton seed exists |
 | POST   | `/api/leads`          | Submit checkout lead, CSRF-header protected, rate-limited 5 req/15 min/IP |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
@@ -388,6 +400,12 @@ The `subcategory` product filter is applied only when at least one `category` fi
 | PATCH  | `/api/admin/admins/:id/deactivate`     | admin | Soft disable |
 | GET    | `/api/admin/uploads/signature`         | admin | Get Cloudinary signed upload params |
 | POST   | `/api/admin/uploads/delete`            | admin | Delete unreferenced managed Cloudinary uploads by public ID |
+| GET    | `/api/admin/home-banners`              | admin | Get the versioned ordered banner set and sync state |
+| POST   | `/api/admin/home-banners`              | admin | Append a banner using `expected_revision`, maximum five |
+| PATCH  | `/api/admin/home-banners/reorder`      | admin | Replace the complete order using `expected_revision` |
+| POST   | `/api/admin/home-banners/sync`         | admin | Retry storefront invalidation and deferred media cleanup |
+| PATCH  | `/api/admin/home-banners/:id`          | admin | Replace one or both responsive images using `expected_revision` |
+| DELETE | `/api/admin/home-banners/:id`          | admin | Remove a banner using `expected_revision`; the final banner is protected |
 
 Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
@@ -407,6 +425,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `/admin`            | Dashboard           | Admin             |
 | `/admin/products`   | Product Management  | Admin             |
 | `/admin/categories` | Category Management | Admin             |
+| `/admin/home-banners` | Homepage Banner Management | Admin        |
 | `/admin/leads`      | Lead Management     | Admin             |
 | `/admin/admins`     | Admin Management    | Admin             |
 
@@ -460,6 +479,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - Checkout lead form writes to MongoDB `leads`
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the lead snapshot
 - Authenticated admin management for products, categories, ordered subcategories, leads, admins, and managed uploads
+- Versioned homepage banner management with 16:9 desktop and 4:5 mobile Cloudinary assets, atomic ordering, and deferred cleanup
 - Dashboard aggregates Bangladesh-local daily/monthly leads, top viewed product/category, and traffic sources
 - Vercel Speed Insights is mounted in the root frontend layout
 
@@ -510,6 +530,7 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 
 - Mobile-first, optimized for Bangladesh 3G/4G users
 - Public home/catalog/product pages use explicit `"use cache"` Cache Component functions with `cacheLife("days")` and the shared `catalog` cache tag.
+- Homepage banners use the separate `home-banners` cache tag with a short cache life and bundled local fallback assets.
 - Product, category, and subcategory admin writes trigger Express-to-Next revalidation with `revalidateTag("catalog", { expire: 0 })`.
 - Catalog page server-renders the first page and filter options, then the client hook loads more pages with a page size of 20
 - Turbopack in development
@@ -578,6 +599,7 @@ META_CAPI_TOKEN=
 META_PIXEL_ID=
 CLOUDINARY_URL=
 CLOUDINARY_UPLOAD_FOLDER=
+CLOUDINARY_HOME_BANNER_UPLOAD_PRESET=
 ADMIN_EMAIL=
 ADMIN_PASSWORD=
 NODE_ENV=
@@ -589,6 +611,8 @@ STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
 - `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password and `is_active: true`.
 - `cleanup:admin-roles` is an optional post-deploy hygiene script that removes legacy `role` fields from `admin_users`; stale role fields are ignored by current code.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
+- `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
+- Run `npm --workspace @minan/api run seed:home-banners` after the API deploy and before the banner-backed web release. The command atomically creates the two local fallback banners only when the singleton is absent.
 
 ---
 
@@ -649,7 +673,7 @@ sequenceDiagram
     participant API as Express
     participant CL as Cloudinary
     UI->>API: GET /api/admin/uploads/signature (Bearer)
-    API-->>UI: { timestamp, signature, apiKey, cloudName, folder }
+    API-->>UI: { timestamp, signature, apiKey, cloudName, folder, uploadPreset? }
     UI->>CL: POST FormData + signature
     CL-->>UI: { secure_url, ... }
     UI->>API: POST/PATCH product|category { ..., images: [secure_url] }

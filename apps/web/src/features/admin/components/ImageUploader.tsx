@@ -16,6 +16,7 @@ import type {
 } from "@/features/admin/types";
 import { uploadImageToCloudinary } from "@/lib/cloudinary/upload";
 import { ApiError } from "@/lib/api/client";
+import { getImageUploadValidationError } from "@/features/admin/lib/image-upload-validation";
 
 type ImageUploaderProps = {
   accessToken: string;
@@ -25,6 +26,9 @@ type ImageUploaderProps = {
   onUploaded?: (assets: ManagedImageAsset[]) => void;
   multiple?: boolean;
   showProductRoles?: boolean;
+  acceptedFileTypes?: readonly string[];
+  maxFileSizeBytes?: number;
+  uploadPurpose?: "home-banner";
 };
 
 export function ImageUploader({
@@ -35,6 +39,9 @@ export function ImageUploader({
   onUploaded,
   multiple = true,
   showProductRoles = false,
+  acceptedFileTypes,
+  maxFileSizeBytes,
+  uploadPurpose,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const mountedRef = useRef(true);
@@ -69,11 +76,21 @@ export function ImageUploader({
       return;
     }
 
+    const validationError = getImageUploadValidationError(
+      files,
+      acceptedFileTypes,
+      maxFileSizeBytes,
+    );
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     updateUploading(true);
     const uploadedAssets: ManagedImageAsset[] = [];
 
     try {
-      const signature = await fetchUploadSignature(accessToken);
+      const signature = await fetchUploadSignature(accessToken, uploadPurpose);
 
       if (!mountedRef.current) {
         return;
@@ -171,7 +188,7 @@ export function ImageUploader({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={acceptedFileTypes?.join(",") ?? "image/*"}
         multiple={multiple}
         className="hidden"
         onChange={(event) => {
