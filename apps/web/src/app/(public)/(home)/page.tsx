@@ -25,6 +25,8 @@ export default function HomePage() {
 }
 
 async function HomeHeroContent() {
+  await connection();
+
   let banners = fallbackHomeBanners;
 
   try {
