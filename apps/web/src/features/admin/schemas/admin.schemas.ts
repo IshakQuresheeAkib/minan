@@ -26,6 +26,15 @@ export const adminCategoryFormSchema = z.object({
 
 export type AdminCategoryFormInput = z.infer<typeof adminCategoryFormSchema>;
 
+export const adminHomeBannerFormSchema = z.object({
+  desktop_image_url: z.string().trim().min(1, "Desktop image is required"),
+  mobile_image_url: z.string().trim().min(1, "Mobile image is required"),
+});
+
+export type AdminHomeBannerFormInput = z.infer<
+  typeof adminHomeBannerFormSchema
+>;
+
 export const adminSubcategoryFormSchema = z.object({
   category_id: z.string().trim().min(1, "Category is required"),
   name: z.string().trim().min(1, "Name is required"),

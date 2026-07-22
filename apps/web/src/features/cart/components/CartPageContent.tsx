@@ -127,7 +127,6 @@ export function CartPageContent() {
                     price={item.price}
                     originalPrice={item.originalPrice}
                     discount={item.discount}
-                    showBadge={false}
                     size="sm"
                   />
                 )}

@@ -7,6 +7,7 @@ import {
   Plus,
   Share2,
   ShoppingBag,
+  Tag,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -54,6 +55,11 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
       ? product.description
       : `${product.description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd()}…`;
   const isProductUnavailable = !product.is_active;
+  const discount = product.discount;
+  const originalPrice = product.price;
+  const discounted_price = product.discounted_price;
+  const savings = originalPrice - discounted_price;
+  const hasDiscount = discount > 0 && discounted_price < originalPrice;
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
@@ -233,12 +239,18 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                     {product.name}
                   </h1>
                   <ProductPrice
-                    className="mt-2"
+                    className="mt-3 flex flex-wrap items-center gap-2"
                     price={product.discounted_price}
                     originalPrice={product.price}
                     discount={product.discount}
                     size="lg"
                   />
+                  {hasDiscount ? (
+                  <p className="mt-4 flex w-fit basis-full items-center gap-1 rounded-full border border-primary/25 bg-primary/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase">
+                    <Tag className="size-3" aria-hidden="true" />
+                    Save Tk {savings.toLocaleString("en-BD")} · {discount}% off
+                  </p>
+                ) : null}
                 </div>
                 <button
                   type="button"

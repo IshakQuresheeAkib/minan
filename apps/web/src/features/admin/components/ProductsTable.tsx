@@ -347,7 +347,6 @@ export function ProductsTable({
                       price={product.discounted_price}
                       originalPrice={product.price}
                       discount={product.discount}
-                      showBadge={false}
                       size="sm"
                     />
                   </TableCell>

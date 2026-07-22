@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   FolderTree,
+  Images,
   LayoutDashboard,
   Package,
   Shield,
@@ -30,6 +31,11 @@ export const adminNavLinks: AdminNavLink[] = [
     href: adminRoutes.categories,
     label: "Categories",
     icon: FolderTree,
+  },
+  {
+    href: adminRoutes.homeBanners,
+    label: "Home Banners",
+    icon: Images,
   },
   {
     href: adminRoutes.leads,

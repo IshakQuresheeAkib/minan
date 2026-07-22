@@ -113,6 +113,20 @@ export type UploadSignature = {
   apiKey: string;
   cloudName: string;
   folder: string;
+  uploadPreset?: string;
+};
+
+export type AdminHomeBanner = {
+  _id: string;
+  desktop_image_url: string;
+  mobile_image_url: string;
+};
+
+export type AdminHomeBannerSet = {
+  revision: number;
+  banners: AdminHomeBanner[];
+  storefront_sync_pending: boolean;
+  pending_cleanup_count: number;
 };
 
 export type ManagedImageAsset = {

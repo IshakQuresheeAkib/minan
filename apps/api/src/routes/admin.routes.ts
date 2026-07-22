@@ -34,6 +34,14 @@ import {
   updateAdminUserHandler,
 } from "../controllers/admin/admins.controller.js";
 import {
+  createAdminHomeBannerHandler,
+  deleteAdminHomeBannerHandler,
+  getAdminHomeBannersHandler,
+  reorderAdminHomeBannersHandler,
+  syncAdminHomeBannersHandler,
+  updateAdminHomeBannerHandler,
+} from "../controllers/admin/homeBanners.controller.js";
+import {
   deleteUploadsHandler,
   getUploadSignatureHandler,
 } from "../controllers/admin/uploads.controller.js";
@@ -56,6 +64,42 @@ adminRouter.patch(
   requireAuth,
   requireCsrfHeader,
   updateAdminProductHandler,
+);
+
+adminRouter.get(
+  "/home-banners",
+  requireAuth,
+  getAdminHomeBannersHandler,
+);
+adminRouter.post(
+  "/home-banners",
+  requireAuth,
+  requireCsrfHeader,
+  createAdminHomeBannerHandler,
+);
+adminRouter.patch(
+  "/home-banners/reorder",
+  requireAuth,
+  requireCsrfHeader,
+  reorderAdminHomeBannersHandler,
+);
+adminRouter.post(
+  "/home-banners/sync",
+  requireAuth,
+  requireCsrfHeader,
+  syncAdminHomeBannersHandler,
+);
+adminRouter.patch(
+  "/home-banners/:id",
+  requireAuth,
+  requireCsrfHeader,
+  updateAdminHomeBannerHandler,
+);
+adminRouter.delete(
+  "/home-banners/:id",
+  requireAuth,
+  requireCsrfHeader,
+  deleteAdminHomeBannerHandler,
 );
 adminRouter.patch(
   "/products/:id/deactivate",

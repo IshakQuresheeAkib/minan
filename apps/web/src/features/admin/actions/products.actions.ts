@@ -133,8 +133,13 @@ export async function deleteAdminProduct(
 
 export async function fetchUploadSignature(
   accessToken: string,
+  purpose?: "home-banner",
 ): Promise<UploadSignature> {
-  return apiRequest<UploadSignature>("/api/admin/uploads/signature", {
+  const path = purpose
+    ? `/api/admin/uploads/signature?purpose=${encodeURIComponent(purpose)}`
+    : "/api/admin/uploads/signature";
+
+  return apiRequest<UploadSignature>(path, {
     accessToken,
   });
 }

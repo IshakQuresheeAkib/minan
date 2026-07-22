@@ -2,7 +2,6 @@
 
 import gsap from "gsap";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   useCallback,
@@ -15,7 +14,9 @@ import {
 } from "react";
 
 import { Navbar } from "@/components/shared/navbar";
-import { heroSlides } from "@/features/home/data/hero-slides";
+import { ResponsiveBannerImage } from "@/features/home/components/ResponsiveBannerImage";
+import type { HomeBanner } from "@/features/home/schemas/home-banner.schema";
+import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 const SLIDE_INTERVAL = 4000;
@@ -44,7 +45,11 @@ function subscribeToReducedMotion(onStoreChange: () => void) {
   return () => mediaQuery.removeEventListener("change", onStoreChange);
 }
 
-export function HeroCarousel() {
+type HeroCarouselProps = {
+  banners: HomeBanner[];
+};
+
+export function HeroCarousel({ banners }: HeroCarouselProps) {
   const [current, setCurrent] = useState(0);
   const prefersReducedMotion = useSyncExternalStore(
     subscribeToReducedMotion,
@@ -135,15 +140,15 @@ export function HeroCarousel() {
   const resetInterval = useCallback(() => {
     clearAutoRotate();
 
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || banners.length < 2) {
       return;
     }
 
     intervalRef.current = setInterval(() => {
-      const next = (currentRef.current + 1) % heroSlides.length;
+      const next = (currentRef.current + 1) % banners.length;
       goTo(next, "next");
     }, SLIDE_INTERVAL);
-  }, [clearAutoRotate, goTo, prefersReducedMotion]);
+  }, [banners.length, clearAutoRotate, goTo, prefersReducedMotion]);
 
   useEffect(() => {
     resetInterval();
@@ -153,16 +158,16 @@ export function HeroCarousel() {
 
   const handlePrev = useCallback(() => {
     const prev =
-      (currentRef.current - 1 + heroSlides.length) % heroSlides.length;
+      (currentRef.current - 1 + banners.length) % banners.length;
     goTo(prev, "prev");
     resetInterval();
-  }, [goTo, resetInterval]);
+  }, [banners.length, goTo, resetInterval]);
 
   const handleNext = useCallback(() => {
-    const next = (currentRef.current + 1) % heroSlides.length;
+    const next = (currentRef.current + 1) % banners.length;
     goTo(next, "next");
     resetInterval();
-  }, [goTo, resetInterval]);
+  }, [banners.length, goTo, resetInterval]);
 
   const handleDot = (index: number) => {
     const direction: Direction = index > currentRef.current ? "next" : "prev";
@@ -171,6 +176,7 @@ export function HeroCarousel() {
   };
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (banners.length < 2) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (event.target instanceof Element && event.target.closest("button")) {
       return;
@@ -237,12 +243,12 @@ export function HeroCarousel() {
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        {heroSlides.map((slide, index) => {
+        {banners.map((slide, index) => {
           const isActive = index === current;
 
           return (
             <div
-              key={slide.id}
+              key={slide._id}
               ref={(el) => {
                 slideRefs.current[index] = el;
               }}
@@ -256,53 +262,49 @@ export function HeroCarousel() {
               inert={!isActive ? true : undefined}
             >
               <Link
-                href={slide.href}
-                aria-label={`${slide.cta}: ${slide.tag}`}
+                href={publicRoutes.products}
+                aria-label="Shop products from this promotion"
                 tabIndex={isActive ? undefined : -1}
                 onClick={handleSlideClick}
                 draggable={false}
                 className="absolute inset-0 block cursor-grab focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset focus-visible:outline-none active:cursor-grabbing"
               >
-                <Image
-                  src={slide.imageSrc}
-                  alt={slide.imageAlt}
-                  fill
-                  priority={index === 0}
-                  sizes="100vw"
-                  className="object-cover"
-                  draggable={false}
+                <ResponsiveBannerImage
+                  desktopSrc={slide.desktop_image_url}
+                  mobileSrc={slide.mobile_image_url}
+                  eager={index === 0}
                 />
               </Link>
             </div>
           );
         })}
 
-        <button
+        {banners.length > 1 ? <button
           type="button"
           onClick={handlePrev}
           aria-label="Previous slide"
           className="absolute left-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:left-6"
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
-        </button>
+        </button> : null}
 
-        <button
+        {banners.length > 1 ? <button
           type="button"
           onClick={handleNext}
           aria-label="Next slide"
           className="absolute right-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:right-6"
         >
           <ChevronRight className="size-5" aria-hidden="true" />
-        </button>
+        </button> : null}
 
-        <div
+        {banners.length > 1 ? <div
           className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-background/35 bg-background/75 px-2 py-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md sm:bottom-6 lg:bottom-8"
           role="group"
           aria-label="Slide controls"
         >
-          {heroSlides.map((slide, index) => (
+          {banners.map((slide, index) => (
             <button
-              key={slide.id}
+              key={slide._id}
               type="button"
               onClick={() => handleDot(index)}
               aria-label={`Go to slide ${index + 1}`}
@@ -330,7 +332,7 @@ export function HeroCarousel() {
               </span>
             </button>
           ))}
-        </div>
+        </div> : null}
       </div>
     </section>
   );

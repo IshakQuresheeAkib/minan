@@ -3,6 +3,7 @@ import {
   getManagedPublicIdFromUrl,
 } from "../lib/cloudinary.js";
 import { Category } from "../models/Category.js";
+import { HomeBannerSet } from "../models/HomeBannerSet.js";
 import { Product } from "../models/Product.js";
 
 type CleanupRemovedImagesOptions = {
@@ -53,9 +54,12 @@ export async function findReferencedManagedPublicIds(
     return new Set();
   }
 
-  const [products, categories] = await Promise.all([
+  const [products, categories, homeBannerSet] = await Promise.all([
     Product.find().select({ _id: 0, images: 1 }).lean(),
     Category.find().select({ _id: 0, image_url: 1 }).lean(),
+    HomeBannerSet.findOne({ key: "homepage" })
+      .select({ _id: 0, banners: 1 })
+      .lean(),
   ]);
   const referencedPublicIds = new Set<string>();
 
@@ -72,6 +76,17 @@ export async function findReferencedManagedPublicIds(
     candidatePublicIds,
     referencedPublicIds,
   );
+
+  if (homeBannerSet) {
+    collectReferencedManagedPublicIds(
+      homeBannerSet.banners.flatMap((banner) => [
+        banner.desktop_image_url,
+        banner.mobile_image_url,
+      ]),
+      candidatePublicIds,
+      referencedPublicIds,
+    );
+  }
 
   return referencedPublicIds;
 }

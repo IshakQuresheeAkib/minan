@@ -8,6 +8,7 @@ export type UploadSignature = {
   apiKey: string;
   cloudName: string;
   folder: string;
+  uploadPreset?: string;
 };
 
 type CloudinaryDestroyResult = {
@@ -23,7 +24,10 @@ function ensureCloudinaryConfig(): void {
   cloudinary.config({ secure: true });
 }
 
-export function getUploadSignature(folder: string): UploadSignature {
+export function getUploadSignature(
+  folder: string,
+  uploadPreset?: string,
+): UploadSignature {
   ensureCloudinaryConfig();
 
   const config = cloudinary.config();
@@ -36,7 +40,9 @@ export function getUploadSignature(folder: string): UploadSignature {
   }
 
   const timestamp = Math.round(Date.now() / 1000);
-  const params = { timestamp, folder };
+  const params = uploadPreset
+    ? { timestamp, folder, upload_preset: uploadPreset }
+    : { timestamp, folder };
   const signature = cloudinary.utils.api_sign_request(params, apiSecret);
 
   return {
@@ -45,11 +51,22 @@ export function getUploadSignature(folder: string): UploadSignature {
     apiKey,
     cloudName,
     folder,
+    ...(uploadPreset ? { uploadPreset } : {}),
   };
 }
 
 export function getUploadFolder(): string {
   return process.env.CLOUDINARY_UPLOAD_FOLDER?.trim() || "minan/admin";
+}
+
+export function getHomeBannerUploadPreset(): string {
+  const uploadPreset = process.env.CLOUDINARY_HOME_BANNER_UPLOAD_PRESET?.trim();
+
+  if (!uploadPreset) {
+    throw new AppError("Home banner uploads are not configured", 503);
+  }
+
+  return uploadPreset;
 }
 
 function normalizeFolder(folder: string): string {

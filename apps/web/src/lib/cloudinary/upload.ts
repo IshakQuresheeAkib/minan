@@ -19,6 +19,9 @@ export async function uploadImageToCloudinary(
   formData.append("timestamp", String(signature.timestamp));
   formData.append("signature", signature.signature);
   formData.append("folder", signature.folder);
+  if (signature.uploadPreset) {
+    formData.append("upload_preset", signature.uploadPreset);
+  }
 
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`,

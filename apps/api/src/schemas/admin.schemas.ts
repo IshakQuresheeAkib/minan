@@ -18,6 +18,18 @@ const slugStringSchema = z
     message: "Slug must contain at least one alphanumeric character",
   });
 
+const expectedRevisionSchema = z
+  .number()
+  .int("Revision must be a whole number")
+  .min(1, "Revision must be at least 1");
+
+const managedBannerImageUrlSchema = z
+  .url("Banner image must be a valid URL")
+  .refine((value) => {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "res.cloudinary.com";
+  }, "Banner image must be a secure Cloudinary URL");
+
 export const productCreateSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   slug: slugStringSchema.optional(),
@@ -98,6 +110,40 @@ export const uploadDeleteSchema = z.object({
     .max(50, "Cannot delete more than 50 images at once"),
 });
 
+export const homeBannerCreateSchema = z.object({
+  desktop_image_url: managedBannerImageUrlSchema,
+  mobile_image_url: managedBannerImageUrlSchema,
+  expected_revision: expectedRevisionSchema,
+});
+
+export const homeBannerUpdateSchema = z
+  .object({
+    desktop_image_url: managedBannerImageUrlSchema.optional(),
+    mobile_image_url: managedBannerImageUrlSchema.optional(),
+    expected_revision: expectedRevisionSchema,
+  })
+  .refine(
+    (value) =>
+      value.desktop_image_url !== undefined ||
+      value.mobile_image_url !== undefined,
+    { message: "At least one banner image is required" },
+  );
+
+export const homeBannerReorderSchema = z.object({
+  ordered_ids: z
+    .array(z.string().trim().min(1))
+    .min(1, "At least one banner is required")
+    .max(5, "Cannot order more than 5 banners")
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: "ordered_ids cannot contain duplicates",
+    }),
+  expected_revision: expectedRevisionSchema,
+});
+
+export const homeBannerDeleteSchema = z.object({
+  expected_revision: expectedRevisionSchema,
+});
+
 export const leadUpdateSchema = z
   .object({
     status: leadStatusSchema.optional(),
@@ -135,6 +181,15 @@ export type SubcategoryReorderInput = z.infer<
   typeof subcategoryReorderSchema
 >;
 export type UploadDeleteInput = z.infer<typeof uploadDeleteSchema>;
+export type HomeBannerCreateInput = z.infer<
+  typeof homeBannerCreateSchema
+>;
+export type HomeBannerUpdateInput = z.infer<
+  typeof homeBannerUpdateSchema
+>;
+export type HomeBannerReorderInput = z.infer<
+  typeof homeBannerReorderSchema
+>;
 export type LeadUpdateInput = z.infer<typeof leadUpdateSchema>;
 export type AdminCreateInput = z.infer<typeof adminCreateSchema>;
 export type AdminUpdateInput = z.infer<typeof adminUpdateSchema>;
