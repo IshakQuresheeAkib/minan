@@ -10,7 +10,7 @@ import {
   quoteProducts,
   type ProductSortOption,
 } from "../services/products.service.js";
-import { serializeProduct } from "../utils/serializeProduct.js";
+import { serializeProductDetail } from "../utils/serializeProduct.js";
 
 function getQueryValues(value: Request["query"][string]): string[] {
   if (typeof value === "string") {
@@ -191,7 +191,7 @@ export async function getProductBySlugHandler(
       return;
     }
 
-    res.json({ data: serializeProduct(product) });
+    res.json({ data: serializeProductDetail(product) });
   } catch (error) {
     next(error);
   }

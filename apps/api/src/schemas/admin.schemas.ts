@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { slugify } from "../lib/slugify.js";
+import { MAX_PRODUCT_DESCRIPTION_LENGTH } from "../utils/productDescription.js";
 
 const leadStatusSchema = z.enum(["pending", "confirmed", "cancelled"]);
 
@@ -30,24 +31,41 @@ const managedBannerImageUrlSchema = z
     return url.protocol === "https:" && url.hostname === "res.cloudinary.com";
   }, "Banner image must be a secure Cloudinary URL");
 
-export const productCreateSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  slug: slugStringSchema.optional(),
-  description: z.string().trim().min(1, "Description is required"),
-  price: z.number().min(0, "Price must be at least 0"),
-  discount: discountSchema.default(0),
-  category_id: z.string().trim().min(1, "Category is required"),
-  subcategory_id: z.string().trim().min(1).nullable().optional(),
-  sizes: z.array(z.string().trim().min(1)).default([]),
-  colors: z.array(z.string().trim().min(1)).default([]),
-  images: z.array(z.url("Each image must be a valid URL")).default([]),
-});
+const productDescriptionSchema = z
+  .string()
+  .trim()
+  .min(1, "Description is required")
+  .max(
+    MAX_PRODUCT_DESCRIPTION_LENGTH,
+    "Description is too long",
+  );
+
+export const productCreateSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required"),
+    slug: slugStringSchema.optional(),
+    description: productDescriptionSchema.optional(),
+    description_html: productDescriptionSchema.optional(),
+    price: z.number().min(0, "Price must be at least 0"),
+    discount: discountSchema.default(0),
+    category_id: z.string().trim().min(1, "Category is required"),
+    subcategory_id: z.string().trim().min(1).nullable().optional(),
+    sizes: z.array(z.string().trim().min(1)).default([]),
+    colors: z.array(z.string().trim().min(1)).default([]),
+    images: z.array(z.url("Each image must be a valid URL")).default([]),
+  })
+  .refine(
+    (value) =>
+      value.description !== undefined || value.description_html !== undefined,
+    { message: "Description is required", path: ["description_html"] },
+  );
 
 export const productUpdateSchema = z
   .object({
     name: z.string().trim().min(1).optional(),
     slug: slugStringSchema.optional(),
-    description: z.string().trim().min(1).optional(),
+    description: productDescriptionSchema.optional(),
+    description_html: productDescriptionSchema.optional(),
     price: z.number().min(0).optional(),
     discount: discountSchema.optional(),
     category_id: z.string().trim().min(1).optional(),

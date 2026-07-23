@@ -1,7 +1,6 @@
 "use client";
 
 import { Search } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -14,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
+import { ProductDetailsLink } from "@/features/products/components/ProductDetailsLink";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import type { Product } from "@/features/products/schemas/product.schema";
 import { getProducts } from "@/features/products/services/product.service";
@@ -288,7 +288,7 @@ export function SearchBar({
           {!loading &&
             !error &&
             results.map((product) => (
-              <Link
+              <ProductDetailsLink
                 key={product._id}
                 href={`/products/${product.slug}`}
                 role="option"
@@ -311,7 +311,7 @@ export function SearchBar({
                   showOriginalPrice={false}
                   size="sm"
                 />
-              </Link>
+              </ProductDetailsLink>
             ))}
         </div>
       )}

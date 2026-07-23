@@ -5,7 +5,10 @@ import {
   homeBannerCreateSchema,
   homeBannerReorderSchema,
   homeBannerUpdateSchema,
+  productCreateSchema,
+  productUpdateSchema,
 } from "./admin.schemas.js";
+import { MAX_PRODUCT_DESCRIPTION_LENGTH } from "../utils/productDescription.js";
 
 const cloudinaryUrl =
   "https://res.cloudinary.com/minan/image/upload/v1/minan/admin/banner.webp";
@@ -67,5 +70,55 @@ describe("home banner validation", () => {
     await expect(six.validate()).rejects.toMatchObject({
       errors: { banners: expect.anything() },
     });
+  });
+});
+
+describe("product description validation", () => {
+  const baseProduct = {
+    name: "Linen Shirt",
+    price: 1200,
+    discount: 0,
+    category_id: "507f1f77bcf86cd799439011",
+    sizes: [],
+    colors: [],
+    images: [],
+  };
+
+  it("accepts either legacy plain text or rich HTML on create", () => {
+    expect(
+      productCreateSchema.safeParse({
+        ...baseProduct,
+        description: "Plain description",
+      }).success,
+    ).toBe(true);
+    expect(
+      productCreateSchema.safeParse({
+        ...baseProduct,
+        description_html: "<p>Rich description</p>",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("requires a description on create", () => {
+    expect(productCreateSchema.safeParse(baseProduct).success).toBe(false);
+  });
+
+  it("accepts a rich-description-only update", () => {
+    expect(
+      productUpdateSchema.safeParse({
+        description_html: "<p>Updated description</p>",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects oversized rich descriptions", () => {
+    expect(
+      productCreateSchema.safeParse({
+        ...baseProduct,
+        description_html: "x".repeat(
+          MAX_PRODUCT_DESCRIPTION_LENGTH + 1,
+        ),
+      }).success,
+    ).toBe(false);
   });
 });

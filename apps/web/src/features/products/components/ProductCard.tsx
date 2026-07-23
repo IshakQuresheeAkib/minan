@@ -2,6 +2,7 @@ import { ArrowRight, ShoppingCart, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { ProductDetailsLink } from "@/features/products/components/ProductDetailsLink";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 
 export type ProductCardData = {
@@ -40,7 +41,7 @@ export function ProductCard({
     <article className={productCardShellClassName}>
       <div className="relative aspect-square w-full overflow-hidden bg-secondary/15">
         {product.imageUrl && !wholeCardCta ? (
-          <Link
+          <ProductDetailsLink
             href={productHref}
             aria-label={`View ${product.name}`}
             className="group/image absolute inset-0 cursor-pointer focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/60 focus-visible:outline-none"
@@ -53,7 +54,7 @@ export function ProductCard({
               sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
               className="object-cover object-top transition-transform duration-500 ease-out motion-safe:group-hover/image:scale-[1.035]"
             />
-          </Link>
+          </ProductDetailsLink>
         ) : product.imageUrl ? (
           <Image
             src={product.imageUrl}
@@ -82,12 +83,12 @@ export function ProductCard({
           {wholeCardCta ? (
             product.name
           ) : (
-            <Link
+            <ProductDetailsLink
               href={productHref}
               className="cursor-pointer transition-colors duration-200 hover:text-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
             >
               {product.name}
-            </Link>
+            </ProductDetailsLink>
           )}
         </h3>
 
@@ -108,14 +109,14 @@ export function ProductCard({
             />
 
             {!wholeCardCta ? (
-              <Link
+              <ProductDetailsLink
                 href={productHref}
                 aria-label={`Choose options for ${product.name}`}
                 title="Choose options"
                 className="flex size-8 sm:size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
               >
                 <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
-              </Link>
+              </ProductDetailsLink>
             ) : <p aria-hidden className=" size-8 sm:size-10 invisible"/>}
           </div>
         </div>

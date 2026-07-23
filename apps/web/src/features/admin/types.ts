@@ -18,6 +18,7 @@ export type AdminProduct = {
   name: string;
   slug: string;
   description: string;
+  description_html: string | null;
   price: number;
   discount: number;
   discounted_price: number;
