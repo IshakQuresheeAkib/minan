@@ -7,15 +7,12 @@ export default function PublicLoading() {
     >
       <span className="sr-only">Loading page</span>
 
-      <div
-        aria-hidden="true"
-        className="motion-safe:animate-pulse motion-reduce:animate-none"
-      >
+      <div aria-hidden="true">
         <div className="mb-8 max-w-2xl space-y-3">
-          <div className="h-3 w-24 rounded-full bg-primary/35" />
-          <div className="h-9 w-48 rounded-lg bg-background" />
-          <div className="h-4 w-full rounded bg-background" />
-          <div className="h-4 w-4/5 rounded bg-background" />
+          <div className="minan-skeleton h-3 w-24 rounded-full" />
+          <div className="minan-skeleton h-9 w-48 rounded-lg" />
+          <div className="minan-skeleton h-4 w-full rounded" />
+          <div className="minan-skeleton h-4 w-4/5 rounded" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -23,23 +20,23 @@ export default function PublicLoading() {
             {Array.from({ length: 3 }, (_, index) => (
               <div
                 key={index}
-                className="grid grid-cols-[88px_1fr] gap-4 rounded-2xl border border-secondary bg-background p-3 sm:grid-cols-[104px_1fr]"
+                className="grid grid-cols-[88px_1fr] gap-4 rounded-2xl border border-foreground/10 bg-background p-3 sm:grid-cols-[104px_1fr]"
               >
-                <div className="aspect-square rounded-xl bg-background" />
+                <div className="minan-skeleton aspect-square rounded-xl" />
                 <div className="space-y-3 py-2">
-                  <div className="h-5 w-3/4 rounded bg-background" />
-                  <div className="h-4 w-1/2 rounded bg-background" />
-                  <div className="h-4 w-1/3 rounded bg-background" />
+                  <div className="minan-skeleton h-5 w-3/4 rounded" />
+                  <div className="minan-skeleton h-4 w-1/2 rounded" />
+                  <div className="minan-skeleton h-4 w-1/3 rounded" />
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="h-fit rounded-2xl border border-secondary bg-background p-5">
-            <div className="h-6 w-36 rounded bg-background" />
-            <div className="mt-5 h-4 w-full rounded bg-background" />
-            <div className="mt-3 h-4 w-3/4 rounded bg-background" />
-            <div className="mt-6 h-12 w-full rounded-full bg-foreground/15" />
+          <div className="h-fit rounded-2xl border border-foreground/10 bg-background p-5">
+            <div className="minan-skeleton h-6 w-36 rounded" />
+            <div className="minan-skeleton mt-5 h-4 w-full rounded" />
+            <div className="minan-skeleton mt-3 h-4 w-3/4 rounded" />
+            <div className="minan-skeleton mt-6 h-12 w-full rounded-full" />
           </div>
         </div>
       </div>

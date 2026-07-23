@@ -74,30 +74,30 @@ export function CheckoutClient() {
     return (
       <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
         <div>
-          <div className="h-9 w-36 animate-pulse rounded-md bg-background" />
-          <div className="mt-3 h-5 w-full max-w-xl animate-pulse rounded-md bg-background" />
+          <div className="minan-skeleton h-9 w-36 rounded-md" />
+          <div className="minan-skeleton mt-3 h-5 w-full max-w-xl rounded-md" />
           <div className="mt-8 grid gap-5">
             {[0, 1, 2, 3].map((item) => (
               <div
                 key={item}
-                className="h-12 animate-pulse rounded-md bg-background"
+                className="minan-skeleton h-12 rounded-md"
               />
             ))}
-            <div className="h-28 animate-pulse rounded-md bg-background" />
+            <div className="minan-skeleton h-28 rounded-md" />
           </div>
         </div>
 
-        <aside className="h-fit rounded-lg border bg-background p-5 shadow-sm">
-          <div className="h-6 w-36 animate-pulse rounded-md bg-background" />
+        <aside className="h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm">
+          <div className="minan-skeleton h-6 w-36 rounded-md" />
           <div className="mt-5 grid gap-4">
             {[0, 1].map((item) => (
               <div key={item} className="flex justify-between gap-4">
-                <div className="h-10 flex-1 animate-pulse rounded-md bg-background" />
-                <div className="h-5 w-20 animate-pulse rounded-md bg-background" />
+                <div className="minan-skeleton h-10 flex-1 rounded-md" />
+                <div className="minan-skeleton h-5 w-20 rounded-md" />
               </div>
             ))}
           </div>
-          <div className="mt-5 h-5 w-full animate-pulse rounded-md bg-background" />
+          <div className="minan-skeleton mt-5 h-5 w-full rounded-md" />
         </aside>
       </section>
     );

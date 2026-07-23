@@ -10,13 +10,13 @@ export function ProductGridSkeleton() {
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
         <div
           key={index}
-          className={`animate-pulse rounded-2xl border border-secondary bg-background p-3 ${
+          className={`rounded-2xl border border-foreground/10 bg-background p-3 ${
             index > 5 ? "hidden xl:block" : ""
           }`}
         >
-          <div className="mb-3 aspect-4/5 rounded-xl bg-background" />
-          <div className="mb-2 h-4 w-3/4 rounded bg-background" />
-          <div className="h-3 w-1/2 rounded bg-background" />
+          <div className="minan-skeleton mb-3 aspect-4/5 rounded-xl" />
+          <div className="minan-skeleton mb-2 h-4 w-3/4 rounded" />
+          <div className="minan-skeleton h-3 w-1/2 rounded" />
         </div>
       ))}
     </div>

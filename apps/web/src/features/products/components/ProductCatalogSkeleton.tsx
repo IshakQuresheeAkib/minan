@@ -14,22 +14,22 @@ export function ProductCatalogSkeleton() {
       className="grid gap-6 lg:grid-cols-[280px_1fr]"
     >
       <aside className="hidden lg:block">
-        <div className="sticky top-24 space-y-6 rounded-2xl border border-secondary/80 bg-background/80 p-4 shadow-[0_16px_48px_rgba(151,72,34,0.08)]">
+        <div className="sticky top-24 space-y-6 rounded-2xl border border-foreground/10 bg-background/80 p-4 shadow-[0_16px_48px_rgba(15,23,42,0.06)]">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-2">
-              <div className="h-5 w-20 animate-pulse rounded bg-background" />
-              <div className="h-3 w-28 animate-pulse rounded bg-background" />
+              <div className="minan-skeleton h-5 w-20 rounded" />
+              <div className="minan-skeleton h-3 w-28 rounded" />
             </div>
-            <div className="size-9 animate-pulse rounded-full bg-background" />
+            <div className="minan-skeleton size-9 rounded-full" />
           </div>
 
           {FILTER_GROUPS.map((group) => (
             <div
               key={group.titleWidth}
-              className="space-y-3 border-t border-secondary/70 pt-4"
+              className="space-y-3 border-t border-foreground/10 pt-4"
             >
               <div
-                className={`h-4 animate-pulse rounded bg-background ${group.titleWidth}`}
+                className={`minan-skeleton h-4 rounded ${group.titleWidth}`}
               />
               <div className="space-y-3">
                 {group.rows.map((rowWidth, index) => (
@@ -38,9 +38,9 @@ export function ProductCatalogSkeleton() {
                     className="flex items-center justify-between gap-3"
                   >
                     <div
-                      className={`h-4 animate-pulse rounded bg-background ${rowWidth}`}
+                      className={`minan-skeleton h-4 rounded ${rowWidth}`}
                     />
-                    <div className="size-5 animate-pulse rounded bg-background" />
+                    <div className="minan-skeleton size-5 rounded" />
                   </div>
                 ))}
               </div>
@@ -50,14 +50,14 @@ export function ProductCatalogSkeleton() {
       </aside>
 
       <div className="min-w-0">
-        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-secondary/80 bg-background/80 p-3 shadow-[0_12px_36px_rgba(151,72,34,0.06)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-background/80 p-3 shadow-[0_12px_36px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-2">
-            <div className="h-4 w-24 animate-pulse rounded bg-background" />
-            <div className="h-3 w-40 animate-pulse rounded bg-background" />
+            <div className="minan-skeleton h-4 w-24 rounded" />
+            <div className="minan-skeleton h-3 w-40 rounded" />
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-10 w-24 animate-pulse rounded-full bg-background lg:hidden" />
-            <div className="h-10 w-44 animate-pulse rounded-full bg-background" />
+            <div className="minan-skeleton h-10 w-24 rounded-full lg:hidden" />
+            <div className="minan-skeleton h-10 w-44 rounded-full" />
           </div>
         </div>
 

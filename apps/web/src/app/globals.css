@@ -25,6 +25,8 @@
   --primary: #f5b836;
   --secondary: #fed65b;
   --destructive: #de0c09;
+  --skeleton: #e7e9ec;
+  --skeleton-highlight: rgba(255, 255, 255, 0.72);
 }
 
 .dark {
@@ -34,6 +36,8 @@
   --primary: #ffb597;
   --secondary: #574500;
   --destructive: #ffb4ab;
+  --skeleton: #303234;
+  --skeleton-highlight: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -120,6 +124,30 @@
   .minan-rich-text-editor[contenteditable="false"] {
     cursor: not-allowed;
   }
+
+  .minan-skeleton {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: var(--skeleton);
+  }
+
+  .minan-skeleton::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--skeleton-highlight) 50%,
+      transparent 100%
+    );
+    content: "";
+    pointer-events: none;
+    transform: translateX(-100%);
+    will-change: transform;
+    animation: minan-skeleton-shimmer 1.8s ease-in-out infinite;
+  }
 }
 
 @keyframes hero-dot-progress {
@@ -139,5 +167,12 @@
 
   to {
     transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minan-skeleton::after {
+    display: none;
+    animation: none;
   }
 }

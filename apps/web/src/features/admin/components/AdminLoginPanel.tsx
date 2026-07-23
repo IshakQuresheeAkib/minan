@@ -7,7 +7,7 @@ import { LoginForm } from "@/features/admin/components/LoginForm";
 function LoginFormFallback() {
   return (
     <div
-      className="mt-6 h-40 animate-pulse rounded-md bg-background"
+      className="minan-skeleton mt-6 h-40 rounded-md"
       aria-hidden
     />
   );
