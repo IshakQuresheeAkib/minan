@@ -19,7 +19,9 @@ function escapeHtml(value: string): string {
 }
 
 export function plainTextToRichDescription(value: string): string {
-  const escapedText = escapeHtml(value.replace(/\r\n?/gu, "\n"));
+  const lines = value.replace(/\r\n?/gu, "\n").split("\n");
 
-  return `<p>${escapedText.replace(/\n/gu, "<br>")}</p>`;
+  return lines
+    .map((line) => `<p>${line ? escapeHtml(line) : "<br>"}</p>`)
+    .join("");
 }

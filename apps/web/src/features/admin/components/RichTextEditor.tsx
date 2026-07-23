@@ -36,14 +36,18 @@ type ToolbarButtonProps = {
   disabled?: boolean;
   label: string;
   onClick: () => void;
+  shortcut?: string;
+  shortcutLabel?: string;
 };
 
 function ToolbarButton({
-  active = false,
+  active,
   children,
   disabled = false,
   label,
   onClick,
+  shortcut,
+  shortcutLabel,
 }: ToolbarButtonProps) {
   return (
     <Button
@@ -52,11 +56,12 @@ function ToolbarButton({
       size="icon"
       aria-label={label}
       aria-pressed={active}
+      aria-keyshortcuts={shortcut}
       disabled={disabled}
-      title={label}
+      title={shortcutLabel ? `${label} (${shortcutLabel})` : label}
       className={cn(
-        "size-9 rounded-lg border-transparent bg-transparent p-0 text-foreground/70 shadow-none transition-colors duration-200 hover:bg-primary/15 hover:text-foreground hover:shadow-none",
-        active && "border-primary/35 bg-primary/20 text-foreground",
+        "size-8 shrink-0 rounded-md border-transparent bg-transparent p-0 text-foreground/65 shadow-none transition-colors duration-200 hover:bg-primary/15 hover:text-foreground hover:shadow-none focus-visible:ring-2",
+        active && "border-primary/40 bg-primary/20 text-foreground",
       )}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
@@ -103,10 +108,12 @@ export const RichTextEditor = forwardRef<
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: "minan-rich-text minan-rich-text-editor",
+        class:
+          "minan-rich-text minan-rich-text-editor selection:bg-primary/30",
         role: "textbox",
         "aria-label": "Product description",
         "aria-multiline": "true",
+        "aria-disabled": disabled ? "true" : "false",
         "aria-invalid": isInvalid ? "true" : "false",
         ...(ariaDescribedBy
           ? { "aria-describedby": ariaDescribedBy }
@@ -154,9 +161,10 @@ export const RichTextEditor = forwardRef<
       ref={forwardedRef}
       tabIndex={-1}
       className={cn(
-        "overflow-hidden rounded-xl border border-secondary bg-background transition-shadow focus-within:ring-2 focus-within:ring-primary/35",
-        isInvalid && "border-destructive",
-        disabled && "opacity-60",
+        "overflow-hidden rounded-lg border border-secondary/80 bg-background transition-[border-color,box-shadow] duration-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/25",
+        isInvalid &&
+          "border-destructive focus-within:border-destructive focus-within:ring-destructive/20",
+        disabled && "bg-secondary/5 opacity-60",
         className,
       )}
       onFocus={(event) => {
@@ -169,74 +177,107 @@ export const RichTextEditor = forwardRef<
       <div
         role="toolbar"
         aria-label="Description formatting"
-        className="flex min-h-12 flex-wrap items-center gap-1 border-b border-secondary/70 bg-secondary/10 px-2 py-1.5"
+        aria-orientation="horizontal"
+        className="flex min-h-11 items-center gap-1 overflow-x-auto border-b border-secondary/70 bg-secondary/10 p-1.5"
       >
-        <ToolbarButton
-          active={editorState?.bold}
-          disabled={editorUnavailable}
-          label="Bold"
-          onClick={() => {
-            editor?.chain().focus().toggleBold().run();
-          }}
+        <div
+          role="group"
+          aria-label="Text style"
+          className="flex items-center gap-1"
         >
-          <Bold className="size-4" aria-hidden="true" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editorState?.italic}
-          disabled={editorUnavailable}
-          label="Italic"
-          onClick={() => {
-            editor?.chain().focus().toggleItalic().run();
-          }}
-        >
-          <Italic className="size-4" aria-hidden="true" />
-        </ToolbarButton>
+          <ToolbarButton
+            active={editorState?.bold}
+            disabled={editorUnavailable}
+            label="Bold"
+            shortcut="Control+b Meta+b"
+            shortcutLabel="Ctrl+B"
+            onClick={() => {
+              editor?.chain().focus().toggleBold().run();
+            }}
+          >
+            <Bold className="size-4" aria-hidden="true" />
+          </ToolbarButton>
+          <ToolbarButton
+            active={editorState?.italic}
+            disabled={editorUnavailable}
+            label="Italic"
+            shortcut="Control+i Meta+i"
+            shortcutLabel="Ctrl+I"
+            onClick={() => {
+              editor?.chain().focus().toggleItalic().run();
+            }}
+          >
+            <Italic className="size-4" aria-hidden="true" />
+          </ToolbarButton>
+        </div>
         <span
-          aria-hidden="true"
-          className="mx-1 h-6 w-px bg-secondary"
+          role="separator"
+          aria-orientation="vertical"
+          className="mx-0.5 h-5 w-px shrink-0 bg-secondary/80"
         />
-        <ToolbarButton
-          active={editorState?.bulletList}
-          disabled={editorUnavailable}
-          label="Bullet list"
-          onClick={() => {
-            editor?.chain().focus().toggleBulletList().run();
-          }}
+        <div
+          role="group"
+          aria-label="Lists"
+          className="flex items-center gap-1"
         >
-          <List className="size-4" aria-hidden="true" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editorState?.orderedList}
-          disabled={editorUnavailable}
-          label="Numbered list"
-          onClick={() => {
-            editor?.chain().focus().toggleOrderedList().run();
-          }}
-        >
-          <ListOrdered className="size-4" aria-hidden="true" />
-        </ToolbarButton>
+          <ToolbarButton
+            active={editorState?.bulletList}
+            disabled={editorUnavailable}
+            label="Bulleted list"
+            shortcut="Control+Shift+8 Meta+Shift+8"
+            shortcutLabel="Ctrl+Shift+8"
+            onClick={() => {
+              editor?.chain().focus().toggleBulletList().run();
+            }}
+          >
+            <List className="size-4" aria-hidden="true" />
+          </ToolbarButton>
+          <ToolbarButton
+            active={editorState?.orderedList}
+            disabled={editorUnavailable}
+            label="Numbered list"
+            shortcut="Control+Shift+7 Meta+Shift+7"
+            shortcutLabel="Ctrl+Shift+7"
+            onClick={() => {
+              editor?.chain().focus().toggleOrderedList().run();
+            }}
+          >
+            <ListOrdered className="size-4" aria-hidden="true" />
+          </ToolbarButton>
+        </div>
         <span
-          aria-hidden="true"
-          className="mx-1 h-6 w-px bg-secondary"
+          role="separator"
+          aria-orientation="vertical"
+          className="mx-0.5 h-5 w-px shrink-0 bg-secondary/80"
         />
-        <ToolbarButton
-          disabled={editorUnavailable || !editorState?.canUndo}
-          label="Undo"
-          onClick={() => {
-            editor?.chain().focus().undo().run();
-          }}
+        <div
+          role="group"
+          aria-label="History"
+          className="ml-auto flex items-center gap-1"
         >
-          <Undo2 className="size-4" aria-hidden="true" />
-        </ToolbarButton>
-        <ToolbarButton
-          disabled={editorUnavailable || !editorState?.canRedo}
-          label="Redo"
-          onClick={() => {
-            editor?.chain().focus().redo().run();
-          }}
-        >
-          <Redo2 className="size-4" aria-hidden="true" />
-        </ToolbarButton>
+          <ToolbarButton
+            disabled={editorUnavailable || !editorState?.canUndo}
+            label="Undo"
+            shortcut="Control+z Meta+z"
+            shortcutLabel="Ctrl+Z"
+            onClick={() => {
+              editor?.chain().focus().undo().run();
+            }}
+          >
+            <Undo2 className="size-4" aria-hidden="true" />
+          </ToolbarButton>
+          <ToolbarButton
+            disabled={editorUnavailable || !editorState?.canRedo}
+            label="Redo"
+            shortcut="Control+Shift+z Meta+Shift+z"
+            shortcutLabel="Ctrl+Shift+Z"
+            onClick={() => {
+              editor?.chain().focus().redo().run();
+            }}
+          >
+            <Redo2 className="size-4" aria-hidden="true" />
+          </ToolbarButton>
+        </div>
       </div>
 
       <EditorContent editor={editor} />
