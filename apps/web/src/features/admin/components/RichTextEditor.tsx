@@ -1,6 +1,10 @@
 "use client";
 
-import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
+import {
+  EditorContent,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
   Bold,
@@ -18,6 +22,7 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { toggleListAtSelection } from "@/features/admin/components/rich-text-list";
 import { cn } from "@/lib/utils";
 
 type RichTextEditorProps = Omit<
@@ -227,7 +232,10 @@ export const RichTextEditor = forwardRef<
             shortcut="Control+Shift+8 Meta+Shift+8"
             shortcutLabel="Ctrl+Shift+8"
             onClick={() => {
-              editor?.chain().focus().toggleBulletList().run();
+              if (editor) {
+                editor.commands.focus();
+                toggleListAtSelection(editor, "bulletList");
+              }
             }}
           >
             <List className="size-4" aria-hidden="true" />
@@ -239,7 +247,10 @@ export const RichTextEditor = forwardRef<
             shortcut="Control+Shift+7 Meta+Shift+7"
             shortcutLabel="Ctrl+Shift+7"
             onClick={() => {
-              editor?.chain().focus().toggleOrderedList().run();
+              if (editor) {
+                editor.commands.focus();
+                toggleListAtSelection(editor, "orderedList");
+              }
             }}
           >
             <ListOrdered className="size-4" aria-hidden="true" />
