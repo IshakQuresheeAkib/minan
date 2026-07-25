@@ -260,11 +260,17 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
               </h2>
 
               <ProductPrice
-                className="mb-6 lg:hidden"
+                className={hasDiscount ? "mb-3 lg:hidden" : "mb-6 lg:hidden"}
                 price={product.discounted_price}
                 originalPrice={product.price}
                 discount={product.discount}
               />
+              {hasDiscount ? (
+                <p className="mb-6 flex w-fit items-center gap-1 rounded-full border border-primary/25 bg-primary/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase lg:hidden">
+                  <Tag className="size-3" aria-hidden="true" />
+                  Save Tk {savings.toLocaleString("en-BD")} · {discount}% off
+                </p>
+              ) : null}
 
               <div className="mb-4 flex items-center justify-end lg:justify-start">
                 <SizeGuideModal />
