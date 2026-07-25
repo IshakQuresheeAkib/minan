@@ -12,6 +12,7 @@ import {
 import { fetchAdminCategories } from "@/features/admin/actions/categories.actions";
 import { fetchAdminSubcategories } from "@/features/admin/actions/subcategories.actions";
 import { ImageUploader } from "@/features/admin/components/ImageUploader";
+import { RichTextEditor } from "@/features/admin/components/RichTextEditor";
 import {
   adminProductFormSchema,
   parseCommaList,
@@ -41,7 +42,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -50,6 +50,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
+import { plainTextToRichDescription } from "@/lib/productDescription";
 
 type ProductFormProps = {
   accessToken: string;
@@ -97,7 +98,9 @@ function ProductFormFields({
     defaultValues: {
       name: product?.name ?? "",
       slug: product?.slug ?? "",
-      description: product?.description ?? "",
+      description:
+        product?.description_html ??
+        plainTextToRichDescription(product?.description ?? ""),
       price: product?.price ?? 0,
       discount: product?.discount ?? 0,
       category_id: product?.category_id ?? "",
@@ -182,7 +185,7 @@ function ProductFormFields({
     const payload = {
       name: values.name,
       slug: values.slug?.trim() ? values.slug.trim() : undefined,
-      description: values.description,
+      description_html: values.description,
       price: values.price,
       discount: values.discount,
       category_id: values.category_id,
@@ -263,8 +266,17 @@ function ProductFormFields({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea rows={3} {...field} />
+                <RichTextEditor
+                  disabled={saving}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                />
               </FormControl>
+              <FormDescription>
+                Use the toolbar for bold text and lists. Enter starts a new
+                paragraph; Shift+Enter adds a line break.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

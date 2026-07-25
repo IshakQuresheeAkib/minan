@@ -3,10 +3,12 @@ import type { ProductDocument } from "../models/Product.js";
 import type { SubcategoryDocument } from "../models/Subcategory.js";
 import type {
   ProductCategorySummary,
+  ProductDetail,
   ProductResponse,
   ProductSubcategorySummary,
 } from "../types/product.types.js";
 import { calculateDiscountedPrice } from "./calculateDiscountedPrice.js";
+import { sanitizeProductDescriptionHtml } from "./productDescription.js";
 
 function isPopulatedCategory(
   value: ProductDocument["category_id"],
@@ -105,5 +107,16 @@ export function serializeProduct(product: ProductDocument): ProductResponse {
     is_active: product.is_active,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
+  };
+}
+
+export function serializeProductDetail(
+  product: ProductDocument,
+): ProductDetail {
+  return {
+    ...serializeProduct(product),
+    description_html: sanitizeProductDescriptionHtml(
+      product.description_html,
+    ),
   };
 }

@@ -39,29 +39,29 @@ export function CartPageContent() {
     return (
       <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
         <div>
-          <div className="h-9 w-24 animate-pulse rounded-md bg-background" />
+          <div className="minan-skeleton h-9 w-24 rounded-md" />
           <div className="mt-6 grid gap-4">
             {[0, 1].map((item) => (
               <div
                 key={item}
-                className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-background p-3 shadow-sm sm:grid-cols-[104px_1fr_auto]"
+                className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border border-foreground/10 bg-background p-3 shadow-sm sm:grid-cols-[104px_1fr_auto]"
               >
-                <div className="aspect-square animate-pulse rounded-md bg-background" />
+                <div className="minan-skeleton aspect-square rounded-md" />
                 <div className="space-y-3 py-1">
-                  <div className="h-5 w-3/4 animate-pulse rounded-md bg-background" />
-                  <div className="h-4 w-32 animate-pulse rounded-md bg-background" />
-                  <div className="h-4 w-24 animate-pulse rounded-md bg-background" />
+                  <div className="minan-skeleton h-5 w-3/4 rounded-md" />
+                  <div className="minan-skeleton h-4 w-32 rounded-md" />
+                  <div className="minan-skeleton h-4 w-24 rounded-md" />
                 </div>
-                <div className="col-span-2 h-10 animate-pulse rounded-md bg-background sm:col-span-1 sm:w-28" />
+                <div className="minan-skeleton col-span-2 h-10 rounded-md sm:col-span-1 sm:w-28" />
               </div>
             ))}
           </div>
         </div>
 
-        <aside className="h-fit rounded-lg border bg-background p-5 shadow-sm">
-          <div className="h-6 w-36 animate-pulse rounded-md bg-background" />
-          <div className="mt-5 h-4 w-full animate-pulse rounded-md bg-background" />
-          <div className="mt-5 h-11 w-full animate-pulse rounded-md bg-background" />
+        <aside className="h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm">
+          <div className="minan-skeleton h-6 w-36 rounded-md" />
+          <div className="minan-skeleton mt-5 h-4 w-full rounded-md" />
+          <div className="minan-skeleton mt-5 h-11 w-full rounded-md" />
         </aside>
       </section>
     );

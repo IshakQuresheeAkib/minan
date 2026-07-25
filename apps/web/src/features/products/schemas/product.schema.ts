@@ -30,6 +30,11 @@ export const productSchema = z.object({
   updatedAt: z.string(),
 });
 
+export const productDetailSchema = productSchema.extend({
+  description_html: z.string().nullable(),
+});
+
 export type ProductCategory = z.infer<typeof productCategorySchema>;
 export type ProductSubcategory = z.infer<typeof productSubcategorySchema>;
 export type Product = z.infer<typeof productSchema>;
+export type ProductDetail = z.infer<typeof productDetailSchema>;

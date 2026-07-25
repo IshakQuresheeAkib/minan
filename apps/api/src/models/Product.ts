@@ -7,6 +7,7 @@ export interface ProductDocument extends Document {
   name: string;
   slug: string;
   description: string;
+  description_html: string | null;
   price: number;
   discount: number;
   category_id: Types.ObjectId | CategoryDocument;
@@ -30,6 +31,7 @@ const productSchema = new Schema<ProductDocument>(
       trim: true,
     },
     description: { type: String, required: true, trim: true },
+    description_html: { type: String, default: null },
     price: { type: Number, required: true, min: 0 },
     discount: {
       type: Number,

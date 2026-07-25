@@ -236,8 +236,8 @@ export function AdminHomeBanners() {
   if (loading) {
     return (
       <div className="space-y-6" aria-busy="true">
-        <div className="h-10 w-64 animate-pulse rounded-md bg-foreground/10" />
-        <div className="h-72 animate-pulse rounded-xl border bg-foreground/5" />
+        <div className="minan-skeleton h-10 w-64 rounded-md" />
+        <div className="minan-skeleton h-72 rounded-xl border border-foreground/10" />
       </div>
     );
   }

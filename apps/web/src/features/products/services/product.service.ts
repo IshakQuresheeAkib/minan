@@ -1,8 +1,10 @@
 import { ApiError, apiRequest } from "@/lib/api/client";
 import type { ApiList } from "@/types/api.types";
 import {
+  productDetailSchema,
   productSchema,
   type Product,
+  type ProductDetail,
 } from "@/features/products/schemas/product.schema";
 import type { ProductCardData } from "@/features/products/components/ProductCard";
 import { sortCategories } from "@/lib/catalog/category-order";
@@ -204,12 +206,14 @@ export async function getProductPriceQuote(
   return productQuoteResponseSchema.parse(response).data;
 }
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+export async function getProductBySlug(
+  slug: string,
+): Promise<ProductDetail | null> {
   try {
-    const response = await apiRequest<{ data: Product }>(
+    const response = await apiRequest<{ data: ProductDetail }>(
       `/api/products/${encodeURIComponent(slug)}`,
     );
-    return productSchema.parse(response.data);
+    return productDetailSchema.parse(response.data);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return null;

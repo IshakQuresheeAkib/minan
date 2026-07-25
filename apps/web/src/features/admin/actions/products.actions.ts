@@ -64,7 +64,7 @@ export async function createAdminProduct(
   body: {
     name: string;
     slug?: string;
-    description: string;
+    description_html: string;
     price: number;
     discount: number;
     category_id: string;
@@ -87,7 +87,7 @@ export async function updateAdminProduct(
   body: Partial<{
     name: string;
     slug: string;
-    description: string;
+    description_html: string;
     price: number;
     discount: number;
     category_id: string;

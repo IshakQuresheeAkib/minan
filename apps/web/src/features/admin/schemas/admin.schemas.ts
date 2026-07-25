@@ -1,9 +1,17 @@
 import { z } from "zod";
 
+import {
+  hasRichDescriptionContent,
+  MAX_PRODUCT_DESCRIPTION_LENGTH,
+} from "@/lib/productDescription";
+
 export const adminProductFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   slug: z.string().trim().optional(),
-  description: z.string().trim().min(1, "Description is required"),
+  description: z
+    .string()
+    .max(MAX_PRODUCT_DESCRIPTION_LENGTH, "Description is too long")
+    .refine(hasRichDescriptionContent, "Description is required"),
   price: z.number().min(0, "Price must be at least 0"),
   discount: z
     .number()

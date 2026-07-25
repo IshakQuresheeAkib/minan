@@ -11,8 +11,12 @@ import type {
   ProductCreateInput,
   ProductUpdateInput,
 } from "../schemas/admin.schemas.js";
-import type { ProductListResponse } from "../types/product.types.js";
-import { serializeProduct } from "../utils/serializeProduct.js";
+import type {
+  ProductDetail,
+  ProductListResponse,
+} from "../types/product.types.js";
+import { normalizeProductDescription } from "../utils/productDescription.js";
+import { serializeProductDetail } from "../utils/serializeProduct.js";
 import { cleanupRemovedManagedImages } from "./adminMediaCleanup.service.js";
 
 export type AdminProductStatusFilter = "all" | "active" | "inactive";
@@ -124,7 +128,7 @@ export async function listAdminProducts(options: {
   limit: number;
   skip: number;
   filters?: AdminProductFilterOptions;
-}): Promise<ProductListResponse & { page: number; limit: number }> {
+}): Promise<Omit<ProductListResponse, "data"> & { data: ProductDetail[] }> {
   const filter: ProductFilter = {};
   const status = options.filters?.status ?? "all";
 
@@ -173,7 +177,7 @@ export async function listAdminProducts(options: {
   ]);
 
   return {
-    data: products.map(serializeProduct),
+    data: products.map(serializeProductDetail),
     total,
     page: options.page,
     limit: options.limit,
@@ -194,12 +198,13 @@ export async function createAdminProduct(input: ProductCreateInput) {
   }
 
   const slug = await resolveUniqueSlug(baseSlug);
+  const normalizedDescription = normalizeProductDescription(input);
 
   try {
     const product = await Product.create({
       name: input.name,
       slug,
-      description: input.description,
+      ...normalizedDescription,
       price: input.price,
       discount: input.discount,
       category_id: categoryId,
@@ -211,7 +216,7 @@ export async function createAdminProduct(input: ProductCreateInput) {
     });
 
     await product.populate(["category_id", "subcategory_id"]);
-    const serializedProduct = serializeProduct(product);
+    const serializedProduct = serializeProductDetail(product);
     await revalidateStorefront();
     return serializedProduct;
   } catch (error) {
@@ -276,8 +281,13 @@ export async function updateAdminProduct(
     product.slug = await resolveUniqueSlug(baseSlug, id);
   }
 
-  if (input.description !== undefined) {
-    product.description = input.description;
+  if (
+    input.description !== undefined ||
+    input.description_html !== undefined
+  ) {
+    const normalizedDescription = normalizeProductDescription(input);
+    product.description = normalizedDescription.description;
+    product.description_html = normalizedDescription.description_html;
   }
 
   if (input.price !== undefined) {
@@ -307,7 +317,7 @@ export async function updateAdminProduct(
   try {
     await product.save();
     await product.populate(["category_id", "subcategory_id"]);
-    const serializedProduct = serializeProduct(product);
+    const serializedProduct = serializeProductDetail(product);
     await revalidateStorefront();
     await cleanupRemovedManagedImages({
       previousUrls: previousImages,
@@ -332,7 +342,7 @@ export async function deactivateAdminProduct(id: string) {
   product.is_active = false;
   await product.save();
   await product.populate(["category_id", "subcategory_id"]);
-  const serializedProduct = serializeProduct(product);
+  const serializedProduct = serializeProductDetail(product);
   await revalidateStorefront();
   return serializedProduct;
 }

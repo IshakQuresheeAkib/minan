@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { publicRoutes } from "@/constants/routes";
-import { productCardShellClassName } from "@/features/products/components/ProductCard";
+import { productCardShellClassName } from "@/features/products/components/product-card.styles";
 
 type CategoryGridCardProps = {
   imageUrl: string;

@@ -37,6 +37,10 @@ export type ProductResponse = {
   updatedAt: string;
 };
 
+export type ProductDetail = ProductResponse & {
+  description_html: string | null;
+};
+
 export type ProductListResponse = {
   data: ProductResponse[];
   total: number;
@@ -46,7 +50,7 @@ export type ProductListResponse = {
 };
 
 export type ProductDetailResponse = {
-  data: ProductResponse;
+  data: ProductDetail;
 };
 
 export type HomeCatalogResponse = {

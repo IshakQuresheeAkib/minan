@@ -15,21 +15,20 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { ProductBreadcrumbs } from "@/features/products/components/ProductBreadcrumbs";
+import { ProductDescription } from "@/features/products/components/ProductDescription";
 import { ProductGallery } from "@/features/products/components/ProductGallery";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { SizeGuideModal } from "@/features/products/components/SizeGuideModal";
 import { SizeColorSelector } from "@/features/products/components/SizeColorSelector";
 import { TrustBadges } from "@/features/products/components/TrustBadges";
-import type { Product } from "@/features/products/schemas/product.schema";
+import type { ProductDetail } from "@/features/products/schemas/product.schema";
 import { openWhatsAppOrder } from "@/lib/analytics/whatsapp";
 import { useBuyNowStore } from "@/store/buy-now.store";
 import { useCartStore, type CartItemInput } from "@/store/cart.store";
 
-const DESCRIPTION_PREVIEW_LENGTH = 120;
-
 type ProductDetailsProps = {
   children?: ReactNode;
-  product: Product;
+  product: ProductDetail;
 };
 
 export function ProductDetails({ children, product }: ProductDetailsProps) {
@@ -46,14 +45,6 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
     product.colors[0] ?? null,
   );
   const [quantity, setQuantity] = useState(1);
-  const [expandedDescription, setExpandedDescription] = useState(false);
-
-  const shouldTruncate =
-    product.description.length > DESCRIPTION_PREVIEW_LENGTH;
-  const description =
-    expandedDescription || !shouldTruncate
-      ? product.description
-      : `${product.description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd()}…`;
   const isProductUnavailable = !product.is_active;
   const discount = product.discount;
   const originalPrice = product.price;
@@ -269,11 +260,17 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
               </h2>
 
               <ProductPrice
-                className="mb-6 lg:hidden"
+                className={hasDiscount ? "mb-3 lg:hidden" : "mb-6 lg:hidden"}
                 price={product.discounted_price}
                 originalPrice={product.price}
                 discount={product.discount}
               />
+              {hasDiscount ? (
+                <p className="mb-6 flex w-fit items-center gap-1 rounded-full border border-primary/25 bg-primary/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase lg:hidden">
+                  <Tag className="size-3" aria-hidden="true" />
+                  Save Tk {savings.toLocaleString("en-BD")} · {discount}% off
+                </p>
+              ) : null}
 
               <div className="mb-4 flex items-center justify-end lg:justify-start">
                 <SizeGuideModal />
@@ -338,20 +335,10 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                 <h3 className="mb-3 text-[17px] font-bold text-foreground lg:text-lg">
                   Description
                 </h3>
-                <p className="text-[15px] leading-relaxed text-foreground/80 lg:text-base">
-                  {description}{" "}
-                  {shouldTruncate ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedDescription((current) => !current)
-                      }
-                      className="cursor-pointer font-semibold text-foreground hover:underline"
-                    >
-                      {expandedDescription ? "Read Less" : "Read More"}
-                    </button>
-                  ) : null}
-                </p>
+                <ProductDescription
+                  description={product.description}
+                  descriptionHtml={product.description_html}
+                />
               </div>
             </section>
           </div>
