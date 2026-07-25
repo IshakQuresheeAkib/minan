@@ -10,7 +10,10 @@ import {
   getCachedProductBySlug,
   getCachedProducts,
 } from "@/features/products/services/product.cache";
-import { mapProductToCard } from "@/features/products/services/product.service";
+import {
+  getRelatedProductsOptions,
+  mapProductToCard,
+} from "@/features/products/services/product.service";
 import type { Product } from "@/features/products/schemas/product.schema";
 
 type ProductDetailPageProps = {
@@ -66,15 +69,15 @@ async function ProductRelatedProducts({
 }: {
   product: Product;
 }) {
-  if (!product.category) {
+  const relatedProductsOptions = getRelatedProductsOptions(product);
+
+  if (!relatedProductsOptions) {
     return <RelatedProducts products={[]} />;
   }
 
-  const { data: relatedProducts } = await getCachedProducts({
-    category: product.category.slug,
-    exclude: product.slug,
-    limit: 4,
-  });
+  const { data: relatedProducts } = await getCachedProducts(
+    relatedProductsOptions,
+  );
 
   return <RelatedProducts products={relatedProducts.map(mapProductToCard)} />;
 }

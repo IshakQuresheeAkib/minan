@@ -338,7 +338,12 @@ export function ProductCatalog({
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       <aside className="hidden lg:block">
-        <div className="sticky top-24 rounded-2xl border border-secondary/80 bg-background/80 p-4 shadow-[0_16px_48px_rgba(151,72,34,0.08)] backdrop-blur">
+        <div
+          aria-label="Product filters"
+          className="minan-scrollbar sticky top-24 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-y-contain rounded-2xl border border-secondary/80 bg-background/80 p-4 shadow-[0_16px_48px_rgba(151,72,34,0.08)] outline-none backdrop-blur focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          role="region"
+          tabIndex={0}
+        >
           {renderFilterPanel()}
         </div>
       </aside>

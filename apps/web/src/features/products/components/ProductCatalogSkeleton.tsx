@@ -14,7 +14,7 @@ export function ProductCatalogSkeleton() {
       className="grid gap-6 lg:grid-cols-[280px_1fr]"
     >
       <aside className="hidden lg:block">
-        <div className="sticky top-24 space-y-6 rounded-2xl border border-foreground/10 bg-background/80 p-4 shadow-[0_16px_48px_rgba(15,23,42,0.06)]">
+        <div className="minan-scrollbar sticky top-24 max-h-[calc(100dvh-7rem)] space-y-6 overflow-y-auto overscroll-y-contain rounded-2xl border border-foreground/10 bg-background/80 p-4 shadow-[0_16px_48px_rgba(15,23,42,0.06)]">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-2">
               <div className="minan-skeleton h-5 w-20 rounded" />
