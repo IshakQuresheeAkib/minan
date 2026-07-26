@@ -66,6 +66,36 @@
 }
 
 @layer components {
+  .minan-scrollbar {
+    scrollbar-color: var(--primary)
+      color-mix(in srgb, var(--secondary) 18%, transparent);
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  .minan-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .minan-scrollbar::-webkit-scrollbar-track {
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--secondary) 18%, transparent);
+  }
+
+  .minan-scrollbar::-webkit-scrollbar-thumb {
+    min-height: 40px;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: var(--primary);
+    background-clip: padding-box;
+  }
+
+  .minan-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--primary) 82%, var(--foreground));
+    background-clip: padding-box;
+  }
+
   .minan-rich-text {
     overflow-wrap: anywhere;
   }

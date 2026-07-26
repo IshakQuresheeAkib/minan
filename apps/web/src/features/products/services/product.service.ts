@@ -226,17 +226,33 @@ export async function getRelatedProducts(
   product: Product,
   limit = 4,
 ): Promise<Product[]> {
-  if (!product.category) {
+  const options = getRelatedProductsOptions(product, limit);
+
+  if (!options) {
     return [];
   }
 
-  const { data } = await getProducts({
-    category: product.category.slug,
-    exclude: product.slug,
-    limit,
-  });
+  const { data } = await getProducts(options);
 
   return data;
+}
+
+export function getRelatedProductsOptions(
+  product: Product,
+  limit = 4,
+): GetProductsOptions | null {
+  if (!product.category) {
+    return null;
+  }
+
+  return {
+    category: product.category.slug,
+    ...(product.subcategory
+      ? { subcategories: [product.subcategory.slug] }
+      : {}),
+    exclude: product.slug,
+    limit,
+  };
 }
 
 export function mapProductToCard(product: Product): ProductCardData {
