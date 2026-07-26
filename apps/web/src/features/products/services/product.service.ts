@@ -241,13 +241,15 @@ export function getRelatedProductsOptions(
   product: Product,
   limit = 4,
 ): GetProductsOptions | null {
-  if (!product.category || !product.subcategory) {
+  if (!product.category) {
     return null;
   }
 
   return {
     category: product.category.slug,
-    subcategories: [product.subcategory.slug],
+    ...(product.subcategory
+      ? { subcategories: [product.subcategory.slug] }
+      : {}),
     exclude: product.slug,
     limit,
   };

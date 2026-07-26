@@ -39,10 +39,25 @@ describe("getRelatedProductsOptions", () => {
     });
   });
 
-  it("returns no query when the product has no subcategory", () => {
+  it("falls back to the category when the product has no subcategory", () => {
     expect(
       getRelatedProductsOptions({
         ...product,
+        subcategory_id: null,
+        subcategory: null,
+      }),
+    ).toEqual({
+      category: "men",
+      exclude: "oxford-shirt",
+      limit: 4,
+    });
+  });
+
+  it("returns no query when the product has no category", () => {
+    expect(
+      getRelatedProductsOptions({
+        ...product,
+        category: null,
         subcategory_id: null,
         subcategory: null,
       }),
