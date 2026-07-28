@@ -310,7 +310,7 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                     aria-label="Increase quantity"
                     onClick={() => setQuantity((current) => current + 1)}
                     size="icon"
-                    className="size-9 bg-primary p-0 text-background shadow-none hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-md active:scale-95"
+                    className="size-9 bg-primary p-0 text-foreground shadow-none hover:translate-y-0 hover:bg-primary/90 hover:text-foreground hover:shadow-md active:scale-95"
                     icon={<Plus className="size-4" aria-hidden="true" />}
                   />
                 </div>
@@ -379,7 +379,7 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
               aria-label="Increase quantity"
               onClick={() => setQuantity((current) => current + 1)}
               size="icon"
-              className="size-10 bg-primary p-0 text-background shadow-md hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-md active:scale-95"
+              className="size-10 bg-primary p-0 text-foreground shadow-md hover:translate-y-0 hover:bg-primary/90 hover:text-foreground hover:shadow-md active:scale-95"
               icon={<Plus className="size-4" aria-hidden="true" />}
             />
           </div>
@@ -398,7 +398,7 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
           type="button"
           onClick={handleBuyNow}
           disabled={isProductUnavailable}
-          className="h-14 w-full bg-primary text-[16px] font-semibold text-background shadow-[0_8px_20px_rgba(151,72,34,0.25)] hover:translate-y-0 hover:bg-primary/90 hover:text-background hover:shadow-[0_8px_20px_rgba(151,72,34,0.25)] active:scale-95"
+          className="h-14 w-full bg-primary text-[16px] font-semibold text-foreground shadow-[0_8px_20px_rgba(151,72,34,0.25)] hover:translate-y-0 hover:bg-primary/90 hover:text-foreground hover:shadow-[0_8px_20px_rgba(151,72,34,0.25)] active:scale-95"
           leftIcon={<ShoppingBag className="size-4" aria-hidden="true" />}
           text={isProductUnavailable ? "Sold Out" : "Buy Now"}
         />

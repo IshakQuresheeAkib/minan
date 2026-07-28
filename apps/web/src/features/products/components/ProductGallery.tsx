@@ -38,7 +38,7 @@ export function ProductGallery({
         {images.length > 1 ? (
           <div
             className="mb-5 hidden flex-col gap-3 lg:mb-0 lg:flex"
-            role="tablist"
+            role="group"
             aria-label="Product image thumbnails"
           >
             {images.map((image, index) => {
@@ -48,12 +48,11 @@ export function ProductGallery({
                 <button
                   key={image}
                   type="button"
-                  role="tab"
-                  aria-selected={isActive}
+                  aria-pressed={isActive}
                   aria-label={`View image ${index + 1}`}
                   onClick={() => setActiveIndex(index)}
                   className={cn(
-                    "relative size-16 shrink-0 overflow-hidden rounded-xl border-2 transition-colors",
+                    "relative size-16 shrink-0 overflow-hidden rounded-xl border-2 transition-colors focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none",
                     isActive ? "border-primary" : "border-secondary",
                   )}
                 >
@@ -81,7 +80,7 @@ export function ProductGallery({
           />
           <div className="absolute bottom-4 right-4 flex items-end gap-2 lg:hidden">
             <div className="flex items-center gap-2 rounded-full bg-background py-2 pr-5 pl-2 shadow-lg">
-              <div className="flex size-8 items-center justify-center rounded-full bg-primary text-background">
+              <div className="flex size-8 items-center justify-center rounded-full bg-primary text-foreground">
                 <span className="text-xs font-semibold">৳</span>
               </div>
               <span className="text-sm font-semibold text-foreground">
@@ -104,7 +103,7 @@ export function ProductGallery({
       {images.length > 1 ? (
         <div
           className="mt-5 flex justify-center gap-2 lg:hidden"
-          role="tablist"
+          role="group"
           aria-label="Product images"
         >
           {images.map((image, index) => {
@@ -114,15 +113,19 @@ export function ProductGallery({
               <button
                 key={image}
                 type="button"
-                role="tab"
-                aria-selected={isActive}
+                aria-pressed={isActive}
                 aria-label={`View image ${index + 1}`}
                 onClick={() => setActiveIndex(index)}
-                className={cn(
-                  "size-2.5 rounded-full transition-colors",
-                  isActive ? "bg-foreground" : "bg-foreground/20",
-                )}
-              />
+                className="grid size-9 place-items-center rounded-full transition-colors hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+              >
+                <span
+                  className={cn(
+                    "size-2.5 rounded-full transition-colors",
+                    isActive ? "bg-foreground" : "bg-foreground/20",
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
             );
           })}
         </div>

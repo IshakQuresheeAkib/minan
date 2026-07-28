@@ -40,7 +40,7 @@ export function HomeCatalog({ categoryGroups }: HomeCatalogProps) {
           </div>
           <Link
             href={publicRoutes.products}
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-foreground/75 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
           >
             View all
             <ArrowRight className="size-4" aria-hidden="true" />

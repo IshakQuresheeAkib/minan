@@ -83,7 +83,7 @@ export function ProductCard({
           ) : (
             <ProductDetailsLink
               href={productHref}
-              className="cursor-pointer transition-colors duration-200 hover:text-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+              className="cursor-pointer transition-colors duration-200 hover:text-foreground/75 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
             >
               {product.name}
             </ProductDetailsLink>

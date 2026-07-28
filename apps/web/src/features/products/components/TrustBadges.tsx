@@ -23,7 +23,7 @@ export function TrustBadges() {
           key={label}
           className="flex items-center gap-3 rounded-2xl border border-secondary bg-background px-4 py-3 shadow-[0_8px_24px_rgba(151,72,34,0.04)]"
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-foreground">
             <Icon className="size-4" aria-hidden="true" />
           </span>
           <span className="text-sm font-medium text-foreground">{label}</span>

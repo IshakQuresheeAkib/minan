@@ -220,7 +220,7 @@ function SelectedCategoryProductGrid({
             {currentRequest.error}.{" "}
             <button
               type="button"
-              className="cursor-pointer font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+              className="cursor-pointer font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-foreground/75 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
               onClick={() => setRequestKey((current) => current + 1)}
             >
               Try again
