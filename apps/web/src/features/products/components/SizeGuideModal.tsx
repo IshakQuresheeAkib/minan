@@ -24,7 +24,7 @@ export function SizeGuideModal() {
         <Button
           type="button"
           variant="secondary"
-          className="h-auto border-0 bg-transparent p-0 text-sm font-semibold text-primary shadow-none hover:bg-transparent hover:text-primary hover:shadow-none"
+          className="h-auto border-0 bg-transparent p-0 text-sm font-semibold text-foreground underline decoration-primary decoration-2 underline-offset-4 shadow-none hover:bg-transparent hover:text-foreground/75 hover:shadow-none"
         >
           Size guide
         </Button>

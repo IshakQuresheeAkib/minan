@@ -36,10 +36,19 @@ export async function generateMetadata({
   searchParams,
 }: ProductsPageProps): Promise<Metadata> {
   const filtered = hasFilters(await searchParams);
+  const title = "Products";
+  const description =
+    "Browse premium daily wear from the current MINAN collection.";
 
   return {
-    title: "Products",
+    title,
+    description,
     alternates: { canonical: "/products" },
+    openGraph: {
+      title,
+      description,
+      url: "/products",
+    },
     robots: filtered ? { index: false, follow: true } : undefined,
   };
 }

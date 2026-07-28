@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setSession = useAuthStore((state) => state.setSession);
+  const formId = useId();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const form = useForm<LoginInput>({
@@ -28,6 +29,10 @@ export function LoginForm() {
       password: "",
     },
   });
+  const errors = form.formState.errors;
+  const emailErrorId = `${formId}-email-error`;
+  const passwordErrorId = `${formId}-password-error`;
+  const submitErrorId = `${formId}-submit-error`;
 
   async function onSubmit(values: LoginInput) {
     setSubmitError(null);
@@ -59,18 +64,28 @@ export function LoginForm() {
   }
 
   return (
-    <form className="mt-6 grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+    <form
+      className="mt-6 grid gap-4"
+      aria-describedby={submitError ? submitErrorId : undefined}
+      onSubmit={form.handleSubmit(onSubmit)}
+    >
       <label className="grid gap-2 text-sm font-medium">
         Email
         <input
+          aria-describedby={errors.email ? emailErrorId : undefined}
+          aria-invalid={Boolean(errors.email)}
           autoComplete="email"
           className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
           type="email"
           {...form.register("email")}
         />
-        {form.formState.errors.email ? (
-          <span className="text-xs font-normal text-destructive">
-            {form.formState.errors.email.message}
+        {errors.email ? (
+          <span
+            id={emailErrorId}
+            className="text-xs font-normal text-destructive"
+            role="alert"
+          >
+            {errors.email.message}
           </span>
         ) : null}
       </label>
@@ -78,20 +93,26 @@ export function LoginForm() {
       <label className="grid gap-2 text-sm font-medium">
         Password
         <input
+          aria-describedby={errors.password ? passwordErrorId : undefined}
+          aria-invalid={Boolean(errors.password)}
           autoComplete="current-password"
           className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
           type="password"
           {...form.register("password")}
         />
-        {form.formState.errors.password ? (
-          <span className="text-xs font-normal text-destructive">
-            {form.formState.errors.password.message}
+        {errors.password ? (
+          <span
+            id={passwordErrorId}
+            className="text-xs font-normal text-destructive"
+            role="alert"
+          >
+            {errors.password.message}
           </span>
         ) : null}
       </label>
 
       {submitError ? (
-        <p className="text-sm text-destructive" role="alert">
+        <p id={submitErrorId} className="text-sm text-destructive" role="alert">
           {submitError}
         </p>
       ) : null}

@@ -20,6 +20,16 @@ type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+function getMetaDescription(description: string): string {
+  const normalized = description.replace(/\s+/g, " ").trim();
+
+  if (normalized.length <= 160) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 157).trimEnd()}...`;
+}
+
 export async function generateMetadata({
   params,
 }: ProductDetailPageProps): Promise<Metadata> {
@@ -30,9 +40,35 @@ export async function generateMetadata({
     return { title: "Product Not Found" };
   }
 
+  const description = getMetaDescription(product.description);
+  const image = product.images[0];
+
   return {
     title: product.name,
-    description: product.description,
+    description,
+    alternates: {
+      canonical: `/products/${product.slug}`,
+    },
+    openGraph: {
+      type: "website",
+      title: product.name,
+      description,
+      url: `/products/${product.slug}`,
+      images: image
+        ? [
+            {
+              url: image,
+              alt: product.name,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title: product.name,
+      description,
+      images: image ? [image] : undefined,
+    },
   };
 }
 

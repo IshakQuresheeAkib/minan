@@ -2,14 +2,14 @@
 
 import { ImagePlus, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
   deleteUploadedImages,
   fetchUploadSignature,
 } from "@/features/admin/actions/products.actions";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonVariants } from "@/components/ui/Button";
 import type {
   AdminImageAsset,
   ManagedImageAsset,
@@ -17,6 +17,7 @@ import type {
 import { uploadImageToCloudinary } from "@/lib/cloudinary/upload";
 import { ApiError } from "@/lib/api/client";
 import { getImageUploadValidationError } from "@/features/admin/lib/image-upload-validation";
+import { cn } from "@/lib/utils";
 
 type ImageUploaderProps = {
   accessToken: string;
@@ -44,6 +45,7 @@ export function ImageUploader({
   uploadPurpose,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
   const mountedRef = useRef(true);
   const [uploading, setUploading] = useState(false);
   const usesProductRoles = multiple && showProductRoles;
@@ -186,28 +188,33 @@ export function ImageUploader({
   const uploadButton = (
     <div>
       <input
+        id={inputId}
         ref={inputRef}
         type="file"
         accept={acceptedFileTypes?.join(",") ?? "image/*"}
         multiple={multiple}
-        className="hidden"
+        disabled={uploading}
+        className="peer sr-only"
         onChange={(event) => {
           void handleFiles(event.target.files);
         }}
       />
-      <Button
-        type="button"
-        variant="secondary"
-        disabled={uploading}
-        leftIcon={<ImagePlus className="size-4" aria-hidden="true" />}
-        onClick={() => inputRef.current?.click()}
+      <label
+        htmlFor={inputId}
+        aria-disabled={uploading}
+        className={cn(
+          buttonVariants({ variant: "secondary" }),
+          "w-fit peer-focus-visible:ring-3 peer-focus-visible:ring-primary/50",
+          uploading ? "pointer-events-none opacity-50" : "cursor-pointer",
+        )}
       >
+        <ImagePlus className="size-4" aria-hidden="true" />
         {uploading
           ? "Uploading..."
           : multiple
             ? "Upload images"
             : "Upload image"}
-      </Button>
+      </label>
     </div>
   );
 

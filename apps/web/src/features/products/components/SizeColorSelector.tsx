@@ -72,19 +72,19 @@ export function SizeColorSelector({
                   key={color}
                   type="button"
                   aria-pressed={isActive}
-                  aria-label={color}
                   onClick={() => onColorChange(color)}
                   className={cn(
-                    "flex size-[52px] items-center justify-center rounded-full transition-transform active:scale-95",
+                    "flex min-h-12 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-transform active:scale-95",
                     isActive
-                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                      : "ring-1 ring-secondary",
+                      ? "border-foreground bg-foreground text-background ring-2 ring-primary ring-offset-2 ring-offset-background"
+                      : "border-secondary bg-background text-foreground hover:border-primary",
                   )}
                 >
                   <span
-                    className={cn("size-7 rounded-full", swatchClass)}
+                    className={cn("size-6 rounded-full", swatchClass)}
                     aria-hidden="true"
                   />
+                  <span>{color}</span>
                 </button>
               );
             })}

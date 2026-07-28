@@ -34,6 +34,7 @@ export function SearchBar({
 }: SearchBarProps) {
   const router = useRouter();
   const resultsId = useId();
+  const statusId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryRef = useRef(initialQuery);
@@ -51,6 +52,17 @@ export function SearchBar({
 
   const trimmedQuery = query.trim();
   const showSuggestions = expanded && open && trimmedQuery.length > 0;
+  const statusMessage = loading
+    ? "Searching products."
+    : error
+      ? error
+      : hasSearched
+        ? results.length > 0
+          ? `${results.length} product suggestion${
+              results.length === 1 ? "" : "s"
+            } available.`
+          : `No products matched ${trimmedQuery}.`
+        : "";
 
   const reset = useCallback((): void => {
     if (debounceRef.current !== null) {
@@ -182,7 +194,7 @@ export function SearchBar({
         <Search
           className={cn(
             "pointer-events-none absolute top-1/2 right-3 z-2 size-6 -translate-y-1/2 transition-colors duration-200",
-            expanded && !isCatalog ? "text-background" : "text-foreground",
+            "text-foreground",
           )}
           aria-hidden="true"
         />
@@ -193,7 +205,7 @@ export function SearchBar({
           }
           variant="secondary"
           size="icon"
-          className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-primary hover:shadow-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-foreground hover:shadow-none focus-visible:ring-2 focus-visible:ring-primary/60"
           onClick={() => {
             if (!isCatalog && !trimmedQuery) {
               expandAndFocus();
@@ -204,14 +216,11 @@ export function SearchBar({
         <input
           ref={inputRef}
           type="search"
-          role="combobox"
           value={query}
           placeholder="Type to search..."
           aria-label="Search products"
-          aria-autocomplete="list"
-          aria-expanded={open && trimmedQuery.length > 0}
-          aria-haspopup="listbox"
-          aria-controls={resultsId}
+          aria-controls={showSuggestions ? resultsId : undefined}
+          aria-describedby={statusId}
           autoComplete="off"
           className={cn(
             "h-12 w-12 rounded-full border border-primary/45 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-primary/50",
@@ -258,13 +267,21 @@ export function SearchBar({
             if (trimmedQuery) setOpen(true);
           }}
         />
+        <span
+          id={statusId}
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {statusMessage}
+        </span>
       </form>
 
       {showSuggestions && (
         <div
           id={resultsId}
-          role="listbox"
-          aria-label="Search results"
+          aria-label="Search suggestions"
           className="absolute top-full right-0 z-90 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-background/90 p-1.5 text-foreground shadow-foreground/10 backdrop-blur"
         >
           {loading && (
@@ -291,7 +308,6 @@ export function SearchBar({
               <ProductDetailsLink
                 key={product._id}
                 href={`/products/${product.slug}`}
-                role="option"
                 onClick={reset}
                 className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-none"
               >

@@ -27,12 +27,12 @@ export function HomeCatalog({ categoryGroups }: HomeCatalogProps) {
       <div className="space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1
+            <h2
               id="home-catalog-title"
               className="text-2xl font-bold text-foreground"
             >
               {activeLabel}
-            </h1>
+            </h2>
             <p className="text-sm text-foreground/70">
               Browse the latest pieces by category, then cart or order from the
               product page when you find the right fit.
@@ -40,7 +40,7 @@ export function HomeCatalog({ categoryGroups }: HomeCatalogProps) {
           </div>
           <Link
             href={publicRoutes.products}
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-foreground/75 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
           >
             View all
             <ArrowRight className="size-4" aria-hidden="true" />

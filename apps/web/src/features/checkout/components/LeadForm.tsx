@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ export function LeadForm({
   disabled = false,
   onSuccess,
 }: LeadFormProps) {
+  const formId = useId();
   const form = useForm<LeadInput>({
     resolver: zodResolver(leadInputSchema),
     defaultValues: {
@@ -34,6 +36,15 @@ export function LeadForm({
       bkash_txn_id: "",
     },
   });
+  const errors = form.formState.errors;
+  const errorIds = {
+    address: `${formId}-address-error`,
+    bkash_txn_id: `${formId}-bkash-txn-id-error`,
+    email: `${formId}-email-error`,
+    name: `${formId}-name-error`,
+    notes: `${formId}-notes-error`,
+    phone_number: `${formId}-phone-number-error`,
+  };
 
   async function onSubmit(values: LeadInput) {
     try {
@@ -68,24 +79,35 @@ export function LeadForm({
       <label className="grid gap-2 text-sm font-medium">
         Name
         <Input
-          aria-invalid={Boolean(form.formState.errors.name)}
+          aria-describedby={errors.name ? errorIds.name : undefined}
+          aria-invalid={Boolean(errors.name)}
+          autoComplete="name"
           {...form.register("name")}
         />
-        {form.formState.errors.name ? (
-          <span className="text-xs text-destructive">
-            {form.formState.errors.name.message}
+        {errors.name ? (
+          <span id={errorIds.name} className="text-xs text-destructive" role="alert">
+            {errors.name.message}
           </span>
         ) : null}
       </label>
       <label className="grid gap-2 text-sm font-medium">
         Phone Number
         <Input
-          aria-invalid={Boolean(form.formState.errors.phone_number)}
+          aria-describedby={
+            errors.phone_number ? errorIds.phone_number : undefined
+          }
+          aria-invalid={Boolean(errors.phone_number)}
+          autoComplete="tel"
+          inputMode="tel"
           {...form.register("phone_number")}
         />
-        {form.formState.errors.phone_number ? (
-          <span className="text-xs text-destructive">
-            {form.formState.errors.phone_number.message}
+        {errors.phone_number ? (
+          <span
+            id={errorIds.phone_number}
+            className="text-xs text-destructive"
+            role="alert"
+          >
+            {errors.phone_number.message}
           </span>
         ) : null}
       </label>
@@ -93,12 +115,14 @@ export function LeadForm({
         Email
         <Input
           type="email"
-          aria-invalid={Boolean(form.formState.errors.email)}
+          aria-describedby={errors.email ? errorIds.email : undefined}
+          aria-invalid={Boolean(errors.email)}
+          autoComplete="email"
           {...form.register("email")}
         />
-        {form.formState.errors.email ? (
-          <span className="text-xs text-destructive">
-            {form.formState.errors.email.message}
+        {errors.email ? (
+          <span id={errorIds.email} className="text-xs text-destructive" role="alert">
+            {errors.email.message}
           </span>
         ) : null}
       </label>
@@ -106,12 +130,18 @@ export function LeadForm({
         Address
         <Textarea
           className="min-h-28"
-          aria-invalid={Boolean(form.formState.errors.address)}
+          aria-describedby={errors.address ? errorIds.address : undefined}
+          aria-invalid={Boolean(errors.address)}
+          autoComplete="street-address"
           {...form.register("address")}
         />
-        {form.formState.errors.address ? (
-          <span className="text-xs text-destructive">
-            {form.formState.errors.address.message}
+        {errors.address ? (
+          <span
+            id={errorIds.address}
+            className="text-xs text-destructive"
+            role="alert"
+          >
+            {errors.address.message}
           </span>
         ) : null}
       </label>
@@ -119,12 +149,13 @@ export function LeadForm({
         Notes
         <Textarea
           className="min-h-24"
-          aria-invalid={Boolean(form.formState.errors.notes)}
+          aria-describedby={errors.notes ? errorIds.notes : undefined}
+          aria-invalid={Boolean(errors.notes)}
           {...form.register("notes")}
         />
-        {form.formState.errors.notes ? (
-          <span className="text-xs text-destructive">
-            {form.formState.errors.notes.message}
+        {errors.notes ? (
+          <span id={errorIds.notes} className="text-xs text-destructive" role="alert">
+            {errors.notes.message}
           </span>
         ) : null}
       </label>
@@ -132,12 +163,19 @@ export function LeadForm({
         bKash Transaction ID
         {/* Payment gateway integration will replace manual bKash TX ID collection later. */}
         <Input
-          aria-invalid={Boolean(form.formState.errors.bkash_txn_id)}
+          aria-describedby={
+            errors.bkash_txn_id ? errorIds.bkash_txn_id : undefined
+          }
+          aria-invalid={Boolean(errors.bkash_txn_id)}
           {...form.register("bkash_txn_id")}
         />
-        {form.formState.errors.bkash_txn_id ? (
-          <span className="text-xs text-destructive">
-            {form.formState.errors.bkash_txn_id.message}
+        {errors.bkash_txn_id ? (
+          <span
+            id={errorIds.bkash_txn_id}
+            className="text-xs text-destructive"
+            role="alert"
+          >
+            {errors.bkash_txn_id.message}
           </span>
         ) : null}
       </label>

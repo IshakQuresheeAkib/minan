@@ -83,7 +83,7 @@ export function ProductCard({
           ) : (
             <ProductDetailsLink
               href={productHref}
-              className="cursor-pointer transition-colors duration-200 hover:text-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+              className="cursor-pointer transition-colors duration-200 hover:text-foreground/75 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
             >
               {product.name}
             </ProductDetailsLink>
@@ -109,8 +109,8 @@ export function ProductCard({
             {!wholeCardCta ? (
               <ProductDetailsLink
                 href={productHref}
-                aria-label={`Choose options for ${product.name}`}
-                title="Choose options"
+                aria-label={`View product for ${product.name}`}
+                title="View product"
                 className="flex size-8 sm:size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
               >
                 <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />

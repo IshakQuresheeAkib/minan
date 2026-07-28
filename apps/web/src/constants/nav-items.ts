@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Home, LayoutGrid, ShoppingBag } from "lucide-react";
+import { CreditCard, Home, LayoutGrid, ShoppingBag } from "lucide-react";
 
 import { publicRoutes } from "@/constants/routes";
 
@@ -24,5 +24,11 @@ export const primaryNavItems: NavItem[] = [
     label: "My cart",
     href: publicRoutes.cart,
     icon: ShoppingBag,
+  },
+  {
+    id: "checkout",
+    label: "Checkout",
+    href: publicRoutes.checkout,
+    icon: CreditCard,
   },
 ];
