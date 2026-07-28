@@ -105,7 +105,8 @@ export function BottomNav() {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden">
       <div
         className={cn(
-          "pointer-events-auto relative isolate w-full max-w-sm rounded-full border p-[5px] bg-foreground border-primary shadow-md shadow-primary/50",
+          "pointer-events-auto relative isolate w-full max-w-md rounded-full border p-[5px]",
+          styles.shell,
         )}
       >
         <span
@@ -163,7 +164,7 @@ export function BottomNav() {
                 }
                 onPointerLeave={handlePointerLeave}
                 className={cn(
-                  "relative z-3 flex flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full px-2 py-2 text-[10px] font-semibold tracking-wide transition-colors duration-150 ease-in-out",
+                  "relative z-3 flex flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full px-2 py-2 text-[10px] font-semibold tracking-wide transition-colors duration-150 ease-in-out focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-foreground focus-visible:outline-none",
                   isActive ? styles.linkActive : styles.linkInactive,
                 )}
               >

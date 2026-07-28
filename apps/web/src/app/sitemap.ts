@@ -6,6 +6,8 @@ import { getProducts } from "@/features/products/services/product.service";
 
 const staticRoutes = [publicRoutes.home, publicRoutes.products];
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const routes: MetadataRoute.Sitemap = staticRoutes.map((route) => ({
