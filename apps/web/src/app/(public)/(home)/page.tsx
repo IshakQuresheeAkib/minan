@@ -12,6 +12,9 @@ import { getCachedHomeCatalog } from "@/features/products/services/product.cache
 export default function HomePage() {
   return (
     <>
+      <h1 className="sr-only">
+        MINAN premium fashion clothing in Bangladesh
+      </h1>
       <Suspense fallback={<HeroFirstSlideShell />}>
         <HomeHeroContent />
       </Suspense>

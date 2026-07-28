@@ -21,7 +21,6 @@ export function Navbar() {
             alt="MINAN"
             width={364}
             height={353}
-            priority
             className="h-16 w-auto"
           />
         </Link>

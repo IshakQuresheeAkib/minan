@@ -5,6 +5,7 @@ import {
   PublicFooterSlot,
   PublicNavbarSlot,
 } from "@/components/layouts/PublicRouteChrome";
+import { SpeculationRules } from "@/components/layouts/SpeculationRules";
 import { Toaster } from "@/components/ui/sonner";
 
 type PublicChromeProps = {
@@ -22,6 +23,7 @@ export function PublicChrome({ children }: PublicChromeProps) {
         <Suspense fallback={null}>
           <PublicFooterSlot />
         </Suspense>
+        <SpeculationRules />
         <Toaster richColors position="top-right" />
       </div>
     </div>

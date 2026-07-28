@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
+import { siteConfig, siteOrigin } from "@/config/site.config";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -18,11 +19,46 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: siteOrigin,
+  applicationName: siteConfig.name,
   title: {
-    default: "MINAN",
-    template: "%s | MINAN",
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
   },
-  description: "Premium fashion commerce for lead generation in Bangladesh.",
+  description: siteConfig.description,
+  openGraph: {
+    type: "website",
+    locale: "en_BD",
+    siteName: siteConfig.name,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    url: "/",
+    images: [
+      {
+        url: "/logo.png",
+        width: 364,
+        height: 353,
+        alt: siteConfig.name,
+      },
+    ],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  twitter: {
+    card: "summary",
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: ["/logo.png"],
+  },
 };
 
 export const viewport: Viewport = {

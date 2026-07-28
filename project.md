@@ -580,11 +580,13 @@ REVALIDATE_SECRET=<same value as STOREFRONT_REVALIDATE_SECRET>
 NEXT_PUBLIC_META_PIXEL_ID=
 NEXT_PUBLIC_GA4_ID=
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_SITE_URL=https://www.minanclothing.com
 NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 ```
 
 - `API_PROXY_TARGET` is used by both `next.config.ts` rewrites and `lib/api/client.ts`.
 - `JWT_ACCESS_SECRET` is required by `proxy.ts` to verify access-token cookies.
+- `NEXT_PUBLIC_SITE_URL` is used for canonical URLs, sitemap entries, and social metadata.
 
 ### Backend `.env`
 

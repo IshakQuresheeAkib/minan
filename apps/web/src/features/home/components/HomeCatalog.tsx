@@ -27,12 +27,12 @@ export function HomeCatalog({ categoryGroups }: HomeCatalogProps) {
       <div className="space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1
+            <h2
               id="home-catalog-title"
               className="text-2xl font-bold text-foreground"
             >
               {activeLabel}
-            </h1>
+            </h2>
             <p className="text-sm text-foreground/70">
               Browse the latest pieces by category, then cart or order from the
               product page when you find the right fit.
