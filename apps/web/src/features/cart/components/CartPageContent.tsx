@@ -166,7 +166,7 @@ export function CartPageContent() {
                 <button
                   type="button"
                   aria-label={`Remove ${item.name}`}
-                  className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-background hover:text-destructive"
+                  className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors cursor-pointer hover:bg-background hover:text-destructive focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/50"
                   onClick={() => removeItem(item.lineId)}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
@@ -177,7 +177,7 @@ export function CartPageContent() {
         </div>
       </div>
 
-      <aside className="h-fit rounded-lg border bg-background p-5 text-foreground shadow-sm">
+      <aside className="h-fit rounded-lg border bg-background p-5 text-foreground shadow-sm lg:sticky lg:top-24">
         <h2 className="text-lg font-semibold">Order Summary</h2>
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="text-foreground/70">Items</span>
@@ -193,16 +193,24 @@ export function CartPageContent() {
           <span>Total</span>
           <span>{formatCurrency(total)}</span>
         </div>
-        <Button
-          className="mt-5 h-11 w-full"
-          href={publicRoutes.checkout}
-          disabled={hasUnavailableItems}
-          text={
-            hasUnavailableItems
-              ? "Remove unavailable items"
-              : "Proceed to checkout"
-          }
-        />
+        {hasUnavailableItems ? (
+          <>
+            <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm leading-5 text-destructive">
+              Remove unavailable products from your cart before checkout.
+            </p>
+            <Button
+              className="mt-4 h-11 w-full"
+              disabled
+              text="Checkout unavailable"
+            />
+          </>
+        ) : (
+          <Button
+            className="mt-5 h-11 w-full"
+            href={publicRoutes.checkout}
+            text="Proceed to checkout"
+          />
+        )}
       </aside>
     </section>
   );
