@@ -25,9 +25,12 @@ import { buildVerifiedCartSnapshot } from "./checkoutCart.service.js";
 
 const RESULT_TTL_MS = 30 * 60 * 1000;
 const RETRY_TTL_MS = 30 * 60 * 1000;
+const RETRY_CLAIM_LEASE_MS = 2 * 60 * 1000;
 const PAYMENT_EXPIRY_MS = 24 * 60 * 60 * 1000;
 const CREATING_STALE_MS = 2 * 60 * 1000;
+const EXECUTION_LEASE_MS = 2 * 60 * 1000;
 const PAYMENT_RECHECK_INTERVAL_MS = 15 * 1000;
+const ACTIVE_STATUSES: PaymentAttemptStatus[] = ["initiated", "verification_pending"];
 const TERMINAL_FAILURES: PaymentAttemptStatus[] = [
   "payment_create_failed",
   "failed",
@@ -125,11 +128,59 @@ async function mintResultReference(attempt: PaymentAttemptDocument): Promise<str
 
 async function mintRetryToken(attempt: PaymentAttemptDocument): Promise<string> {
   const token = makeToken();
+  const expiresAt = new Date(Date.now() + RETRY_TTL_MS);
+  await PaymentAttempt.updateOne(
+    { _id: attempt._id },
+    {
+      $set: {
+        retry_token_hash: token.digest,
+        retry_token_expires_at: expiresAt,
+      },
+      $unset: {
+        retry_token_claimed_at: 1,
+        retry_token_consumed_at: 1,
+      },
+    },
+  );
   attempt.retry_token_hash = token.digest;
-  attempt.retry_token_expires_at = new Date(Date.now() + RETRY_TTL_MS);
+  attempt.retry_token_expires_at = expiresAt;
+  attempt.retry_token_claimed_at = undefined;
   attempt.retry_token_consumed_at = undefined;
-  await attempt.save();
   return token.raw;
+}
+
+async function releaseRetryClaim(
+  attemptId: Types.ObjectId,
+  claimedAt: Date,
+): Promise<void> {
+  await PaymentAttempt.updateOne(
+    {
+      _id: attemptId,
+      retry_token_claimed_at: claimedAt,
+      retry_token_consumed_at: { $exists: false },
+    },
+    { $unset: { retry_token_claimed_at: 1 } },
+  );
+}
+
+async function consumeRetryClaim(
+  attemptId: Types.ObjectId,
+  claimedAt: Date,
+): Promise<void> {
+  const result = await PaymentAttempt.updateOne(
+    {
+      _id: attemptId,
+      retry_token_claimed_at: claimedAt,
+      retry_token_consumed_at: { $exists: false },
+    },
+    {
+      $set: { retry_token_consumed_at: new Date() },
+      $unset: { retry_token_claimed_at: 1 },
+    },
+  );
+  if (result.matchedCount !== 1) {
+    throw new AppError("Retry link is already being used", 409);
+  }
 }
 
 async function loadLatestAttempt(leadId: Types.ObjectId): Promise<PaymentAttemptDocument | null> {
@@ -142,15 +193,45 @@ async function loadLatestAttempt(leadId: Types.ObjectId): Promise<PaymentAttempt
     );
 }
 
-async function responseForExisting(attempt: PaymentAttemptDocument): Promise<StartPaymentResponse> {
+function isActiveAttempt(attempt: PaymentAttemptDocument): boolean {
+  return ACTIVE_STATUSES.includes(attempt.status);
+}
+
+async function expireIfAbandoned(attempt: PaymentAttemptDocument): Promise<void> {
   if (
-    attempt.status === "initiated" &&
+    isActiveAttempt(attempt) &&
     Date.now() - attempt.createdAt.getTime() > PAYMENT_EXPIRY_MS
   ) {
     attempt.status = "expired";
     attempt.provider_status_message = "Payment attempt expired before completion";
     await attempt.save();
   }
+}
+
+async function claimInitiatedExecution(
+  attempt: PaymentAttemptDocument,
+): Promise<PaymentAttemptDocument | null> {
+  return PaymentAttempt.findOneAndUpdate(
+    {
+      _id: attempt._id,
+      status: "initiated",
+      $or: [
+        { execute_started_at: { $exists: false } },
+        { execute_started_at: { $lt: new Date(Date.now() - EXECUTION_LEASE_MS) } },
+      ],
+    },
+    {
+      $set: {
+        status: "verification_pending",
+        execute_started_at: new Date(),
+      },
+    },
+    { new: true },
+  );
+}
+
+async function responseForExisting(attempt: PaymentAttemptDocument): Promise<StartPaymentResponse> {
+  await expireIfAbandoned(attempt);
   if (attempt.status === "completed") {
     return { state: "completed", reference: await mintResultReference(attempt) };
   }
@@ -382,7 +463,7 @@ async function executeOrQuery(attempt: PaymentAttemptDocument): Promise<void> {
 }
 
 export async function handleBkashCallback(input: BkashCallbackInput): Promise<string> {
-  let attempt = await PaymentAttempt.findOne({ payment_id: input.paymentID }).select(
+  const attempt = await PaymentAttempt.findOne({ payment_id: input.paymentID }).select(
     "+success_signature_hash +failure_signature_hash +cancel_signature_hash",
   );
   if (!attempt) throw new AppError("Payment attempt not found", 404);
@@ -405,22 +486,13 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
         await attempt.save();
       }
     } else if (attempt.status === "initiated") {
-      const claimed = await PaymentAttempt.findOneAndUpdate(
-        { _id: attempt._id, status: "initiated", execute_started_at: { $exists: false } },
-        {
-          $set: {
-            status: "verification_pending",
-            execute_started_at: new Date(),
-          },
-        },
-        { new: true },
-      );
+      const claimed = await claimInitiatedExecution(attempt);
       if (claimed) {
-        attempt = claimed;
-        await executeOrQuery(attempt);
-      } else {
-        attempt = (await PaymentAttempt.findById(attempt._id)) ?? attempt;
+        await executeOrQuery(claimed);
+        return mintResultReference(claimed);
       }
+      const refreshed = await PaymentAttempt.findById(attempt._id);
+      return mintResultReference(refreshed ?? attempt);
     }
   }
   return mintResultReference(attempt);
@@ -443,7 +515,7 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
   if (!attempt) return { state: "unavailable", message: "This payment result is unavailable or expired." };
 
   if (
-    (attempt.status === "initiated" || attempt.status === "verification_pending") &&
+    isActiveAttempt(attempt) &&
     attempt.payment_id &&
     (!attempt.last_query_at ||
       Date.now() - attempt.last_query_at.getTime() > PAYMENT_RECHECK_INTERVAL_MS)
@@ -451,13 +523,7 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
     await queryAndApplyVerification(attempt);
   }
 
-  if (
-    attempt.status === "initiated" &&
-    Date.now() - attempt.createdAt.getTime() > PAYMENT_EXPIRY_MS
-  ) {
-    attempt.status = "expired";
-    await attempt.save();
-  }
+  await expireIfAbandoned(attempt);
   const lead = await Lead.findById(attempt.lead_id);
   if (!lead) return { state: "unavailable", message: "The checkout could not be found." };
 
@@ -477,49 +543,74 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
 }
 
 export async function retryBkashPayment(input: PaymentRetryInput): Promise<RetryPaymentResponse> {
+  const claimedAt = new Date();
   const attempt = await PaymentAttempt.findOneAndUpdate(
     {
       retry_token_hash: hash(input.retry_token),
       retry_token_expires_at: { $gt: new Date() },
       retry_token_consumed_at: { $exists: false },
+      $or: [
+        { retry_token_claimed_at: { $exists: false } },
+        {
+          retry_token_claimed_at: {
+            $lt: new Date(claimedAt.getTime() - RETRY_CLAIM_LEASE_MS),
+          },
+        },
+      ],
       status: { $in: TERMINAL_FAILURES },
     },
-    { $set: { retry_token_consumed_at: new Date() } },
+    { $set: { retry_token_claimed_at: claimedAt } },
     { new: true },
   );
   if (!attempt) throw new AppError("Retry link is invalid or expired", 400);
 
-  const lead = await Lead.findById(attempt.lead_id);
-  if (!lead) throw new AppError("Checkout not found", 404);
-  const latest = await loadLatestAttempt(lead._id);
-  if (!latest || latest._id.toString() !== attempt._id.toString()) {
-    if (latest) return responseForExisting(latest);
-    throw new AppError("Payment attempt is no longer retryable", 409);
-  }
+  try {
+    const lead = await Lead.findById(attempt.lead_id);
+    if (!lead) throw new AppError("Checkout not found", 404);
+    const latest = await loadLatestAttempt(lead._id);
+    if (!latest || latest._id.toString() !== attempt._id.toString()) {
+      if (latest) {
+        const response = await responseForExisting(latest);
+        await consumeRetryClaim(attempt._id, claimedAt);
+        return response;
+      }
+      throw new AppError("Payment attempt is no longer retryable", 409);
+    }
 
-  const verified = await buildVerifiedCartSnapshot(lead.cart_snapshot);
-  const verifiedAmount = canonicalAmount(verified.total);
-  const storedAmount = canonicalAmount(lead.cart_snapshot.total);
-  const acceptedAmount = input.accepted_total === undefined
-    ? undefined
-    : canonicalAmount(input.accepted_total);
-  const priceChanged = verifiedAmount !== storedAmount;
-  const confirmationRequired = priceChanged && acceptedAmount === undefined;
-  const confirmationIsStale =
-    acceptedAmount !== undefined && acceptedAmount !== verifiedAmount;
+    const verified = await buildVerifiedCartSnapshot(lead.cart_snapshot);
+    const verifiedAmount = canonicalAmount(verified.total);
+    const storedAmount = canonicalAmount(lead.cart_snapshot.total);
+    const acceptedAmount = input.accepted_total === undefined
+      ? undefined
+      : canonicalAmount(input.accepted_total);
+    const priceChanged = verifiedAmount !== storedAmount;
+    const confirmationRequired = priceChanged && acceptedAmount === undefined;
+    const confirmationIsStale =
+      acceptedAmount !== undefined && acceptedAmount !== verifiedAmount;
 
-  if (priceChanged) {
-    lead.cart_snapshot = verified;
-    await lead.save();
+    if (priceChanged) {
+      lead.cart_snapshot = verified;
+      await lead.save();
+    }
+    if (confirmationRequired || confirmationIsStale) {
+      return {
+        state: "price_changed",
+        total: verified.total,
+        retry_token: await mintRetryToken(attempt),
+      };
+    }
+
+    const response = await createAttempt(lead, attempt.sequence + 1);
+    await consumeRetryClaim(attempt._id, claimedAt);
+    return response;
+  } catch (error) {
+    try {
+      await releaseRetryClaim(attempt._id, claimedAt);
+    } catch {
+      // The lease expiry makes the token retryable if releasing the claim also fails.
+    }
+    throw error;
   }
-  if (confirmationRequired || confirmationIsStale) {
-    return {
-      state: "price_changed",
-      total: verified.total,
-      retry_token: await mintRetryToken(attempt),
-    };
-  }
-  return createAttempt(lead, attempt.sequence + 1);
 }
 
 export async function recheckPendingPayment(leadId: string): Promise<void> {
@@ -533,7 +624,12 @@ export async function recheckPendingPayment(leadId: string): Promise<void> {
     throw new AppError("Only active payment verification can be rechecked", 409);
   }
   if (attempt.status === "initiated") {
-    await queryAndApplyVerification(attempt);
+    const claimed = await claimInitiatedExecution(attempt);
+    if (claimed) {
+      await executeOrQuery(claimed);
+    } else {
+      await queryAndApplyVerification(attempt);
+    }
     return;
   }
   await executeOrQuery(attempt);

@@ -10,7 +10,7 @@ import { serializeLead } from "../utils/serializeLead.js";
 async function expireAbandonedAttempts(): Promise<void> {
   await PaymentAttempt.updateMany(
     {
-      status: "initiated",
+      status: { $in: ["initiated", "verification_pending"] },
       createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     },
     {

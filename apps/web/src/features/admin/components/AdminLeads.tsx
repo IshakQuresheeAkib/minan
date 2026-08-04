@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   fetchAdminLead,
@@ -24,6 +24,7 @@ export function AdminLeads() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const activeLeadRequestId = useRef<string | null>(null);
 
   const loadLeads = useCallback(
     async (pageNum: number) => {
@@ -114,13 +115,25 @@ export function AdminLeads() {
         limit={PAGE_LIMIT}
         onPageChange={setPage}
         onView={(lead) => {
+          const requestedLeadId = lead._id;
+          activeLeadRequestId.current = requestedLeadId;
           setSelectedLead(lead);
           setDialogOpen(true);
           if (accessToken) {
-            void fetchAdminLead(accessToken, lead._id)
-              .then((response) => setSelectedLead(response.data))
+            void fetchAdminLead(accessToken, requestedLeadId)
+              .then((response) => {
+                if (activeLeadRequestId.current === requestedLeadId) {
+                  setSelectedLead(response.data);
+                }
+              })
               .catch((loadError: unknown) => {
-                setError(loadError instanceof ApiError ? loadError.message : "Failed to load payment history.");
+                if (activeLeadRequestId.current === requestedLeadId) {
+                  setError(
+                    loadError instanceof ApiError
+                      ? loadError.message
+                      : "Failed to load payment history.",
+                  );
+                }
               });
           }
         }}
@@ -131,7 +144,10 @@ export function AdminLeads() {
           accessToken={accessToken}
           lead={selectedLead}
           open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) activeLeadRequestId.current = null;
+          }}
           onSaved={handleSaved}
         />
       ) : null}

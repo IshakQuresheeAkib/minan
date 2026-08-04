@@ -31,6 +31,7 @@ export interface PaymentAttemptDocument extends Document {
   result_token_expires_at?: Date;
   retry_token_hash?: string;
   retry_token_expires_at?: Date;
+  retry_token_claimed_at?: Date;
   retry_token_consumed_at?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -72,6 +73,7 @@ const paymentAttemptSchema = new Schema<PaymentAttemptDocument>(
     result_token_expires_at: { type: Date, select: false },
     retry_token_hash: { type: String, select: false },
     retry_token_expires_at: { type: Date, select: false },
+    retry_token_claimed_at: { type: Date, select: false },
     retry_token_consumed_at: { type: Date, select: false },
   },
   { timestamps: true },

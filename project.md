@@ -364,7 +364,6 @@ Private singleton cache for the bKash token grant. It is shared across Render co
 | POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
 | GET    | `/api/home-banners`   | Ordered homepage banner images; empty until the singleton seed exists |
-| POST   | `/api/leads`          | Submit checkout lead, CSRF-header protected, rate-limited 5 req/15 min/IP |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/auth/login`     | Admin login, CSRF-header protected, rate-limited 10 req/15 min/IP |
@@ -559,7 +558,7 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Refresh replay   | server-side refresh-token hash rotation |
 | Token expiry     | Access: 15 min; Refresh: 7 days |
 | Brute force      | rate-limit `/api/auth/login` |
-| Checkout spam    | rate-limit `/api/leads` |
+| Checkout spam    | layered IP and idempotency-key limits on `/api/bkash/payments` |
 | HTTP headers     | `helmet` |
 | CORS             | specific `ALLOWED_ORIGINS`, credentials enabled, never `*` |
 | Password leak    | Mongoose `toJSON` strips `password` |
@@ -577,6 +576,17 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Images   | Cloudinary            | -               |
 
 Custom domains are required for production admin cookie auth.
+
+### bKash checkout rollout
+
+The Render API and Vercel web app must be rolled out as compatible releases:
+
+1. Configure all bKash API environment variables and prepare the `/api/bkash/*` API release.
+2. From that release checkout, run `npm --workspace @minan/api run migrate:lead-checkout` and review the production dry-run counts.
+3. Run `npm --workspace @minan/api run migrate:lead-checkout -- --apply` before promoting the new API release.
+4. Deploy the API first, then deploy the web app that calls `/api/bkash/payments`.
+
+The migration command is intentionally a dry run unless `--apply` is supplied. It maps legacy delivery statuses and preserves `bkash_txn_id` as `legacy_bkash_txn_id` for audit history.
 
 Admin role removal changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window; old web against new API or new web against old API can break admin refresh/admin-user forms. Existing legacy JWTs that still include `role` are tolerated by the new parser as long as they contain valid `id` and `email` claims.
 
@@ -675,7 +685,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
-- Public routers: products (catalog, home groups, filters, quotes, PDP), leads, analytics, whatsapp-click, auth.
+- Public routers: products (catalog, home groups, filters, quotes, PDP), bKash payments, analytics, whatsapp-click, auth.
 - Admin router is mounted at `/api/admin`.
 - All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh rather than through a database lookup on every request.
 - All admin writes require auth and CSRF header.

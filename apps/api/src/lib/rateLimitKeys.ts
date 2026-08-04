@@ -1,11 +1,9 @@
 import { createHash } from "node:crypto";
 
-import { ipKeyGenerator } from "express-rate-limit";
-
 export function opaqueTokenRateLimitKey(
   prefix: string,
   token: unknown,
-  fallbackIp: string,
+  fallbackIpKey: string,
 ): string {
   if (typeof token === "string") {
     const normalized = token.trim();
@@ -14,5 +12,5 @@ export function opaqueTokenRateLimitKey(
       return `${prefix}:token:${digest}`;
     }
   }
-  return `${prefix}:ip:${ipKeyGenerator(fallbackIp)}`;
+  return `${prefix}:ip:${fallbackIpKey}`;
 }

@@ -19,7 +19,10 @@ vi.mock("./checkoutCart.service.js", () => ({
 }));
 
 import { Lead } from "../models/Lead.js";
-import { PaymentAttempt } from "../models/PaymentAttempt.js";
+import {
+  PaymentAttempt,
+  type PaymentAttemptDocument,
+} from "../models/PaymentAttempt.js";
 import { bkashCallbackSchema } from "../schemas/bkash.schemas.js";
 import {
   handleBkashCallback,
@@ -32,16 +35,16 @@ import {
 
 function chainResult<T>(value: T) {
   const promise = Promise.resolve(value);
-  return {
+  const chain = {
     select: vi.fn(() => promise),
-    sort: vi.fn(function sort() {
-      return this;
-    }),
+    sort: vi.fn(),
     then: promise.then.bind(promise),
   };
+  chain.sort.mockReturnValue(chain);
+  return chain;
 }
 
-function persistable<T extends { save: () => Promise<unknown> }>(document: T): T {
+function persistable(document: PaymentAttemptDocument): PaymentAttemptDocument {
   vi.spyOn(document, "save").mockResolvedValue(document);
   return document;
 }
@@ -86,6 +89,9 @@ describe("bKash payment recovery and checkout invariants", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    vi.spyOn(PaymentAttempt, "updateOne").mockResolvedValue({
+      matchedCount: 1,
+    } as never);
   });
 
   it("moves a claimed callback into a recoverable verification state", async () => {
@@ -175,6 +181,36 @@ describe("bKash payment recovery and checkout invariants", () => {
     await recheckPendingPayment(pending.lead_id.toString());
 
     expect(pending.status).toBe("initiated");
+  });
+
+  it("retries Execute after an abandoned execution lease", async () => {
+    const initiated = persistable(attempt());
+    initiated.execute_started_at = new Date(Date.now() - 3 * 60 * 1000);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(initiated) as never);
+    const claim = vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockImplementation(() => {
+      initiated.status = "verification_pending";
+      initiated.execute_started_at = new Date();
+      return Promise.resolve(initiated) as never;
+    });
+    bkashMocks.executePayment.mockRejectedValue(new Error("Execute timed out"));
+    bkashMocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    await recheckPendingPayment(initiated.lead_id.toString());
+
+    expect(bkashMocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(claim).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "initiated",
+        $or: expect.any(Array),
+      }),
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(initiated.status).toBe("initiated");
   });
 
   it("queries bKash before accepting an unsigned terminal callback", async () => {
@@ -307,6 +343,54 @@ describe("bKash payment recovery and checkout invariants", () => {
     expect(existingAttempt.status).toBe("expired");
   });
 
+  it("expires a stale verification-pending attempt and issues a retry token", async () => {
+    const productId = new Types.ObjectId().toString();
+    const existingLead = {
+      _id: new Types.ObjectId(),
+      name: "MINAN Customer",
+      phone_number: "01700000000",
+      email: "customer@example.com",
+      address: "Delivery address",
+      notes: "",
+      checkout_source: "cart",
+      cart_snapshot: {
+        items: [{
+          product_id: productId,
+          name: "Shirt",
+          price: 1200,
+          size: "M",
+          color: "Black",
+          quantity: 1,
+        }],
+        total: 1200,
+      },
+    };
+    const existingAttempt = persistable(attempt());
+    existingAttempt.status = "verification_pending";
+    existingAttempt.createdAt = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    vi.spyOn(Lead, "findOne").mockResolvedValue(existingLead as never);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(
+      chainResult(existingAttempt) as never,
+    );
+
+    const result = await startBkashPayment(
+      {
+        name: existingLead.name,
+        phone_number: existingLead.phone_number,
+        email: existingLead.email,
+        address: existingLead.address,
+        notes: existingLead.notes,
+        checkout_source: "cart",
+        cart_snapshot: existingLead.cart_snapshot,
+      },
+      "same-idempotency-key",
+    );
+
+    expect(result).toMatchObject({ state: "failed" });
+    expect(result).toHaveProperty("retry_token");
+    expect(existingAttempt.status).toBe("expired");
+  });
+
   it("requires current-price confirmation before reusing an initiated attempt", async () => {
     const productId = new Types.ObjectId().toString();
     const existingLead = {
@@ -400,5 +484,92 @@ describe("bKash payment recovery and checkout invariants", () => {
 
     expect(result).toMatchObject({ state: "price_changed", total: 1200 });
     expect(createAttempt).not.toHaveBeenCalled();
+    expect(PaymentAttempt.updateOne).toHaveBeenCalledWith(
+      { _id: failedAttempt._id },
+      expect.objectContaining({
+        $unset: {
+          retry_token_claimed_at: 1,
+          retry_token_consumed_at: 1,
+        },
+      }),
+    );
+  });
+
+  it("releases the retry claim when cart validation fails", async () => {
+    const failedAttempt = persistable(attempt());
+    failedAttempt.status = "failed";
+    const lead = {
+      _id: failedAttempt.lead_id,
+      cart_snapshot: {
+        items: [],
+        total: 1200,
+      },
+    };
+    const claim = vi
+      .spyOn(PaymentAttempt, "findOneAndUpdate")
+      .mockResolvedValue(failedAttempt);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(
+      chainResult(failedAttempt) as never,
+    );
+    vi.spyOn(Lead, "findById").mockResolvedValue(lead as never);
+    const releaseClaim = vi
+      .spyOn(PaymentAttempt, "updateOne")
+      .mockResolvedValue({} as never);
+    bkashMocks.verifyCart.mockRejectedValue(new Error("Product lookup failed"));
+
+    await expect(
+      retryBkashPayment({
+        retry_token: "x".repeat(32),
+      }),
+    ).rejects.toThrow("Product lookup failed");
+
+    expect(claim).toHaveBeenCalledWith(
+      expect.objectContaining({
+        retry_token_consumed_at: { $exists: false },
+        $or: expect.any(Array),
+      }),
+      { $set: { retry_token_claimed_at: expect.any(Date) } },
+      { new: true },
+    );
+    expect(releaseClaim).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: failedAttempt._id }),
+      { $unset: { retry_token_claimed_at: 1 } },
+    );
+  });
+
+  it("releases the retry claim when the refreshed cart cannot be saved", async () => {
+    const failedAttempt = persistable(attempt());
+    failedAttempt.status = "failed";
+    const lead = {
+      _id: failedAttempt.lead_id,
+      cart_snapshot: {
+        items: [],
+        total: 1000,
+      },
+      save: vi.fn().mockRejectedValue(new Error("Lead save failed")),
+    };
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockResolvedValue(failedAttempt);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(
+      chainResult(failedAttempt) as never,
+    );
+    vi.spyOn(Lead, "findById").mockResolvedValue(lead as never);
+    const releaseClaim = vi
+      .spyOn(PaymentAttempt, "updateOne")
+      .mockResolvedValue({} as never);
+    bkashMocks.verifyCart.mockResolvedValue({
+      items: [],
+      total: 1200,
+    });
+
+    await expect(
+      retryBkashPayment({
+        retry_token: "x".repeat(32),
+      }),
+    ).rejects.toThrow("Lead save failed");
+
+    expect(releaseClaim).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: failedAttempt._id }),
+      { $unset: { retry_token_claimed_at: 1 } },
+    );
   });
 });

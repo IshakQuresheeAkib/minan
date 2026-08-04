@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { Router } from "express";
 
 import {
@@ -15,6 +15,13 @@ import { Lead } from "../models/Lead.js";
 
 export const bkashRouter = Router();
 
+const paymentIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many payment requests. Please try again later." },
+});
 const createLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -28,6 +35,13 @@ const createLimiter = rateLimit({
     return Boolean(await Lead.exists({ checkout_idempotency_hash: digest }));
   },
 });
+const resolveIpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many payment result requests. Please try again later." },
+});
 const resolveLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 60,
@@ -37,12 +51,30 @@ const resolveLimiter = rateLimit({
     opaqueTokenRateLimitKey(
       "bkash-result",
       req.body?.reference,
-      req.ip ?? req.socket.remoteAddress ?? "unknown",
+      ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? "unknown"),
     ),
 });
 
-bkashRouter.post("/payments", requireCsrfHeader, createLimiter, createBkashPaymentHandler);
+bkashRouter.post(
+  "/payments",
+  paymentIpLimiter,
+  requireCsrfHeader,
+  createLimiter,
+  createBkashPaymentHandler,
+);
 // bKash performs this browser redirect, so it intentionally bypasses XHR CSRF checks.
 bkashRouter.get("/callback", bkashCallbackHandler);
-bkashRouter.post("/results/resolve", resolveLimiter, requireCsrfHeader, resolveBkashResultHandler);
-bkashRouter.post("/payments/retry", createLimiter, requireCsrfHeader, retryBkashPaymentHandler);
+bkashRouter.post(
+  "/results/resolve",
+  resolveIpLimiter,
+  requireCsrfHeader,
+  resolveLimiter,
+  resolveBkashResultHandler,
+);
+bkashRouter.post(
+  "/payments/retry",
+  paymentIpLimiter,
+  requireCsrfHeader,
+  createLimiter,
+  retryBkashPaymentHandler,
+);
