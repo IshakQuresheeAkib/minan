@@ -1,6 +1,6 @@
 # MINAN
 
-MINAN is a marketing-focused commerce platform for the Bangladesh market, built for lead generation and conversion. The MVP collects checkout leads and bKash transaction IDs manually, with no payment processing in the first release.
+MINAN is a marketing-focused commerce platform for the Bangladesh market, built for lead generation and conversion. Checkout uses the Express API for verified carts, auditable payment attempts, and bKash Checkout URL payments.
 
 ## Architecture
 
@@ -39,3 +39,11 @@ minan/
 - Animations use GSAP only.
 - Product images are Cloudinary URLs rendered with `next/image`.
 
+## Payment rollout
+
+The API and web app deploy independently. For payment-model releases, deploy in this order:
+
+1. Configure the API bKash environment variables and prepare the API release.
+2. From the release checkout, preview the production migration with `npm --workspace @minan/api run migrate:lead-checkout`.
+3. Apply it before promoting the API release with `npm --workspace @minan/api run migrate:lead-checkout -- --apply`.
+4. Deploy the API, then deploy the web app that uses `POST /api/bkash/payments`.

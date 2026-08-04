@@ -27,7 +27,6 @@ export const leadCreateSchema = z.object({
   email: z.email("Enter a valid email address"),
   address: z.string().trim().min(8, "Address is required").max(400),
   notes: z.string().trim().max(500).optional(),
-  bkash_txn_id: z.string().trim().max(80).optional(),
   cart_snapshot: cartSnapshotCreateSchema,
 });
 

@@ -544,9 +544,7 @@ export function ProductCatalog({
             </div>
           )}
           {isPaginating && (
-            <p className="py-5 text-center text-sm text-foreground/70">
-              Loading more pieces...
-            </p>
+            <ProductGridSkeleton className="mt-4" compact count={4} />
           )}
           {hasMore && (
             <div ref={sentinelRef} className="h-8" aria-hidden="true" />

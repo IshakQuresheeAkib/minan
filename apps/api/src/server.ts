@@ -1,8 +1,9 @@
-import "dotenv/config";
+import "./config/env.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { getBkashConfig } from "./config/bkash.js";
 import {
   connectDB,
   disconnectDB,
@@ -16,7 +17,7 @@ import {
   whatsappClickRouter,
 } from "./routes/analytics.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
-import { leadsRouter } from "./routes/leads.routes.js";
+import { bkashRouter } from "./routes/bkash.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
@@ -56,7 +57,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/products", productsRouter);
 app.use("/api/home-banners", homeBannersRouter);
-app.use("/api/leads", leadsRouter);
+app.use("/api/bkash", bkashRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);
@@ -64,6 +65,8 @@ app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
+  // Fail during startup instead of creating checkout attempts that cannot be paid.
+  getBkashConfig();
   await connectDB();
 
   const server = app.listen(port, () => {

@@ -3,7 +3,14 @@ import { z } from "zod";
 import { slugify } from "../lib/slugify.js";
 import { MAX_PRODUCT_DESCRIPTION_LENGTH } from "../utils/productDescription.js";
 
-const leadStatusSchema = z.enum(["pending", "confirmed", "cancelled"]);
+const deliveryStatusSchema = z.enum([
+  "pending",
+  "processing",
+  "shipped",
+  "delivered",
+  "delivery_failed",
+  "cancelled",
+]);
 
 const discountSchema = z
   .number()
@@ -164,7 +171,7 @@ export const homeBannerDeleteSchema = z.object({
 
 export const leadUpdateSchema = z
   .object({
-    status: leadStatusSchema.optional(),
+    delivery_status: deliveryStatusSchema.optional(),
     notes: z.string().trim().max(500).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {

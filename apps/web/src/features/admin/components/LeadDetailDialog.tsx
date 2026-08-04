@@ -4,7 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { updateAdminLead } from "@/features/admin/actions/leads.actions";
+import {
+  recheckAdminLeadPayment,
+  updateAdminLead,
+} from "@/features/admin/actions/leads.actions";
 import {
   adminLeadUpdateSchema,
   type AdminLeadUpdateInput,
@@ -64,7 +67,7 @@ function LeadDetailFields({
   const form = useForm<AdminLeadUpdateInput>({
     resolver: zodResolver(adminLeadUpdateSchema),
     defaultValues: {
-      status: lead.status,
+      delivery_status: lead.delivery_status,
       notes: lead.notes ?? "",
     },
   });
@@ -99,12 +102,6 @@ function LeadDetailFields({
           <dt className="font-medium">Address</dt>
           <dd className="text-foreground/70">{lead.address}</dd>
         </div>
-        {lead.bkash_txn_id ? (
-          <div>
-            <dt className="font-medium">bKash TX ID</dt>
-            <dd className="text-foreground/70">{lead.bkash_txn_id}</dd>
-          </div>
-        ) : null}
       </dl>
 
       {lead.cart_snapshot ? (
@@ -139,6 +136,59 @@ function LeadDetailFields({
         </section>
       ) : null}
 
+      <section className="mt-5 border-t pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Payment attempts</h3>
+          {lead.latest_payment_status === "verification_pending" ||
+          lead.latest_payment_status === "initiated" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                void recheckAdminLeadPayment(accessToken, lead._id)
+                  .then(() => {
+                    toast.success("Payment status rechecked");
+                    onSaved();
+                    onClose();
+                  })
+                  .catch((error: unknown) => {
+                    toast.error(error instanceof ApiError ? error.message : "Failed to recheck payment");
+                  });
+              }}
+            >
+              Recheck
+            </Button>
+          ) : null}
+        </div>
+        {lead.legacy_bkash_txn_id ? (
+          <div className="mt-3 border-l-2 border-amber-500 pl-3 text-sm">
+            <p className="font-medium">Legacy transaction reference</p>
+            <p className="mt-1 break-all text-xs">{lead.legacy_bkash_txn_id}</p>
+            <p className="mt-1 text-xs text-foreground/65">
+              Preserved from the manual checkout flow; not gateway-verified.
+            </p>
+          </div>
+        ) : null}
+        {lead.payment_attempts.length === 0 ? (
+          <p className="mt-3 text-sm text-foreground/65">No payment attempts recorded.</p>
+        ) : (
+          <div className="mt-3 grid gap-3">
+            {lead.payment_attempts.map((attempt) => (
+              <div key={attempt._id} className="border-l-2 pl-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium">Attempt {attempt.sequence}</span>
+                  <span className="capitalize text-foreground/70">{attempt.status.replaceAll("_", " ")}</span>
+                </div>
+                <p className="mt-1 break-all text-xs text-foreground/65">{attempt.merchant_invoice_number}</p>
+                {attempt.bkash_trx_id ? <p className="mt-1 break-all text-xs">bKash transaction: {attempt.bkash_trx_id}</p> : null}
+                {attempt.provider_status_message ? <p className="mt-1 text-xs text-foreground/65">{attempt.provider_status_message}</p> : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <Form {...form}>
         <form
           className="mt-4 space-y-4"
@@ -148,10 +198,10 @@ function LeadDetailFields({
         >
           <FormField
             control={form.control}
-            name="status"
+            name="delivery_status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>Delivery status</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger>
@@ -160,7 +210,10 @@ function LeadDetailFields({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="delivery_failed">Delivery failed</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>

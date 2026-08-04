@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { fetchAdminLeads } from "@/features/admin/actions/leads.actions";
+import {
+  fetchAdminLead,
+  fetchAdminLeads,
+} from "@/features/admin/actions/leads.actions";
 import { LeadDetailDialog } from "@/features/admin/components/LeadDetailDialog";
 import { LeadsTable } from "@/features/admin/components/LeadsTable";
 import type { AdminLead } from "@/features/admin/types";
@@ -21,6 +24,7 @@ export function AdminLeads() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const activeLeadRequestId = useRef<string | null>(null);
 
   const loadLeads = useCallback(
     async (pageNum: number) => {
@@ -111,8 +115,27 @@ export function AdminLeads() {
         limit={PAGE_LIMIT}
         onPageChange={setPage}
         onView={(lead) => {
+          const requestedLeadId = lead._id;
+          activeLeadRequestId.current = requestedLeadId;
           setSelectedLead(lead);
           setDialogOpen(true);
+          if (accessToken) {
+            void fetchAdminLead(accessToken, requestedLeadId)
+              .then((response) => {
+                if (activeLeadRequestId.current === requestedLeadId) {
+                  setSelectedLead(response.data);
+                }
+              })
+              .catch((loadError: unknown) => {
+                if (activeLeadRequestId.current === requestedLeadId) {
+                  setError(
+                    loadError instanceof ApiError
+                      ? loadError.message
+                      : "Failed to load payment history.",
+                  );
+                }
+              });
+          }
         }}
       />
 
@@ -121,7 +144,10 @@ export function AdminLeads() {
           accessToken={accessToken}
           lead={selectedLead}
           open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) activeLeadRequestId.current = null;
+          }}
           onSaved={handleSaved}
         />
       ) : null}

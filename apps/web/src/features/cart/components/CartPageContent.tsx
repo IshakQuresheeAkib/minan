@@ -14,6 +14,15 @@ function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
+function getProductInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join("");
+}
+
 export function CartPageContent() {
   useCartPricingSync();
   const items = useCartStore((state) => state.items);
@@ -96,9 +105,13 @@ export function CartPageContent() {
           {items.map((item) => (
             <article
               key={item.lineId}
-              className="grid grid-cols-[88px_1fr] gap-4 rounded-lg border bg-background p-3 text-foreground shadow-sm sm:grid-cols-[104px_1fr_auto]"
+              className={`grid grid-cols-[88px_1fr] gap-4 rounded-lg border p-3 text-foreground shadow-sm sm:grid-cols-[104px_1fr_auto] ${
+                item.isAvailable
+                  ? "bg-background"
+                  : "border-destructive/35 bg-destructive/10"
+              }`}
             >
-              <div className="relative aspect-square overflow-hidden rounded-md bg-background">
+              <div className="relative aspect-square overflow-hidden rounded-md border border-foreground/10 bg-secondary/20">
                 {item.imageUrl ? (
                   <Image
                     src={item.imageUrl}
@@ -107,7 +120,14 @@ export function CartPageContent() {
                     sizes="104px"
                     className="object-cover object-top"
                   />
-                ) : null}
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-foreground/55">
+                    <ShoppingBag className="size-5" aria-hidden="true" />
+                    <span className="text-xs font-semibold tracking-wide">
+                      {getProductInitials(item.name) || "MN"}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="min-w-0">
@@ -118,9 +138,19 @@ export function CartPageContent() {
                   {item.size} / {item.color}
                 </p>
                 {!item.isAvailable ? (
-                  <p className="mt-2 text-xs font-semibold text-destructive">
-                    Currently unavailable
-                  </p>
+                  <div
+                    className="mt-2 rounded-md border border-destructive/30 bg-background/70 px-2.5 py-2 text-xs leading-5 text-destructive"
+                    role="status"
+                  >
+                    <p className="font-semibold">Currently unavailable</p>
+                    <button
+                      type="button"
+                      className="mt-1 cursor-pointer font-semibold underline underline-offset-3 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/50"
+                      onClick={() => removeItem(item.lineId)}
+                    >
+                      Remove this item
+                    </button>
+                  </div>
                 ) : (
                   <ProductPrice
                     className="mt-2"
@@ -166,7 +196,7 @@ export function CartPageContent() {
                 <button
                   type="button"
                   aria-label={`Remove ${item.name}`}
-                  className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-background hover:text-destructive"
+                  className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors cursor-pointer hover:bg-background hover:text-destructive focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/50"
                   onClick={() => removeItem(item.lineId)}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
@@ -177,7 +207,7 @@ export function CartPageContent() {
         </div>
       </div>
 
-      <aside className="h-fit rounded-lg border bg-background p-5 text-foreground shadow-sm">
+      <aside className="h-fit rounded-lg border bg-background p-5 text-foreground shadow-sm lg:sticky lg:top-24">
         <h2 className="text-lg font-semibold">Order Summary</h2>
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="text-foreground/70">Items</span>
@@ -193,16 +223,24 @@ export function CartPageContent() {
           <span>Total</span>
           <span>{formatCurrency(total)}</span>
         </div>
-        <Button
-          className="mt-5 h-11 w-full"
-          href={publicRoutes.checkout}
-          disabled={hasUnavailableItems}
-          text={
-            hasUnavailableItems
-              ? "Remove unavailable items"
-              : "Proceed to checkout"
-          }
-        />
+        {hasUnavailableItems ? (
+          <>
+            <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm leading-5 text-destructive">
+              Remove unavailable products from your cart before checkout.
+            </p>
+            <Button
+              className="mt-4 h-11 w-full"
+              disabled
+              text="Checkout unavailable"
+            />
+          </>
+        ) : (
+          <Button
+            className="mt-5 h-11 w-full"
+            href={publicRoutes.checkout}
+            text="Proceed to checkout"
+          />
+        )}
       </aside>
     </section>
   );

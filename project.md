@@ -286,10 +286,20 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `email`                   | String   | required |
 | `address`                 | String   | required |
 | `notes`                   | String   | optional |
-| `bkash_txn_id`            | String   | optional |
 | `cart_snapshot`           | Object   | `{ items: Array<{ product_id, name, price, original_price, discount, size, color, quantity }>, total }` |
-| `status`                  | String   | `pending | confirmed | cancelled`, default `pending` |
+| `delivery_status`         | String   | `pending | processing | shipped | delivered | delivery_failed | cancelled` |
+| `checkout_source`         | String   | `cart | buy_now` |
+| `checkout_idempotency_hash` | String | unique, sparse, server-only |
+| `legacy_bkash_txn_id`      | String   | optional; preserved unverified reference from the manual checkout flow |
 | `createdAt` / `updatedAt` | Date     | timestamps |
+
+### `payment_attempts`
+
+Each checkout retry creates an auditable payment attempt linked to one lead. The collection stores the bKash `payment_id`, official transaction result, canonical amount, merchant invoice, verification state, and hashed short-lived result/retry references. Delivery state never changes automatically from payment state.
+
+### `bkash_tokens`
+
+Private singleton cache for the bKash token grant. It is shared across Render cold starts; secrets and token values are never serialized to storefront or admin responses.
 
 ### `analytics_events`
 
@@ -354,7 +364,6 @@ Subcategories are managed within the admin category experience. Public catalog f
 | POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
 | GET    | `/api/home-banners`   | Ordered homepage banner images; empty until the singleton seed exists |
-| POST   | `/api/leads`          | Submit checkout lead, CSRF-header protected, rate-limited 5 req/15 min/IP |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/auth/login`     | Admin login, CSRF-header protected, rate-limited 10 req/15 min/IP |
@@ -461,9 +470,8 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `email`        | email    | yes      | valid email |
 | `address`      | textarea | yes      | min 8, max 400 |
 | `notes`        | textarea | no       | max 500 |
-| `bkash_txn_id` | text     | no       | manual admin verification, max 80 |
 
-`POST /api/leads` is rate-limited to 5 req / 15 min / IP.
+`POST /api/bkash/payments` verifies the cart and price server-side, creates one lead per idempotency key, creates a separate payment attempt, and redirects to bKash Checkout URL mode `0011`. The callback executes the payment server-side and queries only when Execute is uncertain. Cart state is cleared only after a completed result is resolved.
 
 ---
 
@@ -476,7 +484,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - Product catalog supports multi-select category/subcategory/color/size filters, effective min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
 - Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`; storefront cards, PDP, cart, buy-now, and verified lead snapshots use the effective discounted price.
 - Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
-- Checkout lead form writes to MongoDB `leads`
+- Checkout creates one MongoDB lead with separate auditable bKash payment attempts
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the lead snapshot
 - Authenticated admin management for products, categories, ordered subcategories, leads, admins, and managed uploads
 - Versioned homepage banner management with 16:9 desktop and 4:5 mobile Cloudinary assets, atomic ordering, and deferred cleanup
@@ -507,7 +515,7 @@ Analytics is partially implemented. Keep current/live behavior separate from pla
 | `product_view`   | helper-ready | endpoint-ready | Planned wiring |
 | `add_to_cart`    | helper-ready | endpoint-ready | Planned wiring |
 | `checkout_start` | helper-ready | endpoint-ready | Planned wiring |
-| `lead_submit`    | no           | backend-ready | Not fired by `POST /api/leads` yet |
+| `lead_submit`    | no           | backend-ready | Not fired by the payment create flow yet |
 | `whatsapp_click` | yes          | yes          | Live |
 
 ### Deduplication Pattern
@@ -550,7 +558,7 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Refresh replay   | server-side refresh-token hash rotation |
 | Token expiry     | Access: 15 min; Refresh: 7 days |
 | Brute force      | rate-limit `/api/auth/login` |
-| Checkout spam    | rate-limit `/api/leads` |
+| Checkout spam    | layered IP and idempotency-key limits on `/api/bkash/payments` |
 | HTTP headers     | `helmet` |
 | CORS             | specific `ALLOWED_ORIGINS`, credentials enabled, never `*` |
 | Password leak    | Mongoose `toJSON` strips `password` |
@@ -568,6 +576,17 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Images   | Cloudinary            | -               |
 
 Custom domains are required for production admin cookie auth.
+
+### bKash checkout rollout
+
+The Render API and Vercel web app must be rolled out as compatible releases:
+
+1. Configure all bKash API environment variables and prepare the `/api/bkash/*` API release.
+2. From that release checkout, run `npm --workspace @minan/api run migrate:lead-checkout` and review the production dry-run counts.
+3. Run `npm --workspace @minan/api run migrate:lead-checkout -- --apply` before promoting the new API release.
+4. Deploy the API first, then deploy the web app that calls `/api/bkash/payments`.
+
+The migration command is intentionally a dry run unless `--apply` is supplied. It maps legacy delivery statuses and preserves `bkash_txn_id` as `legacy_bkash_txn_id` for audit history.
 
 Admin role removal changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window; old web against new API or new web against old API can break admin refresh/admin-user forms. Existing legacy JWTs that still include `role` are tolerated by the new parser as long as they contain valid `id` and `email` claims.
 
@@ -607,12 +626,22 @@ ADMIN_PASSWORD=
 NODE_ENV=
 STOREFRONT_REVALIDATE_URL=https://app.minan.com/api/revalidate
 STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
+BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v1.2.0-beta
+BKASH_APP_KEY=
+BKASH_APP_SECRET=
+BKASH_USERNAME=
+BKASH_PASSWORD=
+API_PUBLIC_URL=https://api.minan.com
+FRONTEND_URL=https://app.minan.com
 ```
 
 - `AUTH_COOKIE_DOMAIN` should be `.minan.com` in production when frontend and backend share the parent domain.
 - `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password and `is_active: true`.
 - `cleanup:admin-roles` is an optional post-deploy hygiene script that removes legacy `role` fields from `admin_users`; stale role fields are ignored by current code.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
+- `API_PUBLIC_URL` must be the directly reachable Render API origin used for the bKash callback. `FRONTEND_URL` is the Vercel storefront origin used after callback verification.
+- The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL; it does not depend on the browser rewrite.
+- Use bKash sandbox credentials until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Replace the base URL and credentials together for production.
 - `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
 - Run `npm --workspace @minan/api run seed:home-banners` after the API deploy and before the banner-backed web release. The command atomically creates the two local fallback banners only when the singleton is absent.
 
@@ -656,7 +685,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
-- Public routers: products (catalog, home groups, filters, quotes, PDP), leads, analytics, whatsapp-click, auth.
+- Public routers: products (catalog, home groups, filters, quotes, PDP), bKash payments, analytics, whatsapp-click, auth.
 - Admin router is mounted at `/api/admin`.
 - All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh rather than through a database lookup on every request.
 - All admin writes require auth and CSRF header.

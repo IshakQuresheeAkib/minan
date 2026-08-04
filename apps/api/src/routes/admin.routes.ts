@@ -25,6 +25,7 @@ import {
 import {
   getAdminLeadHandler,
   listAdminLeadsHandler,
+  recheckAdminLeadPaymentHandler,
   updateAdminLeadHandler,
 } from "../controllers/admin/leads.controller.js";
 import {
@@ -64,6 +65,12 @@ adminRouter.patch(
   requireAuth,
   requireCsrfHeader,
   updateAdminProductHandler,
+);
+adminRouter.post(
+  "/leads/:id/payments/recheck",
+  requireAuth,
+  requireCsrfHeader,
+  recheckAdminLeadPaymentHandler,
 );
 
 adminRouter.get(

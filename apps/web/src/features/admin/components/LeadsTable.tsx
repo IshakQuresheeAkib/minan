@@ -25,11 +25,14 @@ type LeadsTableProps = {
 };
 
 const statusVariant: Record<
-  AdminLead["status"],
+  AdminLead["delivery_status"],
   "default" | "secondary" | "destructive"
 > = {
   pending: "secondary",
-  confirmed: "default",
+  processing: "secondary",
+  shipped: "default",
+  delivered: "default",
+  delivery_failed: "destructive",
   cancelled: "destructive",
 };
 
@@ -67,7 +70,8 @@ export function LeadsTable({
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead>Delivery</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -78,8 +82,13 @@ export function LeadsTable({
                   <TableCell className="font-medium">{lead.name}</TableCell>
                   <TableCell>{lead.phone_number}</TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant[lead.status]}>
-                      {lead.status}
+                    <Badge variant={lead.latest_payment_status === "completed" ? "default" : "secondary"}>
+                      {lead.latest_payment_status?.replaceAll("_", " ") ?? "no attempt"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariant[lead.delivery_status]}>
+                      {lead.delivery_status.replaceAll("_", " ")}
                     </Badge>
                   </TableCell>
                   <TableCell>
