@@ -18,7 +18,8 @@ export type PaymentStartResult =
   | { state: "redirect"; bkash_url: string }
   | { state: "processing" }
   | { state: "completed"; reference: string }
-  | { state: "failed"; message: string; retry_token: string };
+  | { state: "failed"; message: string; retry_token: string }
+  | { state: "price_changed"; total: number; retry_token: string };
 
 export type PaymentResult = {
   state:

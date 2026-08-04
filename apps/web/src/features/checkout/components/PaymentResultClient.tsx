@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { retryCheckoutPayment } from "@/features/checkout/actions/checkout.actions";
 import { clearCheckoutIdempotencyKey } from "@/features/checkout/lib/checkoutSession";
+import { shouldStripPaymentResultReference } from "@/features/checkout/lib/paymentResultReference";
 import type { PaymentResult, PaymentStartResult } from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
 import { useBuyNowStore } from "@/store/buy-now.store";
@@ -38,7 +39,9 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
-    window.history.replaceState(null, "", publicRoutes.paymentResult);
+    if (shouldStripPaymentResultReference(result.state)) {
+      window.history.replaceState(null, "", publicRoutes.paymentResult);
+    }
     if (result.state !== "completed" || !result.checkout_source) return;
     if (result.checkout_source === "cart") clearCart();
     else clearBuyNow();
@@ -59,6 +62,11 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
       toast.error(next.message);
       return;
     }
+    if (next.state === "price_changed") {
+      setRetryToken(next.retry_token);
+      setUpdatedTotal(next.total);
+      return;
+    }
     toast.info("Your payment is being prepared. Please try again shortly.");
   }
 
@@ -70,12 +78,7 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
         retryToken,
         updatedTotal ?? undefined,
       );
-      if (response.data.state === "price_changed") {
-        setRetryToken(response.data.retry_token);
-        setUpdatedTotal(response.data.total);
-      } else {
-        continuePayment(response.data);
-      }
+      continuePayment(response.data);
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Payment retry failed.");
     } finally {
@@ -86,6 +89,8 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
   const checkoutHref = result.checkout_source === "buy_now"
     ? publicRoutes.buyNowCheckout
     : publicRoutes.checkout;
+  const canRecheck =
+    result.state === "verification_pending" || result.state === "initiated";
 
   return (
     <section className="mx-auto flex min-h-[65dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-12 text-center sm:px-6">
@@ -103,6 +108,15 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
         <p className="mt-5 text-sm text-foreground/75">The current total is Tk {updatedTotal.toLocaleString("en-BD")}. Confirm it to continue.</p>
       ) : null}
       <div className="mt-7 flex flex-wrap justify-center gap-3">
+        {canRecheck ? (
+          <Button
+            type="button"
+            leftIcon={<RotateCw className="size-4" aria-hidden="true" />}
+            onClick={() => window.location.reload()}
+          >
+            Check again
+          </Button>
+        ) : null}
         {retryToken ? (
           <Button
             type="button"

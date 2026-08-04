@@ -25,6 +25,7 @@ import {
   handleBkashCallback,
   paymentResponseIsCompleted,
   recheckPendingPayment,
+  resolvePaymentResult,
   retryBkashPayment,
   startBkashPayment,
 } from "./bkashPayments.service.js";
@@ -160,6 +161,59 @@ describe("bKash payment recovery and checkout invariants", () => {
     expect(pending.status).toBe("completed");
   });
 
+  it("keeps a provider-initiated query result eligible for expiry and rechecking", async () => {
+    const pending = persistable(attempt());
+    pending.status = "verification_pending";
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    bkashMocks.executePayment.mockRejectedValue(new Error("Execute timed out"));
+    bkashMocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    await recheckPendingPayment(pending.lead_id.toString());
+
+    expect(pending.status).toBe("initiated");
+  });
+
+  it("queries bKash before accepting an unsigned terminal callback", async () => {
+    const current = persistable(attempt());
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(current) as never);
+    bkashMocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "failure" });
+
+    expect(bkashMocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(current.status).toBe("initiated");
+  });
+
+  it("rechecks an unresolved customer result through the provider query", async () => {
+    const pending = persistable(attempt());
+    pending.status = "verification_pending";
+    pending.createdAt = new Date();
+    pending.last_query_at = new Date(Date.now() - 20 * 1000);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(Lead, "findById").mockResolvedValue({
+      _id: pending.lead_id,
+      checkout_source: "cart",
+    } as never);
+    bkashMocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    const result = await resolvePaymentResult("r".repeat(43));
+
+    expect(bkashMocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(result.state).toBe("initiated");
+  });
+
   it("rejects an idempotency key reused with different customer details", async () => {
     const existingLead = {
       _id: new Types.ObjectId(),
@@ -202,6 +256,108 @@ describe("bKash payment recovery and checkout invariants", () => {
         "same-idempotency-key",
       ),
     ).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it("expires a stale initiated attempt instead of returning its bKash URL", async () => {
+    const productId = new Types.ObjectId().toString();
+    const existingLead = {
+      _id: new Types.ObjectId(),
+      name: "MINAN Customer",
+      phone_number: "01700000000",
+      email: "customer@example.com",
+      address: "Delivery address",
+      notes: "",
+      checkout_source: "cart",
+      cart_snapshot: {
+        items: [{
+          product_id: productId,
+          name: "Shirt",
+          price: 1200,
+          size: "M",
+          color: "Black",
+          quantity: 1,
+        }],
+        total: 1200,
+      },
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    const existingAttempt = persistable(attempt());
+    existingAttempt.bkash_url = "https://sandbox.payment.bkash.com/stale";
+    existingAttempt.createdAt = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    vi.spyOn(Lead, "findOne").mockResolvedValue(existingLead as never);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(
+      chainResult(existingAttempt) as never,
+    );
+    bkashMocks.verifyCart.mockResolvedValue(existingLead.cart_snapshot);
+
+    const result = await startBkashPayment(
+      {
+        name: existingLead.name,
+        phone_number: existingLead.phone_number,
+        email: existingLead.email,
+        address: existingLead.address,
+        notes: existingLead.notes,
+        checkout_source: "cart",
+        cart_snapshot: existingLead.cart_snapshot,
+      },
+      "same-idempotency-key",
+    );
+
+    expect(result.state).toBe("failed");
+    expect(existingAttempt.status).toBe("expired");
+  });
+
+  it("requires current-price confirmation before reusing an initiated attempt", async () => {
+    const productId = new Types.ObjectId().toString();
+    const existingLead = {
+      _id: new Types.ObjectId(),
+      name: "MINAN Customer",
+      phone_number: "01700000000",
+      email: "customer@example.com",
+      address: "Delivery address",
+      notes: "",
+      checkout_source: "cart",
+      cart_snapshot: {
+        items: [{
+          product_id: productId,
+          name: "Shirt",
+          price: 1200,
+          size: "M",
+          color: "Black",
+          quantity: 1,
+        }],
+        total: 1200,
+      },
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    const existingAttempt = persistable(attempt());
+    existingAttempt.bkash_url = "https://sandbox.payment.bkash.com/current";
+    existingAttempt.createdAt = new Date();
+    vi.spyOn(Lead, "findOne").mockResolvedValue(existingLead as never);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(
+      chainResult(existingAttempt) as never,
+    );
+    bkashMocks.verifyCart.mockResolvedValue({
+      ...existingLead.cart_snapshot,
+      total: 1350,
+    });
+
+    const result = await startBkashPayment(
+      {
+        name: existingLead.name,
+        phone_number: existingLead.phone_number,
+        email: existingLead.email,
+        address: existingLead.address,
+        notes: existingLead.notes,
+        checkout_source: "cart",
+        cart_snapshot: existingLead.cart_snapshot,
+      },
+      "same-idempotency-key",
+    );
+
+    expect(result).toMatchObject({ state: "price_changed", total: 1350 });
+    expect(existingAttempt.status).toBe("expired");
+    expect(existingLead.cart_snapshot.total).toBe(1200);
   });
 
   it("requires confirmation again when the total changes after a quote", async () => {

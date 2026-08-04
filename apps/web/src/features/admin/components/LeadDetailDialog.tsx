@@ -139,7 +139,8 @@ function LeadDetailFields({
       <section className="mt-5 border-t pt-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Payment attempts</h3>
-          {lead.latest_payment_status === "verification_pending" ? (
+          {lead.latest_payment_status === "verification_pending" ||
+          lead.latest_payment_status === "initiated" ? (
             <Button
               type="button"
               size="sm"
@@ -160,6 +161,15 @@ function LeadDetailFields({
             </Button>
           ) : null}
         </div>
+        {lead.legacy_bkash_txn_id ? (
+          <div className="mt-3 border-l-2 border-amber-500 pl-3 text-sm">
+            <p className="font-medium">Legacy transaction reference</p>
+            <p className="mt-1 break-all text-xs">{lead.legacy_bkash_txn_id}</p>
+            <p className="mt-1 text-xs text-foreground/65">
+              Preserved from the manual checkout flow; not gateway-verified.
+            </p>
+          </div>
+        ) : null}
         {lead.payment_attempts.length === 0 ? (
           <p className="mt-3 text-sm text-foreground/65">No payment attempts recorded.</p>
         ) : (

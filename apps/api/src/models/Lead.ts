@@ -36,6 +36,7 @@ export interface LeadDocument extends Document {
   delivery_status: DeliveryStatus;
   checkout_source: CheckoutSource;
   checkout_idempotency_hash?: string;
+  legacy_bkash_txn_id?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -93,6 +94,7 @@ const leadSchema = new Schema<LeadDocument>(
       sparse: true,
       select: false,
     },
+    legacy_bkash_txn_id: { type: String, trim: true, maxlength: 80 },
   },
   { timestamps: true },
 );

@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import { connectDB, disconnectDB } from "../config/db.js";
 import { Lead } from "../models/Lead.js";
+import { leadCheckoutMigrationOperations } from "./leadCheckoutMigration.js";
 
 const apply = process.argv.includes("--apply");
 
@@ -25,38 +26,7 @@ async function migrateLeadCheckout(): Promise<void> {
     return;
   }
 
-  const result = await collection.bulkWrite([
-    {
-      updateMany: {
-        filter: { delivery_status: { $exists: false }, status: "cancelled" },
-        update: { $set: { delivery_status: "cancelled" } },
-      },
-    },
-    {
-      updateMany: {
-        filter: { delivery_status: { $exists: false }, status: "confirmed" },
-        update: { $set: { delivery_status: "processing" } },
-      },
-    },
-    {
-      updateMany: {
-        filter: { delivery_status: { $exists: false } },
-        update: { $set: { delivery_status: "pending" } },
-      },
-    },
-    {
-      updateMany: {
-        filter: { checkout_source: { $exists: false } },
-        update: { $set: { checkout_source: "cart" } },
-      },
-    },
-    {
-      updateMany: {
-        filter: { $or: [{ status: { $exists: true } }, { bkash_txn_id: { $exists: true } }] },
-        update: { $unset: { status: "", bkash_txn_id: "" } },
-      },
-    },
-  ]);
+  const result = await collection.bulkWrite(leadCheckoutMigrationOperations());
   console.log(`Migration complete: ${result.modifiedCount} document updates applied.`);
 }
 

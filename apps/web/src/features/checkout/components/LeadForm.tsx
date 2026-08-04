@@ -74,6 +74,11 @@ export function LeadForm({
       toast.error(result.message);
       return;
     }
+    if (result.state === "price_changed") {
+      setRetryToken(result.retry_token);
+      setUpdatedTotal(result.total);
+      return;
+    }
     toast.info("Your payment is being prepared. Please try again shortly.");
   }
 
@@ -105,11 +110,6 @@ export function LeadForm({
         retryToken,
         updatedTotal ?? undefined,
       );
-      if (response.data.state === "price_changed") {
-        setRetryToken(response.data.retry_token);
-        setUpdatedTotal(response.data.total);
-        return;
-      }
       handlePaymentResult(response.data);
     } catch (error) {
       toast.error(

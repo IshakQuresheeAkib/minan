@@ -121,6 +121,7 @@ export type AdminLead = {
   } | null;
   delivery_status: DeliveryStatus;
   checkout_source: "cart" | "buy_now";
+  legacy_bkash_txn_id: string | null;
   latest_payment_status: PaymentAttemptStatus | null;
   payment_attempts: AdminPaymentAttempt[];
   createdAt: string;

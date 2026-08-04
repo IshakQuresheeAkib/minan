@@ -9,6 +9,7 @@ import {
   resolveBkashResultHandler,
   retryBkashPaymentHandler,
 } from "../controllers/bkash.controller.js";
+import { opaqueTokenRateLimitKey } from "../lib/rateLimitKeys.js";
 import { requireCsrfHeader } from "../middleware/csrf.js";
 import { Lead } from "../models/Lead.js";
 
@@ -32,6 +33,12 @@ const resolveLimiter = rateLimit({
   limit: 60,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) =>
+    opaqueTokenRateLimitKey(
+      "bkash-result",
+      req.body?.reference,
+      req.ip ?? req.socket.remoteAddress ?? "unknown",
+    ),
 });
 
 bkashRouter.post("/payments", requireCsrfHeader, createLimiter, createBkashPaymentHandler);

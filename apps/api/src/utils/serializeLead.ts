@@ -30,6 +30,7 @@ export function serializeLead(
       : null,
     delivery_status: lead.delivery_status,
     checkout_source: lead.checkout_source,
+    legacy_bkash_txn_id: lead.legacy_bkash_txn_id ?? null,
     latest_payment_status: attempts[0]?.status ?? null,
     payment_attempts: attempts.map((attempt) => ({
       _id: attempt._id.toString(),

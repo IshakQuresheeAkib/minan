@@ -26,9 +26,7 @@ export async function retryCheckoutPayment(
   retryToken: string,
   acceptedTotal?: number,
 ): Promise<{
-  data:
-    | PaymentStartResult
-    | { state: "price_changed"; total: number; retry_token: string };
+  data: PaymentStartResult;
 }> {
   return apiRequest("/api/bkash/payments/retry", {
     method: "POST",

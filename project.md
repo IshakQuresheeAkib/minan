@@ -290,6 +290,7 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `delivery_status`         | String   | `pending | processing | shipped | delivered | delivery_failed | cancelled` |
 | `checkout_source`         | String   | `cart | buy_now` |
 | `checkout_idempotency_hash` | String | unique, sparse, server-only |
+| `legacy_bkash_txn_id`      | String   | optional; preserved unverified reference from the manual checkout flow |
 | `createdAt` / `updatedAt` | Date     | timestamps |
 
 ### `payment_attempts`

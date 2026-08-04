@@ -27,6 +27,7 @@ const RESULT_TTL_MS = 30 * 60 * 1000;
 const RETRY_TTL_MS = 30 * 60 * 1000;
 const PAYMENT_EXPIRY_MS = 24 * 60 * 60 * 1000;
 const CREATING_STALE_MS = 2 * 60 * 1000;
+const PAYMENT_RECHECK_INTERVAL_MS = 15 * 1000;
 const TERMINAL_FAILURES: PaymentAttemptStatus[] = [
   "payment_create_failed",
   "failed",
@@ -38,13 +39,10 @@ type StartPaymentResponse =
   | { state: "redirect"; bkash_url: string }
   | { state: "processing" }
   | { state: "completed"; reference: string }
-  | { state: "failed"; message: string; retry_token: string };
+  | { state: "failed"; message: string; retry_token: string }
+  | { state: "price_changed"; total: number; retry_token: string };
 
-export type RetryPaymentResponse = StartPaymentResponse | {
-  state: "price_changed";
-  total: number;
-  retry_token: string;
-};
+export type RetryPaymentResponse = StartPaymentResponse;
 
 export type PaymentResult = {
   state: PaymentAttemptStatus | "unavailable";
@@ -145,6 +143,14 @@ async function loadLatestAttempt(leadId: Types.ObjectId): Promise<PaymentAttempt
 }
 
 async function responseForExisting(attempt: PaymentAttemptDocument): Promise<StartPaymentResponse> {
+  if (
+    attempt.status === "initiated" &&
+    Date.now() - attempt.createdAt.getTime() > PAYMENT_EXPIRY_MS
+  ) {
+    attempt.status = "expired";
+    attempt.provider_status_message = "Payment attempt expired before completion";
+    await attempt.save();
+  }
   if (attempt.status === "completed") {
     return { state: "completed", reference: await mintResultReference(attempt) };
   }
@@ -274,7 +280,24 @@ export async function startBkashPayment(
   }
 
   const existing = await loadLatestAttempt(lead._id);
-  return existing ? responseForExisting(existing) : createAttempt(lead, 1);
+  if (!existing) return createAttempt(lead, 1);
+
+  const existingResponse = await responseForExisting(existing);
+  if (existingResponse.state !== "redirect") return existingResponse;
+
+  const verified = await buildVerifiedCartSnapshot(input.cart_snapshot);
+  if (canonicalAmount(verified.total) === canonicalAmount(lead.cart_snapshot.total)) {
+    return existingResponse;
+  }
+
+  existing.status = "expired";
+  existing.provider_status_message = "Checkout total changed before payment completion";
+  await existing.save();
+  return {
+    state: "price_changed",
+    total: verified.total,
+    retry_token: await mintRetryToken(existing),
+  };
 }
 
 function expectedSignature(attempt: PaymentAttemptDocument, status: BkashCallbackInput["status"]): string | undefined {
@@ -315,13 +338,33 @@ async function applyVerification(
     const transactionStatus = response.transactionStatus?.toLowerCase();
     if (transactionStatus === "failed" || transactionStatus === "failure") {
       attempt.status = "failed";
+    } else if (transactionStatus === "declined") {
+      attempt.status = "failed";
     } else if (transactionStatus === "cancelled" || transactionStatus === "canceled") {
       attempt.status = "cancelled";
+    } else if (transactionStatus === "expired") {
+      attempt.status = "expired";
+    } else if (transactionStatus === "initiated") {
+      attempt.status = "initiated";
     } else {
       attempt.status = "verification_pending";
     }
   }
   await attempt.save();
+}
+
+async function queryAndApplyVerification(
+  attempt: PaymentAttemptDocument,
+): Promise<void> {
+  attempt.last_query_at = new Date();
+  try {
+    const response = await queryBkashPayment(attempt.payment_id!);
+    await applyVerification(attempt, response);
+  } catch {
+    attempt.status = "verification_pending";
+    attempt.provider_status_message = "Payment verification is pending";
+    await attempt.save();
+  }
 }
 
 async function executeOrQuery(attempt: PaymentAttemptDocument): Promise<void> {
@@ -335,15 +378,7 @@ async function executeOrQuery(attempt: PaymentAttemptDocument): Promise<void> {
     // Query below resolves timeouts and transport failures safely.
   }
 
-  try {
-    const response = await queryBkashPayment(attempt.payment_id!);
-    attempt.last_query_at = new Date();
-    await applyVerification(attempt, response);
-  } catch {
-    attempt.status = "verification_pending";
-    attempt.provider_status_message = "Payment verification is pending";
-    await attempt.save();
-  }
+  await queryAndApplyVerification(attempt);
 }
 
 export async function handleBkashCallback(input: BkashCallbackInput): Promise<string> {
@@ -361,10 +396,14 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
 
   if (attempt.status !== "completed") {
     if (input.status === "failure" || input.status === "cancel") {
-      attempt.status = input.status === "cancel" ? "cancelled" : "failed";
-      attempt.provider_status_message =
-        input.status === "cancel" ? "Payment was cancelled" : "Payment failed";
-      await attempt.save();
+      if (!expected) {
+        await queryAndApplyVerification(attempt);
+      } else {
+        attempt.status = input.status === "cancel" ? "cancelled" : "failed";
+        attempt.provider_status_message =
+          input.status === "cancel" ? "Payment was cancelled" : "Payment failed";
+        await attempt.save();
+      }
     } else if (attempt.status === "initiated") {
       const claimed = await PaymentAttempt.findOneAndUpdate(
         { _id: attempt._id, status: "initiated", execute_started_at: { $exists: false } },
@@ -402,6 +441,15 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
     result_token_expires_at: { $gt: new Date() },
   }).select("+result_token_hash +result_token_expires_at");
   if (!attempt) return { state: "unavailable", message: "This payment result is unavailable or expired." };
+
+  if (
+    (attempt.status === "initiated" || attempt.status === "verification_pending") &&
+    attempt.payment_id &&
+    (!attempt.last_query_at ||
+      Date.now() - attempt.last_query_at.getTime() > PAYMENT_RECHECK_INTERVAL_MS)
+  ) {
+    await queryAndApplyVerification(attempt);
+  }
 
   if (
     attempt.status === "initiated" &&
@@ -478,8 +526,15 @@ export async function recheckPendingPayment(leadId: string): Promise<void> {
   if (!Types.ObjectId.isValid(leadId)) throw new AppError("Invalid lead id", 400);
   const attempt = await loadLatestAttempt(new Types.ObjectId(leadId));
   if (!attempt) throw new AppError("Payment attempt not found", 404);
-  if (attempt.status !== "verification_pending" || !attempt.payment_id) {
-    throw new AppError("Only pending payment verification can be rechecked", 409);
+  if (
+    (attempt.status !== "verification_pending" && attempt.status !== "initiated") ||
+    !attempt.payment_id
+  ) {
+    throw new AppError("Only active payment verification can be rechecked", 409);
+  }
+  if (attempt.status === "initiated") {
+    await queryAndApplyVerification(attempt);
+    return;
   }
   await executeOrQuery(attempt);
 }
