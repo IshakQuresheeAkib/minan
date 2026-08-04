@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchAdminLeads } from "@/features/admin/actions/leads.actions";
+import {
+  fetchAdminLead,
+  fetchAdminLeads,
+} from "@/features/admin/actions/leads.actions";
 import { LeadDetailDialog } from "@/features/admin/components/LeadDetailDialog";
 import { LeadsTable } from "@/features/admin/components/LeadsTable";
 import type { AdminLead } from "@/features/admin/types";
@@ -113,6 +116,13 @@ export function AdminLeads() {
         onView={(lead) => {
           setSelectedLead(lead);
           setDialogOpen(true);
+          if (accessToken) {
+            void fetchAdminLead(accessToken, lead._id)
+              .then((response) => setSelectedLead(response.data))
+              .catch((loadError: unknown) => {
+                setError(loadError instanceof ApiError ? loadError.message : "Failed to load payment history.");
+              });
+          }
         }}
       />
 

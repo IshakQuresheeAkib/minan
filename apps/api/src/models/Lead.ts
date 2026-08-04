@@ -1,6 +1,14 @@
 import mongoose, { type Document, Schema } from "mongoose";
 
-export type LeadStatus = "pending" | "confirmed" | "cancelled";
+export type DeliveryStatus =
+  | "pending"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "delivery_failed"
+  | "cancelled";
+
+export type CheckoutSource = "cart" | "buy_now";
 
 export type CartSnapshotItem = {
   product_id: string;
@@ -24,9 +32,10 @@ export interface LeadDocument extends Document {
   email: string;
   address: string;
   notes?: string;
-  bkash_txn_id?: string;
   cart_snapshot: CartSnapshot;
-  status: LeadStatus;
+  delivery_status: DeliveryStatus;
+  checkout_source: CheckoutSource;
+  checkout_idempotency_hash?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,12 +69,29 @@ const leadSchema = new Schema<LeadDocument>(
     email: { type: String, required: true, trim: true },
     address: { type: String, required: true, trim: true },
     notes: { type: String, trim: true },
-    bkash_txn_id: { type: String, trim: true },
     cart_snapshot: { type: cartSnapshotSchema, required: true },
-    status: {
+    delivery_status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled"] satisfies LeadStatus[],
+      enum: [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "delivery_failed",
+        "cancelled",
+      ] satisfies DeliveryStatus[],
       default: "pending",
+    },
+    checkout_source: {
+      type: String,
+      enum: ["cart", "buy_now"] satisfies CheckoutSource[],
+      default: "cart",
+    },
+    checkout_idempotency_hash: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
     },
   },
   { timestamps: true },

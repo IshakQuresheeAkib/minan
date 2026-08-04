@@ -8,6 +8,7 @@ import {
   listAdminLeads,
   updateAdminLead,
 } from "../../services/adminLeads.service.js";
+import { recheckPendingPayment } from "../../services/bkashPayments.service.js";
 
 function getIdParam(req: Request): string {
   const id = req.params.id;
@@ -49,6 +50,21 @@ export async function updateAdminLeadHandler(
   try {
     const input = parseBody(leadUpdateSchema, req.body);
     const lead = await updateAdminLead(getIdParam(req), input);
+    res.json({ data: lead });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function recheckAdminLeadPaymentHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const id = getIdParam(req);
+    await recheckPendingPayment(id);
+    const lead = await getAdminLeadById(id);
     res.json({ data: lead });
   } catch (error) {
     next(error);

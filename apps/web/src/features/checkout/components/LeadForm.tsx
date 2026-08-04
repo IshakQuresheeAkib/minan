@@ -1,30 +1,44 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { submitCheckoutLead } from "@/features/checkout/actions/checkout.actions";
-import { leadInputSchema, type LeadInput } from "@/features/checkout/schemas/lead.schema";
-import type { CartSnapshot } from "@/features/checkout/types";
+import {
+  retryCheckoutPayment,
+  startCheckoutPayment,
+} from "@/features/checkout/actions/checkout.actions";
+import { getCheckoutIdempotencyKey } from "@/features/checkout/lib/checkoutSession";
+import {
+  leadInputSchema,
+  type LeadInput,
+} from "@/features/checkout/schemas/lead.schema";
+import type {
+  CartSnapshot,
+  CheckoutSource,
+  PaymentStartResult,
+} from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
 
 type LeadFormProps = {
   cartSnapshot: CartSnapshot;
+  checkoutSource: CheckoutSource;
   disabled?: boolean;
-  onSuccess: () => void;
 };
 
 export function LeadForm({
   cartSnapshot,
+  checkoutSource,
   disabled = false,
-  onSuccess,
 }: LeadFormProps) {
   const formId = useId();
+  const [retryToken, setRetryToken] = useState<string | null>(null);
+  const [updatedTotal, setUpdatedTotal] = useState<number | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const form = useForm<LeadInput>({
     resolver: zodResolver(leadInputSchema),
     defaultValues: {
@@ -33,48 +47,83 @@ export function LeadForm({
       email: "",
       address: "",
       notes: "",
-      bkash_txn_id: "",
     },
   });
   const errors = form.formState.errors;
   const errorIds = {
     address: `${formId}-address-error`,
-    bkash_txn_id: `${formId}-bkash-txn-id-error`,
     email: `${formId}-email-error`,
     name: `${formId}-name-error`,
     notes: `${formId}-notes-error`,
     phone_number: `${formId}-phone-number-error`,
   };
 
+  function handlePaymentResult(result: PaymentStartResult): void {
+    if (result.state === "redirect") {
+      window.location.assign(result.bkash_url);
+      return;
+    }
+    if (result.state === "completed") {
+      window.location.assign(
+        `/payment/result?reference=${encodeURIComponent(result.reference)}`,
+      );
+      return;
+    }
+    if (result.state === "failed") {
+      setRetryToken(result.retry_token);
+      toast.error(result.message);
+      return;
+    }
+    toast.info("Your payment is being prepared. Please try again shortly.");
+  }
+
   async function onSubmit(values: LeadInput) {
     try {
-      const response = await submitCheckoutLead({
-        ...values,
-        cart_snapshot: cartSnapshot,
-      });
-      if (
-        response.data.cart_snapshot &&
-        response.data.cart_snapshot.total !== cartSnapshot.total
-      ) {
-        toast.info("Your order was updated with the latest product prices.");
-      }
-      toast.success("Checkout request submitted");
-      onSuccess();
+      const response = await startCheckoutPayment(
+        {
+          ...values,
+          cart_snapshot: cartSnapshot,
+          checkout_source: checkoutSource,
+        },
+        getCheckoutIdempotencyKey(checkoutSource, cartSnapshot, values),
+      );
+      handlePaymentResult(response.data);
     } catch (error) {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : "Failed to submit checkout request.",
+          : "Failed to start bKash payment.",
       );
+    }
+  }
+
+  async function onRetry() {
+    if (!retryToken) return;
+    setRetrying(true);
+    try {
+      const response = await retryCheckoutPayment(
+        retryToken,
+        updatedTotal ?? undefined,
+      );
+      if (response.data.state === "price_changed") {
+        setRetryToken(response.data.retry_token);
+        setUpdatedTotal(response.data.total);
+        return;
+      }
+      handlePaymentResult(response.data);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Failed to retry payment.",
+      );
+    } finally {
+      setRetrying(false);
     }
   }
 
   return (
     <form
       className="mt-8 grid gap-4"
-      onSubmit={(event) => {
-        void form.handleSubmit(onSubmit)(event);
-      }}
+      onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
     >
       <label className="grid gap-2 text-sm font-medium">
         Name
@@ -84,32 +133,18 @@ export function LeadForm({
           autoComplete="name"
           {...form.register("name")}
         />
-        {errors.name ? (
-          <span id={errorIds.name} className="text-xs text-destructive" role="alert">
-            {errors.name.message}
-          </span>
-        ) : null}
+        {errors.name ? <span id={errorIds.name} className="text-xs text-destructive" role="alert">{errors.name.message}</span> : null}
       </label>
       <label className="grid gap-2 text-sm font-medium">
         Phone Number
         <Input
-          aria-describedby={
-            errors.phone_number ? errorIds.phone_number : undefined
-          }
+          aria-describedby={errors.phone_number ? errorIds.phone_number : undefined}
           aria-invalid={Boolean(errors.phone_number)}
           autoComplete="tel"
           inputMode="tel"
           {...form.register("phone_number")}
         />
-        {errors.phone_number ? (
-          <span
-            id={errorIds.phone_number}
-            className="text-xs text-destructive"
-            role="alert"
-          >
-            {errors.phone_number.message}
-          </span>
-        ) : null}
+        {errors.phone_number ? <span id={errorIds.phone_number} className="text-xs text-destructive" role="alert">{errors.phone_number.message}</span> : null}
       </label>
       <label className="grid gap-2 text-sm font-medium">
         Email
@@ -120,11 +155,7 @@ export function LeadForm({
           autoComplete="email"
           {...form.register("email")}
         />
-        {errors.email ? (
-          <span id={errorIds.email} className="text-xs text-destructive" role="alert">
-            {errors.email.message}
-          </span>
-        ) : null}
+        {errors.email ? <span id={errorIds.email} className="text-xs text-destructive" role="alert">{errors.email.message}</span> : null}
       </label>
       <label className="grid gap-2 text-sm font-medium">
         Address
@@ -135,15 +166,7 @@ export function LeadForm({
           autoComplete="street-address"
           {...form.register("address")}
         />
-        {errors.address ? (
-          <span
-            id={errorIds.address}
-            className="text-xs text-destructive"
-            role="alert"
-          >
-            {errors.address.message}
-          </span>
-        ) : null}
+        {errors.address ? <span id={errorIds.address} className="text-xs text-destructive" role="alert">{errors.address.message}</span> : null}
       </label>
       <label className="grid gap-2 text-sm font-medium">
         Notes
@@ -153,39 +176,36 @@ export function LeadForm({
           aria-invalid={Boolean(errors.notes)}
           {...form.register("notes")}
         />
-        {errors.notes ? (
-          <span id={errorIds.notes} className="text-xs text-destructive" role="alert">
-            {errors.notes.message}
-          </span>
-        ) : null}
-      </label>
-      <label className="grid gap-2 text-sm font-medium">
-        bKash Transaction ID
-        {/* Payment gateway integration will replace manual bKash TX ID collection later. */}
-        <Input
-          aria-describedby={
-            errors.bkash_txn_id ? errorIds.bkash_txn_id : undefined
-          }
-          aria-invalid={Boolean(errors.bkash_txn_id)}
-          {...form.register("bkash_txn_id")}
-        />
-        {errors.bkash_txn_id ? (
-          <span
-            id={errorIds.bkash_txn_id}
-            className="text-xs text-destructive"
-            role="alert"
-          >
-            {errors.bkash_txn_id.message}
-          </span>
-        ) : null}
+        {errors.notes ? <span id={errorIds.notes} className="text-xs text-destructive" role="alert">{errors.notes.message}</span> : null}
       </label>
       <Button
         className="mt-2 h-11 w-full"
         type="submit"
-        disabled={disabled || form.formState.isSubmitting}
+        disabled={disabled}
+        loading={form.formState.isSubmitting}
+        loadingText="Opening bKash..."
       >
-        {form.formState.isSubmitting ? "Submitting..." : "Submit Checkout"}
+        Pay with bKash
       </Button>
+      {retryToken ? (
+        <div className="grid gap-3" role="status">
+          {updatedTotal !== null ? (
+            <p className="text-sm text-foreground/75">
+              The current total is Tk {updatedTotal.toLocaleString("en-BD")}.
+              Confirm this amount to continue.
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            loading={retrying}
+            loadingText="Retrying..."
+            onClick={() => void onRetry()}
+          >
+            {updatedTotal === null ? "Retry payment" : "Confirm and pay"}
+          </Button>
+        </div>
+      ) : null}
     </form>
   );
 }

@@ -54,7 +54,14 @@ export type AdminSubcategoryFormInput = z.infer<
 >;
 
 export const adminLeadUpdateSchema = z.object({
-  status: z.enum(["pending", "confirmed", "cancelled"]),
+  delivery_status: z.enum([
+    "pending",
+    "processing",
+    "shipped",
+    "delivered",
+    "delivery_failed",
+    "cancelled",
+  ]),
   notes: z.string().trim().max(500),
 });
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckCircle2, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
@@ -20,8 +20,6 @@ export function BuyNowCheckoutClient() {
   useBuyNowPricingSync();
   const item = useBuyNowStore((state) => state.item);
   const hasHydrated = useBuyNowStore((state) => state.hasHydrated);
-  const clearItem = useBuyNowStore((state) => state.clearItem);
-  const [submitted, setSubmitted] = useState(false);
 
   const total = item ? item.price * item.quantity : 0;
   const savings = item ? (item.originalPrice - item.price) * item.quantity : 0;
@@ -44,25 +42,6 @@ export function BuyNowCheckoutClient() {
       total,
     };
   }, [item, total]);
-
-  if (submitted) {
-    return (
-      <section className="mx-auto flex min-h-[60dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center sm:px-6 lg:px-8">
-        <CheckCircle2 className="size-14 text-primary" aria-hidden="true" />
-        <h1 className="mt-5 text-3xl font-semibold tracking-normal">
-          Request received
-        </h1>
-        <p className="mt-2 max-w-md text-sm leading-6 text-foreground/70">
-          MINAN will contact you to confirm availability, delivery, and payment.
-        </p>
-        <Button
-          className="mt-6"
-          href={publicRoutes.products}
-          text="Continue shopping"
-        />
-      </section>
-    );
-  }
 
   if (!hasHydrated) {
     return (
@@ -122,11 +101,8 @@ export function BuyNowCheckoutClient() {
         </p>
         <LeadForm
           cartSnapshot={cartSnapshot}
+          checkoutSource="buy_now"
           disabled={!item.isAvailable}
-          onSuccess={() => {
-            clearItem();
-            setSubmitted(true);
-          }}
         />
         {!item.isAvailable ? (
           <p className="mt-3 text-sm font-medium text-destructive">

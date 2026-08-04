@@ -1,25 +1,30 @@
 import { Types } from "mongoose";
 
 import { AppError } from "../lib/errors.js";
-import { Lead, type CartSnapshot } from "../models/Lead.js";
+import type { CartSnapshot } from "../models/Lead.js";
 import { Product } from "../models/Product.js";
-import type { LeadCreateInput } from "../schemas/lead.schemas.js";
-import type { LeadResponse } from "../types/admin.types.js";
 import { calculateDiscountedPrice } from "../utils/calculateDiscountedPrice.js";
-import { serializeLead } from "../utils/serializeLead.js";
+
+export type CheckoutCartInput = {
+  items: {
+    product_id: string;
+    name: string;
+    price: number;
+    size: string;
+    color: string;
+    quantity: number;
+  }[];
+  total: number;
+};
 
 const CART_OPTION_FALLBACK = "N/A";
 
 function isValidCartOption(value: string, options: string[]): boolean {
-  if (options.length === 0) {
-    return value === CART_OPTION_FALLBACK;
-  }
-
-  return options.includes(value);
+  return options.length === 0 ? value === CART_OPTION_FALLBACK : options.includes(value);
 }
 
-async function buildVerifiedCartSnapshot(
-  clientSnapshot: LeadCreateInput["cart_snapshot"],
+export async function buildVerifiedCartSnapshot(
+  clientSnapshot: CheckoutCartInput,
 ): Promise<CartSnapshot> {
   const uniqueProductIds = [
     ...new Set(clientSnapshot.items.map((item) => item.product_id)),
@@ -32,33 +37,24 @@ async function buildVerifiedCartSnapshot(
   }
 
   const products = await Product.find({
-    _id: {
-      $in: uniqueProductIds.map((productId) => new Types.ObjectId(productId)),
-    },
+    _id: { $in: uniqueProductIds.map((id) => new Types.ObjectId(id)) },
     is_active: true,
   }).select("_id name price discount sizes colors");
-
   const productById = new Map(
     products.map((product) => [product._id.toString(), product]),
   );
 
   const items = clientSnapshot.items.map((item) => {
     const product = productById.get(item.product_id);
-
-    if (!product) {
-      throw new AppError("Product unavailable or not found", 400);
-    }
-
+    if (!product) throw new AppError("Product unavailable or not found", 400);
     if (!isValidCartOption(item.size, product.sizes)) {
       throw new AppError(`Invalid size for ${product.name}`, 400);
     }
-
     if (!isValidCartOption(item.color, product.colors)) {
       throw new AppError(`Invalid color for ${product.name}`, 400);
     }
 
     const discount = product.discount ?? 0;
-
     return {
       product_id: product._id.toString(),
       name: product.name,
@@ -71,23 +67,8 @@ async function buildVerifiedCartSnapshot(
     };
   });
 
-  const total = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
-
-  return { items, total };
-}
-
-export async function createLead(
-  input: LeadCreateInput,
-): Promise<LeadResponse> {
-  const cart_snapshot = await buildVerifiedCartSnapshot(input.cart_snapshot);
-
-  const lead = await Lead.create({
-    ...input,
-    cart_snapshot,
-  });
-
-  return serializeLead(lead);
+  return {
+    items,
+    total: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+  };
 }

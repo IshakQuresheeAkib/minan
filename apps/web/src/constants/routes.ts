@@ -4,6 +4,7 @@ export const publicRoutes = {
   cart: "/cart",
   checkout: "/checkout",
   buyNowCheckout: "/checkout/buy-now",
+  paymentResult: "/payment/result",
   adminLogin: "/admin/login",
 } as const;
 
