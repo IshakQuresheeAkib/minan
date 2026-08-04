@@ -272,9 +272,9 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                 </p>
               ) : null}
 
-              <div className="mb-4 flex items-center justify-end lg:justify-start">
+              {/* <div className="mb-4 flex items-center justify-end lg:justify-start">
                 <SizeGuideModal />
-              </div>
+              </div> */}
 
               <SizeColorSelector
                 sizes={product.sizes}

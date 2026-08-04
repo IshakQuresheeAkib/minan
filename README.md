@@ -38,4 +38,3 @@ minan/
 - Forms use React Hook Form and Zod.
 - Animations use GSAP only.
 - Product images are Cloudinary URLs rendered with `next/image`.
-
