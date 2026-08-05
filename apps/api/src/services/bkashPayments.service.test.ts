@@ -125,6 +125,7 @@ describe("bKash Order lifecycle", () => {
     delete process.env.CHECKOUT_MAINTENANCE_MODE;
     mocks.matchesOrder.mockReturnValue(true);
     vi.spyOn(PaymentAttempt, "updateOne").mockResolvedValue({ matchedCount: 1 } as never);
+    vi.spyOn(PaymentAttempt, "exists").mockResolvedValue(null);
     vi.spyOn(Order, "updateOne").mockResolvedValue({ modifiedCount: 1 } as never);
   });
 
@@ -183,6 +184,64 @@ describe("bKash Order lifecycle", () => {
     expect(result.state).toBe("redirect");
     expect(PaymentAttempt.create).toHaveBeenCalledWith(expect.objectContaining({ expected_amount: "100.00", sequence: 2 }));
     expect(mocks.createOrLoadOrder).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["processing", {
+      statusCode: "0000",
+      paymentID: "TR002",
+      bkashURL: "https://sandbox.bka.sh/retry",
+    }],
+    ["failed", {
+      statusCode: "2056",
+      statusMessage: "Payment creation rejected",
+    }],
+  ])("keeps the Order fee paid when an earlier attempt completed before a retry becomes %s", async (_state, providerResponse) => {
+    const failed = attempt("failed");
+    const checkoutOrder = order();
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockResolvedValue(failed);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(failed) as never);
+    vi.mocked(PaymentAttempt.exists).mockResolvedValue({ _id: new Types.ObjectId() } as never);
+    vi.spyOn(Order, "findById").mockResolvedValue(checkoutOrder as never);
+    const retry = attempt("creating");
+    retry.sequence = 2;
+    retry.payment_id = "TR002";
+    vi.spyOn(PaymentAttempt, "create").mockResolvedValue(retry as never);
+    mocks.createPayment.mockResolvedValue(providerResponse);
+
+    await retryBkashPayment({ retry_token: "x".repeat(43) });
+
+    expect(Order.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: checkoutOrder._id }),
+      expect.objectContaining({ $set: { delivery_fee_status: "paid" } }),
+    );
+  });
+
+  it("atomically refuses to overwrite a concurrently paid Order with retry processing", async () => {
+    const failed = attempt("failed");
+    const checkoutOrder = order();
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockResolvedValue(failed);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(failed) as never);
+    vi.spyOn(Order, "findById").mockResolvedValue(checkoutOrder as never);
+    const retry = attempt("creating");
+    retry.sequence = 2;
+    retry.payment_id = "TR002";
+    vi.spyOn(PaymentAttempt, "create").mockResolvedValue(retry as never);
+    mocks.createPayment.mockResolvedValue({
+      statusCode: "0000",
+      paymentID: "TR002",
+      bkashURL: "https://sandbox.bka.sh/retry",
+    });
+
+    await retryBkashPayment({ retry_token: "x".repeat(43) });
+
+    expect(Order.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: checkoutOrder._id,
+        delivery_fee_status: { $nin: ["paid", "processing"] },
+      }),
+      expect.objectContaining({ $set: { delivery_fee_status: "processing" } }),
+    );
   });
 
   it("reconciles a valid late completion after local expiry", async () => {

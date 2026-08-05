@@ -1,6 +1,7 @@
 import "../config/env.js";
 
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { Types } from "mongoose";
 
 import { connectDB, disconnectDB } from "../config/db.js";
@@ -13,9 +14,93 @@ import { buildItemSignature, calculateFinancials, normalizeBangladeshPhone } fro
 const apply = process.argv.includes("--apply");
 const BANGLADESH_OFFSET_MS = 6 * 60 * 60 * 1000;
 
-function dateKey(date: Date): string {
+type SequenceReservation = {
+  next: number;
+  end: number;
+};
+
+function isDuplicateKey(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
+}
+
+export function dateKey(date: Date): string {
   const local = new Date(date.getTime() + BANGLADESH_OFFSET_MS);
   return `${local.getUTCFullYear()}${String(local.getUTCMonth() + 1).padStart(2, "0")}${String(local.getUTCDate()).padStart(2, "0")}`;
+}
+
+export function createSequenceReservation(endSequence: number, count: number): SequenceReservation {
+  if (!Number.isSafeInteger(endSequence) || !Number.isSafeInteger(count) || count < 1) {
+    throw new Error("Invalid order-number reservation");
+  }
+  const start = endSequence - count + 1;
+  if (start < 1) throw new Error("Invalid order-number reservation range");
+  return { next: start, end: endSequence };
+}
+
+export function takeReservedOrderNumber(key: string, reservation: SequenceReservation): string {
+  if (reservation.next > reservation.end) {
+    throw new Error(`Order-number reservation exhausted for ${key}`);
+  }
+  const sequence = reservation.next;
+  reservation.next += 1;
+  return `MN-${key}-${String(sequence).padStart(4, "0")}`;
+}
+
+function parseOrderSequence(orderNumber: string, key: string): number | null {
+  const match = new RegExp(`^MN-${key}-(\\d{4,})$`).exec(orderNumber);
+  if (!match?.[1]) return null;
+  const sequence = Number(match[1]);
+  return Number.isSafeInteger(sequence) && sequence > 0 ? sequence : null;
+}
+
+async function maxExistingSequencesByDay(keys: Iterable<string>): Promise<Map<string, number>> {
+  const uniqueKeys = [...new Set(keys)];
+  const maxByDay = new Map(uniqueKeys.map((key) => [key, 0]));
+  if (uniqueKeys.length === 0) return maxByDay;
+  const orders = await Order.find({
+    $or: uniqueKeys.map((key) => ({ order_number: new RegExp(`^MN-${key}-\\d{4,}$`) })),
+  }).select("order_number");
+  for (const order of orders) {
+    for (const key of uniqueKeys) {
+      const sequence = parseOrderSequence(order.order_number, key);
+      if (sequence !== null && sequence > (maxByDay.get(key) ?? 0)) {
+        maxByDay.set(key, sequence);
+      }
+    }
+  }
+  return maxByDay;
+}
+
+async function reserveOrderNumberRanges(countsByDay: Map<string, number>): Promise<Map<string, SequenceReservation>> {
+  const minimumSequences = await maxExistingSequencesByDay(countsByDay.keys());
+  const reservations = new Map<string, SequenceReservation>();
+  for (const [key, count] of countsByDay) {
+    if (count < 1) continue;
+    const minimumSequence = minimumSequences.get(key) ?? 0;
+    const reserve = async () => OrderCounter.findOneAndUpdate(
+      { _id: key },
+      [
+        {
+          $set: {
+            sequence: { $add: [{ $max: [{ $ifNull: ["$sequence", 0] }, minimumSequence] }, count] },
+            createdAt: { $ifNull: ["$createdAt", "$$NOW"] },
+            updatedAt: "$$NOW",
+          },
+        },
+      ],
+      { upsert: true, new: true },
+    );
+    let counter;
+    try {
+      counter = await reserve();
+    } catch (error) {
+      if (!isDuplicateKey(error)) throw error;
+      counter = await reserve();
+    }
+    if (!counter) throw new Error(`Could not reserve order numbers for ${key}`);
+    reservations.set(key, createSequenceReservation(counter.sequence, count));
+  }
+  return reservations;
 }
 
 function status(value: string): { status: OrderStatus; review: boolean } {
@@ -69,13 +154,20 @@ async function migrate(): Promise<void> {
   }
 
   const leads = await Lead.find().select("+checkout_idempotency_hash").sort({ createdAt: 1, _id: 1 });
-  const sequenceByDay = new Map<string, number>();
-  let created = 0;
-  for (const lead of leads) {
+  const existingOrders = await Order.find({ _id: { $in: leads.map((lead) => lead._id) } }).select("_id");
+  const existingOrderIds = new Set(existingOrders.map((order) => String(order._id)));
+  const leadsToCreate = leads.filter((lead) => !existingOrderIds.has(String(lead._id)));
+  const countsByDay = new Map<string, number>();
+  for (const lead of leadsToCreate) {
     const key = dateKey(lead.createdAt);
-    const sequence = (sequenceByDay.get(key) ?? 0) + 1;
-    sequenceByDay.set(key, sequence);
-    if (await Order.exists({ _id: lead._id })) continue;
+    countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
+  }
+  const reservationsByDay = await reserveOrderNumberRanges(countsByDay);
+  let created = 0;
+  for (const lead of leadsToCreate) {
+    const key = dateKey(lead.createdAt);
+    const reservation = reservationsByDay.get(key);
+    if (!reservation) throw new Error(`Missing order-number reservation for ${key}`);
     const lines: OrderLine[] = lead.cart_snapshot.items.map((item) => ({
       line_id: randomUUID(), product_id: item.product_id, name: item.name, unit_price: item.price,
       original_price: item.original_price ?? item.price, product_discount: item.discount ?? 0,
@@ -89,7 +181,7 @@ async function migrate(): Promise<void> {
     const financials = calculateFinancials({ lines, deliveryFee: 0, merchandisePaidOnline: paid });
     await Order.collection.insertOne({
       _id: lead._id,
-      order_number: `MN-${key}-${String(sequence).padStart(4, "0")}`,
+      order_number: takeReservedOrderNumber(key, reservation),
       name: lead.name,
       phone_number: lead.phone_number,
       normalized_phone: normalizeBangladeshPhone(lead.phone_number),
@@ -116,9 +208,6 @@ async function migrate(): Promise<void> {
     created += 1;
   }
 
-  await Promise.all([...sequenceByDay].map(([key, sequence]) =>
-    OrderCounter.updateOne({ _id: key }, { $max: { sequence } }, { upsert: true }),
-  ));
   const migratedOrders = await Order.find({ _id: { $in: leads.map((lead) => lead._id) } })
     .sort({ createdAt: 1, _id: 1 })
     .select("normalized_phone item_signature createdAt");
@@ -147,6 +236,8 @@ async function migrate(): Promise<void> {
   console.log(`Verification: ${JSON.stringify(after, null, 2)}`);
 }
 
-migrate()
-  .then(async () => { await disconnectDB(); process.exit(0); })
-  .catch(async (error: unknown) => { console.error("Lead-to-Order migration failed:", error); await disconnectDB(); process.exit(1); });
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  migrate()
+    .then(async () => { await disconnectDB(); process.exit(0); })
+    .catch(async (error: unknown) => { console.error("Lead-to-Order migration failed:", error); await disconnectDB(); process.exit(1); });
+}

@@ -392,11 +392,26 @@ async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void
     return;
   }
 
-  const deliveryFeeStatus = feeStatusForAttempt(attempt.status);
+  let deliveryFeeStatus = feeStatusForAttempt(attempt.status);
+  let sourceAttemptId = attempt._id;
+  if (deliveryFeeStatus !== "paid") {
+    const completedAttempt = await PaymentAttempt.exists({
+      order_id: attempt.order_id,
+      payment_purpose: "delivery_fee",
+      status: "completed",
+    });
+    if (completedAttempt) {
+      deliveryFeeStatus = "paid";
+      sourceAttemptId = completedAttempt._id;
+    }
+  }
+
   const updated = await Order.updateOne(
     {
       _id: attempt.order_id,
-      delivery_fee_status: { $ne: deliveryFeeStatus },
+      delivery_fee_status: deliveryFeeStatus === "paid"
+        ? { $ne: "paid" }
+        : { $nin: ["paid", deliveryFeeStatus] },
     },
     {
       $set: { delivery_fee_status: deliveryFeeStatus },
@@ -405,7 +420,7 @@ async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void
         activity: {
           actor_type: "system",
           event: `delivery_fee_${deliveryFeeStatus}`,
-          metadata: { payment_attempt_id: attempt._id.toString() },
+          metadata: { payment_attempt_id: sourceAttemptId.toString() },
           created_at: new Date(),
         },
       },
