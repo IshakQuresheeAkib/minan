@@ -1,12 +1,95 @@
 export type DashboardMetrics = {
-  leadsToday: number;
-  leadsThisMonth: number;
+  ordersToday: number;
+  ordersThisMonth: number;
+  newOrders: number;
+  awaitingFee: number;
+  processingPacking: number;
+  shipped: number;
+  returnsExceptions: number;
   topProduct: string | null;
   topCategory: string | null;
   trafficSources: readonly {
     source: string;
     count: number;
   }[];
+};
+
+export type OrderStatus = "new" | "confirmed" | "processing" | "packing" | "shipped" | "delivered" | "on_hold" | "cancelled" | "returned" | "exchanged";
+export type DeliveryFeeStatus = "not_required" | "awaiting" | "processing" | "paid" | "failed" | "verification_pending" | "expired";
+export type CodStatus = "not_required" | "due" | "collected" | "partially_refunded" | "refunded" | "waived";
+
+export type AdminOrderLine = {
+  line_id: string;
+  product_id: string;
+  name: string;
+  unit_price: number;
+  original_price: number;
+  product_discount: number;
+  size: string;
+  color: string;
+  quantity: number;
+  allocated_order_discount: number;
+  returned_quantity: number;
+  credited_amount: number;
+};
+
+export type AdminOrder = {
+  _id: string;
+  order_number: string;
+  name: string;
+  phone_number: string;
+  email: string;
+  address: string;
+  customer_notes: string | null;
+  lines: AdminOrderLine[];
+  checkout_source: "cart" | "buy_now" | "exchange";
+  status: OrderStatus;
+  held_from_status: "new" | "confirmed" | "processing" | "packing" | null;
+  financials: {
+    merchandise_subtotal: number;
+    order_discount: number;
+    merchandise_total: number;
+    delivery_fee: number;
+    overall_order_value: number;
+    merchandise_paid_online: number;
+    exchange_credit_applied: number;
+    cod_due: number;
+    cod_collected: number;
+    merchandise_refunded: number;
+    exchange_credit_issued: number;
+  };
+  delivery_fee_status: DeliveryFeeStatus;
+  cod_status: CodStatus;
+  courier_name: string | null;
+  tracking_number: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  duplicate_order_ids: string[];
+  duplicate_review_state: "none" | "pending" | "reviewed_unique" | "confirmed_duplicate";
+  exchange_source_order_id: string | null;
+  exchange_replacement_order_id: string | null;
+  revision: number;
+  financial_review_required: boolean;
+  activity?: {
+    actor_type: "system" | "admin" | "customer" | "migration";
+    admin_id?: string;
+    admin_email?: string;
+    event: string;
+    reason?: string;
+    metadata?: Record<string, string | number | boolean | null>;
+    created_at: string;
+  }[];
+  refunds?: {
+    amount: number;
+    method: "cash" | "bkash_manual" | "bank_transfer" | "other";
+    reference?: string;
+    reason: string;
+    admin_email: string;
+    created_at: string;
+  }[];
+  payment_attempts?: (AdminPaymentAttempt & { payment_purpose: "delivery_fee" | "legacy_full_order" })[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type AuthSessionResponse = {

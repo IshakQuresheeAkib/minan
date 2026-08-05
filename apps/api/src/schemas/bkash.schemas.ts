@@ -8,7 +8,6 @@ export const paymentCreateSchema = leadCreateSchema.extend({
 
 export const paymentRetrySchema = z.object({
   retry_token: z.string().min(32).max(200),
-  accepted_total: z.number().finite().nonnegative().optional(),
 });
 
 export const paymentResultResolveSchema = z.object({

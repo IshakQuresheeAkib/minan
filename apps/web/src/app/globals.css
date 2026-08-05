@@ -215,3 +215,13 @@
     animation: none;
   }
 }
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: white;
+  }
+}

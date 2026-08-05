@@ -4,7 +4,8 @@ import { Types } from "mongoose";
 
 import { getBkashConfig } from "../config/bkash.js";
 import { AppError } from "../lib/errors.js";
-import { Lead, type LeadDocument } from "../models/Lead.js";
+import { Lead } from "../models/Lead.js";
+import { Order, type OrderDocument } from "../models/Order.js";
 import {
   PaymentAttempt,
   type PaymentAttemptDocument,
@@ -21,7 +22,10 @@ import {
   queryBkashPayment,
   type BkashPaymentResponse,
 } from "./bkashClient.service.js";
-import { buildVerifiedCartSnapshot } from "./checkoutCart.service.js";
+import {
+  checkoutRequestMatchesOrder,
+  createOrLoadCheckoutOrder,
+} from "./orders.service.js";
 
 const RESULT_TTL_MS = 30 * 60 * 1000;
 const RETRY_TTL_MS = 30 * 60 * 1000;
@@ -42,16 +46,21 @@ type StartPaymentResponse =
   | { state: "redirect"; bkash_url: string }
   | { state: "processing" }
   | { state: "completed"; reference: string }
-  | { state: "failed"; message: string; retry_token: string }
-  | { state: "price_changed"; total: number; retry_token: string };
+  | { state: "failed"; message: string; retry_token: string };
 
 export type RetryPaymentResponse = StartPaymentResponse;
 
 export type PaymentResult = {
   state: PaymentAttemptStatus | "unavailable";
   message: string;
+  order_id?: string;
+  /** @deprecated Present only for migrated compatibility Orders. */
   lead_id?: string;
-  checkout_source?: "cart" | "buy_now";
+  order_number?: string;
+  checkout_source?: "cart" | "buy_now" | "exchange";
+  fee_paid?: number;
+  cod_due?: number;
+  /** @deprecated Legacy full-order amount before Order migration. */
   amount?: number;
   merchant_invoice_number?: string;
   bkash_trx_id?: string;
@@ -73,34 +82,6 @@ function canonicalAmount(value: number): string {
 
 function isDuplicateKey(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
-}
-
-function checkoutRequestMatchesLead(
-  input: PaymentCreateInput,
-  lead: LeadDocument,
-): boolean {
-  if (
-    input.name !== lead.name ||
-    input.phone_number !== lead.phone_number ||
-    input.email !== lead.email ||
-    input.address !== lead.address ||
-    (input.notes ?? "") !== (lead.notes ?? "") ||
-    input.checkout_source !== lead.checkout_source ||
-    input.cart_snapshot.items.length !== lead.cart_snapshot.items.length
-  ) {
-    return false;
-  }
-
-  return input.cart_snapshot.items.every((item, index) => {
-    const stored = lead.cart_snapshot.items[index];
-    return (
-      stored !== undefined &&
-      item.product_id === stored.product_id &&
-      item.size === stored.size &&
-      item.color === stored.color &&
-      item.quantity === stored.quantity
-    );
-  });
 }
 
 function safeHashMatch(expected: string, received: string): boolean {
@@ -183,8 +164,8 @@ async function consumeRetryClaim(
   }
 }
 
-async function loadLatestAttempt(leadId: Types.ObjectId): Promise<PaymentAttemptDocument | null> {
-  return PaymentAttempt.findOne({ lead_id: leadId })
+async function loadLatestAttempt(orderId: Types.ObjectId): Promise<PaymentAttemptDocument | null> {
+  return PaymentAttempt.findOne({ order_id: orderId })
     .sort({ sequence: -1 })
     .select(
       "+success_signature_hash +failure_signature_hash +cancel_signature_hash " +
@@ -205,6 +186,7 @@ async function expireIfAbandoned(attempt: PaymentAttemptDocument): Promise<void>
     attempt.status = "expired";
     attempt.provider_status_message = "Payment attempt expired before completion";
     await attempt.save();
+    await syncOrderFeeStatus(attempt);
   }
 }
 
@@ -256,13 +238,14 @@ async function responseForExisting(attempt: PaymentAttemptDocument): Promise<Sta
   return { state: "processing" };
 }
 
-async function createAttempt(lead: LeadDocument, sequence: number): Promise<StartPaymentResponse> {
-  const amount = canonicalAmount(lead.cart_snapshot.total);
-  const invoice = `MINAN-${lead._id.toString()}-${sequence}`;
+async function createAttempt(order: OrderDocument, sequence: number): Promise<StartPaymentResponse> {
+  const amount = canonicalAmount(order.financials.delivery_fee);
+  const invoice = `${order.order_number}-${String(sequence).padStart(2, "0")}`;
   let attempt: PaymentAttemptDocument;
   try {
     attempt = await PaymentAttempt.create({
-      lead_id: lead._id,
+      order_id: order._id,
+      payment_purpose: "delivery_fee",
       sequence,
       status: "creating",
       merchant_invoice_number: invoice,
@@ -271,7 +254,7 @@ async function createAttempt(lead: LeadDocument, sequence: number): Promise<Star
     });
   } catch (error) {
     if (!isDuplicateKey(error)) throw error;
-    const existing = await loadLatestAttempt(lead._id);
+    const existing = await loadLatestAttempt(order._id);
     if (!existing) throw error;
     return responseForExisting(existing);
   }
@@ -280,7 +263,7 @@ async function createAttempt(lead: LeadDocument, sequence: number): Promise<Star
     const config = getBkashConfig();
     const response = await createBkashPayment({
       amount,
-      payerReference: lead._id.toString(),
+      payerReference: order.order_number,
       callbackURL: `${config.apiPublicUrl}/api/bkash/callback`,
       merchantInvoiceNumber: invoice,
     });
@@ -293,6 +276,7 @@ async function createAttempt(lead: LeadDocument, sequence: number): Promise<Star
       attempt.provider_status_code = response.statusCode;
       attempt.provider_status_message = response.statusMessage ?? "bKash rejected payment creation";
       await attempt.save();
+      await syncOrderFeeStatus(attempt);
       return {
         state: "failed",
         message: attempt.provider_status_message,
@@ -312,12 +296,14 @@ async function createAttempt(lead: LeadDocument, sequence: number): Promise<Star
     if (failureSignature) attempt.failure_signature_hash = hash(failureSignature);
     if (cancelSignature) attempt.cancel_signature_hash = hash(cancelSignature);
     await attempt.save();
+    await syncOrderFeeStatus(attempt);
     return { state: "redirect", bkash_url: response.bkashURL };
   } catch (error) {
     attempt.status = "payment_create_failed";
     attempt.provider_status_message =
       error instanceof AppError ? error.message : "Payment creation failed";
     await attempt.save();
+    await syncOrderFeeStatus(attempt);
     return {
       state: "failed",
       message: attempt.provider_status_message,
@@ -330,55 +316,22 @@ export async function startBkashPayment(
   input: PaymentCreateInput,
   idempotencyKey: string,
 ): Promise<StartPaymentResponse> {
-  const idempotencyHash = hash(idempotencyKey);
-  let lead = await Lead.findOne({ checkout_idempotency_hash: idempotencyHash });
-  if (!lead) {
-    const cartSnapshot = await buildVerifiedCartSnapshot(input.cart_snapshot);
-    try {
-      lead = await Lead.create({
-        name: input.name,
-        phone_number: input.phone_number,
-        email: input.email,
-        address: input.address,
-        notes: input.notes,
-        cart_snapshot: cartSnapshot,
-        checkout_source: input.checkout_source,
-        delivery_status: "pending",
-        checkout_idempotency_hash: idempotencyHash,
-      });
-    } catch (error) {
-      if (!isDuplicateKey(error)) throw error;
-      lead = await Lead.findOne({ checkout_idempotency_hash: idempotencyHash });
-      if (!lead) throw error;
-    }
+  if (process.env.CHECKOUT_MAINTENANCE_MODE === "true") {
+    throw new AppError("Checkout payment is temporarily unavailable for maintenance", 503);
   }
+  const idempotencyHash = hash(idempotencyKey);
+  const order = await createOrLoadCheckoutOrder(input, idempotencyHash);
 
-  if (!checkoutRequestMatchesLead(input, lead)) {
+  if (!checkoutRequestMatchesOrder(input, order)) {
     throw new AppError(
       "Idempotency-Key was already used for a different checkout",
       409,
     );
   }
 
-  const existing = await loadLatestAttempt(lead._id);
-  if (!existing) return createAttempt(lead, 1);
-
-  const existingResponse = await responseForExisting(existing);
-  if (existingResponse.state !== "redirect") return existingResponse;
-
-  const verified = await buildVerifiedCartSnapshot(input.cart_snapshot);
-  if (canonicalAmount(verified.total) === canonicalAmount(lead.cart_snapshot.total)) {
-    return existingResponse;
-  }
-
-  existing.status = "expired";
-  existing.provider_status_message = "Checkout total changed before payment completion";
-  await existing.save();
-  return {
-    state: "price_changed",
-    total: verified.total,
-    retry_token: await mintRetryToken(existing),
-  };
+  const existing = await loadLatestAttempt(order._id);
+  if (!existing) return createAttempt(order, 1);
+  return responseForExisting(existing);
 }
 
 function expectedSignature(attempt: PaymentAttemptDocument, status: BkashCallbackInput["status"]): string | undefined {
@@ -402,6 +355,68 @@ export function paymentResponseIsCompleted(
     invoice === attempt.merchant_invoice_number &&
     Boolean(response.trxID)
   );
+}
+
+function feeStatusForAttempt(status: PaymentAttemptStatus) {
+  if (status === "completed") return "paid" as const;
+  if (status === "initiated" || status === "creating") return "processing" as const;
+  if (status === "verification_pending") return "verification_pending" as const;
+  if (status === "expired") return "expired" as const;
+  return "failed" as const;
+}
+
+async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void> {
+  if (!attempt.order_id) return;
+  if (attempt.payment_purpose === "legacy_full_order") {
+    if (attempt.status !== "completed") return;
+    const paid = Number(attempt.expected_amount);
+    const order = await Order.findById(attempt.order_id);
+    if (!order || !Number.isSafeInteger(paid)) return;
+    if (order.financials.merchandise_paid_online >= paid) return;
+    order.financials.merchandise_paid_online = Math.min(paid, order.financials.merchandise_total);
+    order.financials.cod_due = Math.max(
+      order.financials.merchandise_total -
+        order.financials.merchandise_paid_online -
+        order.financials.exchange_credit_applied,
+      0,
+    );
+    order.cod_status = order.financials.cod_due === 0 ? "not_required" : "due";
+    order.revision += 1;
+    order.activity.push({
+      actor_type: "system",
+      event: "legacy_payment_reconciled",
+      metadata: { amount: paid, payment_attempt_id: attempt._id.toString() },
+      created_at: new Date(),
+    });
+    await order.save();
+    return;
+  }
+
+  const deliveryFeeStatus = feeStatusForAttempt(attempt.status);
+  const updated = await Order.updateOne(
+    {
+      _id: attempt.order_id,
+      delivery_fee_status: { $ne: deliveryFeeStatus },
+    },
+    {
+      $set: { delivery_fee_status: deliveryFeeStatus },
+      $inc: { revision: 1 },
+      $push: {
+        activity: {
+          actor_type: "system",
+          event: `delivery_fee_${deliveryFeeStatus}`,
+          metadata: { payment_attempt_id: attempt._id.toString() },
+          created_at: new Date(),
+        },
+      },
+    },
+  );
+  if (updated.modifiedCount > 0 && deliveryFeeStatus === "paid") {
+    await Order.updateOne(
+      { _id: attempt.order_id, status: "new" },
+      { $push: { activity: { actor_type: "system", event: "order_ready_for_confirmation", created_at: new Date() } } },
+    );
+  }
 }
 
 async function applyVerification(
@@ -432,6 +447,7 @@ async function applyVerification(
     }
   }
   await attempt.save();
+  await syncOrderFeeStatus(attempt);
 }
 
 async function queryAndApplyVerification(
@@ -485,11 +501,16 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
           input.status === "cancel" ? "Payment was cancelled" : "Payment failed";
         await attempt.save();
       }
-    } else if (attempt.status === "initiated") {
-      const claimed = await claimInitiatedExecution(attempt);
-      if (claimed) {
-        await executeOrQuery(claimed);
-        return mintResultReference(claimed);
+    } else {
+      if (attempt.status === "initiated") {
+        const claimed = await claimInitiatedExecution(attempt);
+        if (claimed) {
+          await executeOrQuery(claimed);
+          return mintResultReference(claimed);
+        }
+      } else if (attempt.payment_id) {
+        // A verified provider completion wins even after a local failure/expiry.
+        await queryAndApplyVerification(attempt);
       }
       const refreshed = await PaymentAttempt.findById(attempt._id);
       return mintResultReference(refreshed ?? attempt);
@@ -499,7 +520,7 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
 }
 
 function resultMessage(status: PaymentAttemptStatus): string {
-  if (status === "completed") return "Your payment was confirmed.";
+  if (status === "completed") return "Your delivery-fee payment was confirmed.";
   if (status === "cancelled") return "You cancelled the payment.";
   if (status === "verification_pending") return "Your payment is still being verified.";
   if (status === "initiated" || status === "creating") return "Your payment is still in progress.";
@@ -524,8 +545,23 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
   }
 
   await expireIfAbandoned(attempt);
-  const lead = await Lead.findById(attempt.lead_id);
-  if (!lead) return { state: "unavailable", message: "The checkout could not be found." };
+  const order = attempt.order_id ? await Order.findById(attempt.order_id) : null;
+  if (!order && attempt.lead_id) {
+    const lead = await Lead.findById(attempt.lead_id);
+    if (lead) {
+      return {
+        state: attempt.status,
+        message: attempt.status === "completed" ? "Your legacy payment was confirmed." : resultMessage(attempt.status),
+        lead_id: lead._id.toString(),
+        checkout_source: lead.checkout_source,
+        amount: Number(attempt.expected_amount),
+        merchant_invoice_number: attempt.merchant_invoice_number,
+        bkash_trx_id: attempt.bkash_trx_id,
+        retry_token: TERMINAL_FAILURES.includes(attempt.status) ? await mintRetryToken(attempt) : undefined,
+      };
+    }
+  }
+  if (!order) return { state: "unavailable", message: "The order could not be found." };
 
   const retryToken = TERMINAL_FAILURES.includes(attempt.status)
     ? await mintRetryToken(attempt)
@@ -533,9 +569,14 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
   return {
     state: attempt.status,
     message: resultMessage(attempt.status),
-    lead_id: lead._id.toString(),
-    checkout_source: lead.checkout_source,
-    amount: Number(attempt.expected_amount),
+    order_id: order._id.toString(),
+    lead_id: attempt.lead_id?.toString(),
+    order_number: order.order_number,
+    checkout_source: order.checkout_source,
+    fee_paid: attempt.status === "completed" && attempt.payment_purpose === "delivery_fee"
+      ? Number(attempt.expected_amount)
+      : 0,
+    cod_due: order.financials.cod_due,
     merchant_invoice_number: attempt.merchant_invoice_number,
     bkash_trx_id: attempt.bkash_trx_id,
     retry_token: retryToken,
@@ -543,6 +584,9 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
 }
 
 export async function retryBkashPayment(input: PaymentRetryInput): Promise<RetryPaymentResponse> {
+  if (process.env.CHECKOUT_MAINTENANCE_MODE === "true") {
+    throw new AppError("Checkout payment is temporarily unavailable for maintenance", 503);
+  }
   const claimedAt = new Date();
   const attempt = await PaymentAttempt.findOneAndUpdate(
     {
@@ -565,9 +609,10 @@ export async function retryBkashPayment(input: PaymentRetryInput): Promise<Retry
   if (!attempt) throw new AppError("Retry link is invalid or expired", 400);
 
   try {
-    const lead = await Lead.findById(attempt.lead_id);
-    if (!lead) throw new AppError("Checkout not found", 404);
-    const latest = await loadLatestAttempt(lead._id);
+    if (!attempt.order_id) throw new AppError("Legacy payment attempts cannot use this retry link", 409);
+    const order = await Order.findById(attempt.order_id);
+    if (!order) throw new AppError("Order not found", 404);
+    const latest = await loadLatestAttempt(order._id);
     if (!latest || latest._id.toString() !== attempt._id.toString()) {
       if (latest) {
         const response = await responseForExisting(latest);
@@ -577,30 +622,7 @@ export async function retryBkashPayment(input: PaymentRetryInput): Promise<Retry
       throw new AppError("Payment attempt is no longer retryable", 409);
     }
 
-    const verified = await buildVerifiedCartSnapshot(lead.cart_snapshot);
-    const verifiedAmount = canonicalAmount(verified.total);
-    const storedAmount = canonicalAmount(lead.cart_snapshot.total);
-    const acceptedAmount = input.accepted_total === undefined
-      ? undefined
-      : canonicalAmount(input.accepted_total);
-    const priceChanged = verifiedAmount !== storedAmount;
-    const confirmationRequired = priceChanged && acceptedAmount === undefined;
-    const confirmationIsStale =
-      acceptedAmount !== undefined && acceptedAmount !== verifiedAmount;
-
-    if (priceChanged) {
-      lead.cart_snapshot = verified;
-      await lead.save();
-    }
-    if (confirmationRequired || confirmationIsStale) {
-      return {
-        state: "price_changed",
-        total: verified.total,
-        retry_token: await mintRetryToken(attempt),
-      };
-    }
-
-    const response = await createAttempt(lead, attempt.sequence + 1);
+    const response = await createAttempt(order, attempt.sequence + 1);
     await consumeRetryClaim(attempt._id, claimedAt);
     return response;
   } catch (error) {
@@ -613,9 +635,18 @@ export async function retryBkashPayment(input: PaymentRetryInput): Promise<Retry
   }
 }
 
-export async function recheckPendingPayment(leadId: string): Promise<void> {
-  if (!Types.ObjectId.isValid(leadId)) throw new AppError("Invalid lead id", 400);
-  const attempt = await loadLatestAttempt(new Types.ObjectId(leadId));
+export async function recheckPendingPayment(orderId: string): Promise<void> {
+  if (!Types.ObjectId.isValid(orderId)) throw new AppError("Invalid order id", 400);
+  const relationshipId = new Types.ObjectId(orderId);
+  const attempt = await PaymentAttempt.findOne({
+    $or: [{ order_id: relationshipId }, { lead_id: relationshipId }],
+  })
+    .sort({ sequence: -1 })
+    .select(
+      "+success_signature_hash +failure_signature_hash +cancel_signature_hash " +
+      "+result_token_hash +result_token_expires_at +retry_token_hash " +
+      "+retry_token_expires_at +retry_token_consumed_at",
+    );
   if (!attempt) throw new AppError("Payment attempt not found", 404);
   if (
     (attempt.status !== "verification_pending" && attempt.status !== "initiated") ||

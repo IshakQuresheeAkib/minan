@@ -11,6 +11,7 @@ import { adminNavLinks } from "@/constants/admin-nav";
 import { adminRoutes, publicRoutes } from "@/constants/routes";
 import { logoutAdmin } from "@/features/admin/actions/auth.actions";
 import { AdminMobileNav } from "@/features/admin/components/AdminMobileNav";
+import { useOrdersNotifications } from "@/features/admin/components/OrdersNotificationProvider";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
 
@@ -23,6 +24,7 @@ export function AdminShell({ children }: AdminShellProps) {
   const pathname = usePathname();
   const clearSession = useAuthStore((state) => state.clearSession);
   const [loggingOut, setLoggingOut] = useState(false);
+  const { unreadCount } = useOrdersNotifications();
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -39,7 +41,7 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <div className="min-h-dvh bg-background/30">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-background px-4 py-6 lg:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-background px-4 py-6 print:hidden lg:flex">
         <div>
           <Link
             href={adminRoutes.dashboard}
@@ -66,6 +68,11 @@ export function AdminShell({ children }: AdminShellProps) {
                 >
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
                   {link.label}
+                  {link.href === adminRoutes.orders && unreadCount > 0 ? (
+                    <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-foreground" aria-label={`${unreadCount} unread Orders`}>
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}
@@ -92,7 +99,7 @@ export function AdminShell({ children }: AdminShellProps) {
         </nav>
       </aside>
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 border-b bg-background/90 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 border-b bg-background/90 px-4 py-3 backdrop-blur print:hidden sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
               <AdminMobileNav

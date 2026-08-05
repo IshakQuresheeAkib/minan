@@ -28,16 +28,17 @@ type LeadFormProps = {
   cartSnapshot: CartSnapshot;
   checkoutSource: CheckoutSource;
   disabled?: boolean;
+  deliveryFee: number;
 };
 
 export function LeadForm({
   cartSnapshot,
   checkoutSource,
   disabled = false,
+  deliveryFee,
 }: LeadFormProps) {
   const formId = useId();
   const [retryToken, setRetryToken] = useState<string | null>(null);
-  const [updatedTotal, setUpdatedTotal] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
   const form = useForm<LeadInput>({
     resolver: zodResolver(leadInputSchema),
@@ -74,11 +75,6 @@ export function LeadForm({
       toast.error(result.message);
       return;
     }
-    if (result.state === "price_changed") {
-      setRetryToken(result.retry_token);
-      setUpdatedTotal(result.total);
-      return;
-    }
     toast.info("Your payment is being prepared. Please try again shortly.");
   }
 
@@ -106,10 +102,7 @@ export function LeadForm({
     if (!retryToken) return;
     setRetrying(true);
     try {
-      const response = await retryCheckoutPayment(
-        retryToken,
-        updatedTotal ?? undefined,
-      );
+      const response = await retryCheckoutPayment(retryToken);
       handlePaymentResult(response.data);
     } catch (error) {
       toast.error(
@@ -185,16 +178,13 @@ export function LeadForm({
         loading={form.formState.isSubmitting}
         loadingText="Opening bKash..."
       >
-        Pay with bKash
+        Pay Tk {deliveryFee.toLocaleString("en-BD")} delivery fee with bKash
       </Button>
+      <p className="text-sm font-medium text-foreground/70">
+        The Tk {deliveryFee.toLocaleString("en-BD")} delivery fee is non-refundable. Merchandise is payable by cash on delivery.
+      </p>
       {retryToken ? (
         <div className="grid gap-3" role="status">
-          {updatedTotal !== null ? (
-            <p className="text-sm text-foreground/75">
-              The current total is Tk {updatedTotal.toLocaleString("en-BD")}.
-              Confirm this amount to continue.
-            </p>
-          ) : null}
           <Button
             type="button"
             variant="secondary"
@@ -202,7 +192,7 @@ export function LeadForm({
             loadingText="Retrying..."
             onClick={() => void onRetry()}
           >
-            {updatedTotal === null ? "Retry payment" : "Confirm and pay"}
+            Retry delivery-fee payment
           </Button>
         </div>
       ) : null}

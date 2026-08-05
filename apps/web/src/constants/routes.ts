@@ -14,5 +14,6 @@ export const adminRoutes = {
   categories: "/admin/categories",
   homeBanners: "/admin/home-banners",
   leads: "/admin/leads",
+  orders: "/admin/orders",
   admins: "/admin/admins",
 } as const;

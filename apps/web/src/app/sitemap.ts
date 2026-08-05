@@ -2,11 +2,9 @@ import type { MetadataRoute } from "next";
 
 import { publicRoutes } from "@/constants/routes";
 import { getAbsoluteUrl } from "@/config/site.config";
-import { getProducts } from "@/features/products/services/product.service";
+import { getCachedProducts } from "@/features/products/services/product.cache";
 
 const staticRoutes = [publicRoutes.home, publicRoutes.products];
-
-export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -18,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    const { data: products } = await getProducts({ limit: 1000 });
+    const { data: products } = await getCachedProducts({ limit: 1000 });
 
     routes.push(
       ...products.map((product) => ({

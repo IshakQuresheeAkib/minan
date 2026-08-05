@@ -48,10 +48,43 @@ import {
 } from "../controllers/admin/uploads.controller.js";
 import { requireCsrfHeader } from "../middleware/csrf.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import {
+  appendOrderNoteHandler,
+  createOrderExchangeHandler,
+  exportAdminOrdersHandler,
+  getAdminOrderHandler,
+  listAdminOrdersHandler,
+  listOrderChangesHandler,
+  recheckOrderPaymentHandler,
+  recordOrderCodHandler,
+  recordOrderRefundHandler,
+  recordOrderReturnHandler,
+  reviewOrderDuplicateHandler,
+  transitionOrderHandler,
+  updateOrderCourierHandler,
+  updateOrderCustomerHandler,
+  updateOrderItemsHandler,
+} from "../controllers/admin/orders.controller.js";
 
 export const adminRouter = Router();
 
 adminRouter.get("/dashboard", requireAuth, getDashboardHandler);
+
+adminRouter.get("/orders", requireAuth, listAdminOrdersHandler);
+adminRouter.get("/orders/changes", requireAuth, listOrderChangesHandler);
+adminRouter.get("/orders/export", requireAuth, exportAdminOrdersHandler);
+adminRouter.get("/orders/:id", requireAuth, getAdminOrderHandler);
+adminRouter.patch("/orders/:id/customer", requireAuth, requireCsrfHeader, updateOrderCustomerHandler);
+adminRouter.patch("/orders/:id/items", requireAuth, requireCsrfHeader, updateOrderItemsHandler);
+adminRouter.post("/orders/:id/transitions", requireAuth, requireCsrfHeader, transitionOrderHandler);
+adminRouter.patch("/orders/:id/courier", requireAuth, requireCsrfHeader, updateOrderCourierHandler);
+adminRouter.post("/orders/:id/cod", requireAuth, requireCsrfHeader, recordOrderCodHandler);
+adminRouter.post("/orders/:id/notes", requireAuth, requireCsrfHeader, appendOrderNoteHandler);
+adminRouter.patch("/orders/:id/duplicates", requireAuth, requireCsrfHeader, reviewOrderDuplicateHandler);
+adminRouter.post("/orders/:id/returns", requireAuth, requireCsrfHeader, recordOrderReturnHandler);
+adminRouter.post("/orders/:id/refunds", requireAuth, requireCsrfHeader, recordOrderRefundHandler);
+adminRouter.post("/orders/:id/exchanges", requireAuth, requireCsrfHeader, createOrderExchangeHandler);
+adminRouter.post("/orders/:id/payments/recheck", requireAuth, requireCsrfHeader, recheckOrderPaymentHandler);
 
 adminRouter.get("/products", requireAuth, listAdminProductsHandler);
 adminRouter.post(

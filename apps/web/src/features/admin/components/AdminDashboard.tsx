@@ -33,7 +33,7 @@ export function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-semibold tracking-normal">Dashboard</h1>
         <p className="mt-1 text-sm leading-6 text-foreground/70">
-          Lead and traffic metrics for admin operations.
+          Order fulfillment and traffic metrics for admin operations.
         </p>
       </div>
 
@@ -44,18 +44,16 @@ export function AdminDashboard() {
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricsCard label="Today's Leads" value={String(metrics.leadsToday)} />
-        <MetricsCard
-          label="This Month"
-          value={String(metrics.leadsThisMonth)}
-        />
+        <MetricsCard label="Orders Today" value={String(metrics.ordersToday)} />
+        <MetricsCard label="Orders This Month" value={String(metrics.ordersThisMonth)} />
+        <MetricsCard label="New Orders" value={String(metrics.newOrders)} />
+        <MetricsCard label="Awaiting Fee" value={String(metrics.awaitingFee)} />
+        <MetricsCard label="Processing / Packing" value={String(metrics.processingPacking)} />
+        <MetricsCard label="Shipped" value={String(metrics.shipped)} />
+        <MetricsCard label="Returns / Exceptions" value={String(metrics.returnsExceptions)} />
         <MetricsCard
           label="Top Product"
           value={metrics.topProduct ?? "No data"}
-        />
-        <MetricsCard
-          label="Top Category"
-          value={metrics.topCategory ?? "No data"}
         />
       </div>
 

@@ -24,7 +24,6 @@ export async function startCheckoutPayment(
 
 export async function retryCheckoutPayment(
   retryToken: string,
-  acceptedTotal?: number,
 ): Promise<{
   data: PaymentStartResult;
 }> {
@@ -32,7 +31,6 @@ export async function retryCheckoutPayment(
     method: "POST",
     body: {
       retry_token: retryToken,
-      accepted_total: acceptedTotal,
     },
   });
 }

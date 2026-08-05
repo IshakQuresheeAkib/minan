@@ -11,7 +11,7 @@ import {
 } from "../controllers/bkash.controller.js";
 import { opaqueTokenRateLimitKey } from "../lib/rateLimitKeys.js";
 import { requireCsrfHeader } from "../middleware/csrf.js";
-import { Lead } from "../models/Lead.js";
+import { Order } from "../models/Order.js";
 
 export const bkashRouter = Router();
 
@@ -32,7 +32,7 @@ const createLimiter = rateLimit({
     const key = req.get("Idempotency-Key")?.trim();
     if (!key || key.length < 16 || key.length > 128) return false;
     const digest = createHash("sha256").update(key).digest("hex");
-    return Boolean(await Lead.exists({ checkout_idempotency_hash: digest }));
+    return Boolean(await Order.exists({ checkout_idempotency_hash: digest }));
   },
 });
 const resolveIpLimiter = rateLimit({
