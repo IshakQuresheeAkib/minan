@@ -22,6 +22,7 @@ import type {
   AdminProduct,
   OrderStatus,
 } from "@/features/admin/types";
+import { getOutstandingCod } from "@/features/admin/lib/orderFinancials";
 import { ApiError } from "@/lib/api/client";
 
 function money(value: number): string {
@@ -672,10 +673,7 @@ function OrderUtility({
   const [courier, setCourier] = useState(order.courier_name ?? "");
   const [tracking, setTracking] = useState(order.tracking_number ?? "");
   const [note, setNote] = useState("");
-  const outstanding =
-    order.cod_status === "waived"
-      ? 0
-      : Math.max(order.financials.cod_due - order.financials.cod_collected, 0);
+  const outstanding = getOutstandingCod(order.financials, order.cod_status);
   return (
     <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
       <section className="rounded-lg border bg-background p-5 shadow-sm">

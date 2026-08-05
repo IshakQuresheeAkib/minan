@@ -28,6 +28,7 @@ import { adminRoutes } from "@/constants/routes";
 import { downloadAdminOrdersCsv } from "@/features/admin/actions/orders.actions";
 import { useOrdersNotifications } from "@/features/admin/components/OrdersNotificationProvider";
 import { TablePagination } from "@/features/admin/components/TablePagination";
+import { getOutstandingCod } from "@/features/admin/lib/orderFinancials";
 import { useAdminOrders } from "@/features/admin/hooks/useAdminOrders";
 import type {
   AdminOrder,
@@ -413,10 +414,7 @@ function OrdersMobileCards({ orders }: { orders: AdminOrder[] }) {
             </span>
             <strong>
               {money(
-                Math.max(
-                  order.financials.cod_due - order.financials.cod_collected,
-                  0,
-                ),
+                getOutstandingCod(order.financials, order.cod_status),
               )}{" "}
               COD
             </strong>

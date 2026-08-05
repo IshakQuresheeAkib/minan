@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { adminRoutes } from "@/constants/routes";
 import { useAdminOrder } from "@/features/admin/hooks/useAdminOrders";
+import { getOutstandingCod } from "@/features/admin/lib/orderFinancials";
 
 function money(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
@@ -151,10 +152,7 @@ export function OrderPrintView({
                 <dt>Remaining COD</dt>
                 <dd>
                   {money(
-                    Math.max(
-                      order.financials.cod_due - order.financials.cod_collected,
-                      0,
-                    ),
+                    getOutstandingCod(order.financials, order.cod_status),
                   )}
                 </dd>
               </div>
