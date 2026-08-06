@@ -227,6 +227,7 @@ async function responseForExisting(attempt: PaymentAttemptDocument): Promise<Sta
     attempt.status = "payment_create_failed";
     attempt.provider_status_message = "Payment creation did not finish";
     await attempt.save();
+    await syncOrderFeeStatus(attempt);
   }
   if (TERMINAL_FAILURES.includes(attempt.status)) {
     return {
@@ -476,6 +477,7 @@ async function queryAndApplyVerification(
     attempt.status = "verification_pending";
     attempt.provider_status_message = "Payment verification is pending";
     await attempt.save();
+    await syncOrderFeeStatus(attempt);
   }
 }
 
@@ -515,6 +517,7 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
         attempt.provider_status_message =
           input.status === "cancel" ? "Payment was cancelled" : "Payment failed";
         await attempt.save();
+        await syncOrderFeeStatus(attempt);
       }
     } else {
       if (attempt.status === "initiated") {

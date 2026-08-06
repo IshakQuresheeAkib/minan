@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { Types } from "mongoose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -49,6 +51,10 @@ function chainResult<T>(value: T) {
 function persistable(document: PaymentAttemptDocument): PaymentAttemptDocument {
   vi.spyOn(document, "save").mockResolvedValue(document);
   return document;
+}
+
+function hash(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 function attempt(status: PaymentAttemptDocument["status"] = "initiated") {
@@ -259,6 +265,30 @@ describe("bKash Order lifecycle", () => {
     expect(expired.status).toBe("completed");
     expect(expired.bkash_trx_id).toBe("LATE123");
     expect(Order.updateOne).toHaveBeenCalledWith(expect.objectContaining({ _id: expired.order_id }), expect.objectContaining({ $set: { delivery_fee_status: "paid" } }));
+  });
+
+  it.each([
+    ["failure", "failure_signature_hash"],
+    ["cancel", "cancel_signature_hash"],
+  ] as const)("syncs the Order fee status after a signed %s callback", async (status, signatureField) => {
+    const pending = attempt("initiated");
+    pending[signatureField] = hash("signed-callback");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status,
+      signature: "signed-callback",
+    });
+
+    expect(pending.status).toBe(status === "cancel" ? "cancelled" : "failed");
+    expect(Order.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: pending.order_id,
+        delivery_fee_status: { $nin: ["paid", "failed"] },
+      }),
+      expect.objectContaining({ $set: { delivery_fee_status: "failed" } }),
+    );
   });
 
   it("recovers verification-pending payments through Execute then query", async () => {
