@@ -147,3 +147,15 @@ export async function apiRequest<TResponse>(
 
   return (await response.json()) as TResponse;
 }
+
+export async function apiDownload(
+  path: string,
+  accessToken: string,
+): Promise<Blob> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    credentials: "include",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new ApiError(await parseErrorMessage(response), response.status);
+  return response.blob();
+}

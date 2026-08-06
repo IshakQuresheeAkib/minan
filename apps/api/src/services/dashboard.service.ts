@@ -1,13 +1,18 @@
 import { AnalyticsEvent } from "../models/AnalyticsEvent.js";
 import { Category } from "../models/Category.js";
-import { Lead } from "../models/Lead.js";
+import { Order } from "../models/Order.js";
 import { Product } from "../models/Product.js";
 
 const BANGLADESH_UTC_OFFSET_MS = 6 * 60 * 60 * 1000;
 
 export type DashboardMetrics = {
-  leadsToday: number;
-  leadsThisMonth: number;
+  ordersToday: number;
+  ordersThisMonth: number;
+  newOrders: number;
+  awaitingFee: number;
+  processingPacking: number;
+  shipped: number;
+  returnsExceptions: number;
   topProduct: string | null;
   topCategory: string | null;
   trafficSources: {
@@ -49,14 +54,24 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const month = getBangladeshMonthRange();
 
   const [
-    leadsToday,
-    leadsThisMonth,
+    ordersToday,
+    ordersThisMonth,
+    newOrders,
+    awaitingFee,
+    processingPacking,
+    shipped,
+    returnsExceptions,
     topProductResults,
     topCategoryResults,
     trafficSourceResults,
   ] = await Promise.all([
-    Lead.countDocuments({ createdAt: { $gte: today.start, $lt: today.end } }),
-    Lead.countDocuments({ createdAt: { $gte: month.start, $lt: month.end } }),
+    Order.countDocuments({ createdAt: { $gte: today.start, $lt: today.end } }),
+    Order.countDocuments({ createdAt: { $gte: month.start, $lt: month.end } }),
+    Order.countDocuments({ status: "new" }),
+    Order.countDocuments({ delivery_fee_status: { $in: ["awaiting", "failed", "verification_pending", "expired"] } }),
+    Order.countDocuments({ status: { $in: ["processing", "packing"] } }),
+    Order.countDocuments({ status: "shipped" }),
+    Order.countDocuments({ $or: [{ status: { $in: ["returned", "exchanged", "on_hold"] } }, { financial_review_required: true }] }),
     AnalyticsEvent.aggregate<CountResult<unknown>>([
       { $match: { event_type: "product_view", product_id: { $exists: true } } },
       { $group: { _id: "$product_id", count: { $sum: 1 } } },
@@ -87,8 +102,13 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   ]);
 
   return {
-    leadsToday,
-    leadsThisMonth,
+    ordersToday,
+    ordersThisMonth,
+    newOrders,
+    awaitingFee,
+    processingPacking,
+    shipped,
+    returnsExceptions,
     topProduct: topProduct?.name ?? null,
     topCategory: topCategory?.name ?? null,
     trafficSources: trafficSourceResults.map((item) => ({

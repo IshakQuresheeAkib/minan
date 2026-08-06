@@ -15,8 +15,15 @@ import { useBuyNowStore } from "@/store/buy-now.store";
 import { useCartStore } from "@/store/cart.store";
 
 function resultIcon(state: PaymentResult["state"]) {
-  if (state === "completed") return <CircleCheck className="size-14 text-emerald-600" aria-hidden="true" />;
-  if (state === "verification_pending" || state === "creating" || state === "initiated") {
+  if (state === "completed")
+    return (
+      <CircleCheck className="size-14 text-emerald-600" aria-hidden="true" />
+    );
+  if (
+    state === "verification_pending" ||
+    state === "creating" ||
+    state === "initiated"
+  ) {
     return <Clock3 className="size-14 text-amber-600" aria-hidden="true" />;
   }
   return <CircleX className="size-14 text-destructive" aria-hidden="true" />;
@@ -25,7 +32,8 @@ function resultIcon(state: PaymentResult["state"]) {
 function heading(state: PaymentResult["state"]): string {
   if (state === "completed") return "Payment confirmed";
   if (state === "verification_pending") return "Verification pending";
-  if (state === "creating" || state === "initiated") return "Payment in progress";
+  if (state === "creating" || state === "initiated")
+    return "Payment in progress";
   if (state === "cancelled") return "Payment cancelled";
   if (state === "unavailable") return "Result unavailable";
   return "Payment unsuccessful";
@@ -35,7 +43,6 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
   const clearCart = useCartStore((state) => state.clearCart);
   const clearBuyNow = useBuyNowStore((state) => state.clearItem);
   const [retryToken, setRetryToken] = useState(result.retry_token ?? null);
-  const [updatedTotal, setUpdatedTotal] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
@@ -54,17 +61,14 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
       return;
     }
     if (next.state === "completed") {
-      window.location.assign(`${publicRoutes.paymentResult}?reference=${encodeURIComponent(next.reference)}`);
+      window.location.assign(
+        `${publicRoutes.paymentResult}?reference=${encodeURIComponent(next.reference)}`,
+      );
       return;
     }
     if (next.state === "failed") {
       setRetryToken(next.retry_token);
       toast.error(next.message);
-      return;
-    }
-    if (next.state === "price_changed") {
-      setRetryToken(next.retry_token);
-      setUpdatedTotal(next.total);
       return;
     }
     toast.info("Your payment is being prepared. Please try again shortly.");
@@ -74,38 +78,90 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
     if (!retryToken) return;
     setRetrying(true);
     try {
-      const response = await retryCheckoutPayment(
-        retryToken,
-        updatedTotal ?? undefined,
-      );
+      const response = await retryCheckoutPayment(retryToken);
       continuePayment(response.data);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Payment retry failed.");
+      toast.error(
+        error instanceof ApiError ? error.message : "Payment retry failed.",
+      );
     } finally {
       setRetrying(false);
     }
   }
 
-  const checkoutHref = result.checkout_source === "buy_now"
-    ? publicRoutes.buyNowCheckout
-    : publicRoutes.checkout;
+  const checkoutHref =
+    result.checkout_source === "buy_now"
+      ? publicRoutes.buyNowCheckout
+      : publicRoutes.checkout;
   const canRecheck =
     result.state === "verification_pending" || result.state === "initiated";
 
   return (
     <section className="mx-auto flex min-h-[65dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-12 text-center sm:px-6">
       {resultIcon(result.state)}
-      <h1 className="mt-5 text-3xl font-semibold tracking-normal">{heading(result.state)}</h1>
-      <p className="mt-3 max-w-lg text-sm leading-6 text-foreground/70">{result.message}</p>
-      {result.amount !== undefined ? (
+      <h1 className="mt-5 text-3xl font-semibold tracking-normal">
+        {heading(result.state)}
+      </h1>
+      <p className="mt-3 max-w-lg text-sm leading-6 text-foreground/70">
+        {result.message}
+      </p>
+      {result.order_number ||
+      result.fee_paid !== undefined ||
+      result.amount !== undefined ? (
         <dl className="mt-6 grid w-full max-w-md gap-3 border-y py-4 text-sm">
-          <div className="flex justify-between gap-4"><dt className="text-foreground/65">Amount</dt><dd className="font-medium">Tk {result.amount.toLocaleString("en-BD")}</dd></div>
-          {result.merchant_invoice_number ? <div className="flex justify-between gap-4"><dt className="text-foreground/65">Invoice</dt><dd className="break-all text-right font-medium">{result.merchant_invoice_number}</dd></div> : null}
-          {result.bkash_trx_id ? <div className="flex justify-between gap-4"><dt className="text-foreground/65">bKash transaction</dt><dd className="break-all text-right font-medium">{result.bkash_trx_id}</dd></div> : null}
+          {result.order_number ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">Order</dt>
+              <dd className="font-medium">{result.order_number}</dd>
+            </div>
+          ) : null}
+          {result.amount !== undefined ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">Legacy payment</dt>
+              <dd className="font-medium">
+                Tk {result.amount.toLocaleString("en-BD")}
+              </dd>
+            </div>
+          ) : null}
+          {result.fee_paid !== undefined ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">Delivery fee paid</dt>
+              <dd className="font-medium">
+                Tk {result.fee_paid.toLocaleString("en-BD")}
+              </dd>
+            </div>
+          ) : null}
+          {result.cod_due !== undefined ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">Remaining COD</dt>
+              <dd className="font-medium">
+                Tk {result.cod_due.toLocaleString("en-BD")}
+              </dd>
+            </div>
+          ) : null}
+          {result.merchant_invoice_number ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">Invoice</dt>
+              <dd className="break-all text-right font-medium">
+                {result.merchant_invoice_number}
+              </dd>
+            </div>
+          ) : null}
+          {result.bkash_trx_id ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">bKash transaction</dt>
+              <dd className="break-all text-right font-medium">
+                {result.bkash_trx_id}
+              </dd>
+            </div>
+          ) : null}
         </dl>
       ) : null}
-      {updatedTotal !== null ? (
-        <p className="mt-5 text-sm text-foreground/75">The current total is Tk {updatedTotal.toLocaleString("en-BD")}. Confirm it to continue.</p>
+      {result.state === "completed" ? (
+        <p className="mt-5 text-sm font-medium text-foreground/70">
+          The delivery fee is non-refundable. Merchandise remains payable by
+          cash on delivery.
+        </p>
       ) : null}
       <div className="mt-7 flex flex-wrap justify-center gap-3">
         {canRecheck ? (
@@ -125,11 +181,18 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
             loadingText="Retrying..."
             onClick={() => void retry()}
           >
-            {updatedTotal === null ? "Retry payment" : "Confirm and pay"}
+            Retry delivery-fee payment
           </Button>
         ) : null}
-        <Button href={result.state === "completed" ? publicRoutes.products : checkoutHref} variant="secondary">
-          {result.state === "completed" ? "Continue shopping" : "Return to checkout"}
+        <Button
+          href={
+            result.state === "completed" ? publicRoutes.products : checkoutHref
+          }
+          variant="secondary"
+        >
+          {result.state === "completed"
+            ? "Continue shopping"
+            : "Return to checkout"}
         </Button>
       </div>
     </section>

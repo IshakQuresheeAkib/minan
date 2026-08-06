@@ -37,6 +37,7 @@ export async function listAdminLeads(options: {
     .sort({ sequence: -1 });
   const latestByLead = new Map<string, (typeof attempts)[number]>();
   for (const attempt of attempts) {
+    if (!attempt.lead_id) continue;
     const key = attempt.lead_id.toString();
     if (!latestByLead.has(key)) latestByLead.set(key, attempt);
   }

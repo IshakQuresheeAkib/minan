@@ -17,7 +17,7 @@ vi.mock("../controllers/bkash.controller.js", () => ({
   retryBkashPaymentHandler: controllerMocks.retry,
 }));
 
-import { Lead } from "../models/Lead.js";
+import { Order } from "../models/Order.js";
 import { bkashRouter } from "./bkash.routes.js";
 
 async function withServer(run: (origin: string) => Promise<void>): Promise<void> {
@@ -48,7 +48,7 @@ describe("bKash route rate-limit boundaries", () => {
   });
 
   it("caps idempotency lookups by IP before the key-aware limiter", async () => {
-    const exists = vi.spyOn(Lead, "exists").mockResolvedValue(null);
+    const exists = vi.spyOn(Order, "exists").mockResolvedValue(null);
 
     await withServer(async (origin) => {
       for (let index = 0; index < 25; index += 1) {

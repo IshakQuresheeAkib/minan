@@ -1,6 +1,6 @@
 # MINAN Project Documentation
 
-**Scope:** Marketing-focused commerce platform for lead generation and conversion.
+**Scope:** Marketing-focused commerce platform with Order-based checkout, fulfillment, fee payment, COD, returns, refunds, and exchanges.
 **Market:** Bangladesh, mobile-first, 3G/4G, Facebook Ads.
 **Supabase:** Not used.
 **Database:** Data persistence is MongoDB Atlas through the Express API.
@@ -12,18 +12,18 @@
 
 | Property  | Value                                       |
 | --------- | ------------------------------------------- |
-| Framework | Next.js 16.2.7 App Router                   |
+| Framework | Next.js 16.2.12 App Router                  |
 | Phase     | MVP v1                                      |
 | Market    | Bangladesh (Sylhet)                         |
 | Traffic   | Facebook Ads                                |
-| Payment   | Not in MVP - bKash TX ID collected manually |
+| Payment   | bKash API for non-refundable delivery fee; merchandise COD |
 
 ---
 
 ## 2. Business Goals
 
 - Premium brand experience
-- Lead collection through checkout into first-party MongoDB data
+- Order creation and auditable fulfillment through first-party MongoDB data
 - Meta Pixel + CAPI infrastructure with event deduplication
 - Authenticated full-access admin dashboard
 - Supports future e-commerce migration
@@ -210,7 +210,7 @@ Only the refresh token whose hash matches `refresh_token_hash` is accepted, with
 
 ## 7. Admin Access
 
-MINAN uses one authenticated admin model. Every active admin account has the full admin feature set: dashboard, product CRUD, category and subcategory management, lead management, uploads, and admin-user management.
+MINAN uses one authenticated admin model. Every active admin account has the full admin feature set: dashboard, product CRUD, category and subcategory management, Order fulfillment, uploads, and admin-user management.
 
 ### Enforcement
 
@@ -276,7 +276,7 @@ An admin cannot deactivate their own account:
 
 Subcategories are managed within the admin category experience. Public catalog filters expose active subcategories that are referenced by active products, grouped under their parent categories. A product may omit its subcategory.
 
-### `leads`
+### `orders`
 
 | Field                     | Type     | Notes |
 | ------------------------- | -------- | ----- |
@@ -285,17 +285,24 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `phone_number`            | String   | required, BD format |
 | `email`                   | String   | required |
 | `address`                 | String   | required |
-| `notes`                   | String   | optional |
-| `cart_snapshot`           | Object   | `{ items: Array<{ product_id, name, price, original_price, discount, size, color, quantity }>, total }` |
-| `delivery_status`         | String   | `pending | processing | shipped | delivered | delivery_failed | cancelled` |
-| `checkout_source`         | String   | `cart | buy_now` |
+| `customer_notes`          | String   | optional customer checkout note |
+| `order_number`            | String   | unique `MN-YYYYMMDD-####` allocated by an atomic daily counter |
+| `lines`                   | Array    | frozen product/variant/price/discount lines with return and credit accounting |
+| `status`                  | String   | `new | confirmed | processing | packing | shipped | delivered | on_hold | cancelled | returned | exchanged` |
+| `checkout_source`         | String   | `cart | buy_now | exchange` |
 | `checkout_idempotency_hash` | String | unique, sparse, server-only |
-| `legacy_bkash_txn_id`      | String   | optional; preserved unverified reference from the manual checkout flow |
+| `financials`              | Object   | integer-BDT merchandise, discount, fee, COD, paid, refunded, and exchange-credit snapshots |
+| `delivery_fee_status`     | String   | independent fee lifecycle |
+| `cod_status`              | String   | independent COD lifecycle |
+| `revision`                | Number   | compare-and-swap mutation revision |
+| `activity` / `refunds`    | Array    | append-only operational audit records |
 | `createdAt` / `updatedAt` | Date     | timestamps |
+
+The legacy `leads` collection remains unchanged for one compatibility release and is a migration rollback source only. New checkouts are not dual-written.
 
 ### `payment_attempts`
 
-Each checkout retry creates an auditable payment attempt linked to one lead. The collection stores the bKash `payment_id`, official transaction result, canonical amount, merchant invoice, verification state, and hashed short-lived result/retry references. Delivery state never changes automatically from payment state.
+Each checkout retry creates an auditable attempt linked through `order_id` with `payment_purpose: delivery_fee`. It stores the frozen fee amount, Order-number invoice, provider result, and hashed short-lived result/retry references. `lead_id` remains nullable only for the compatibility release; migrated attempts are classified `legacy_full_order`. Retries never reprice merchandise.
 
 ### `bkash_tokens`
 
@@ -364,6 +371,11 @@ Private singleton cache for the bKash token grant. It is shared across Render co
 | POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
 | GET    | `/api/home-banners`   | Ordered homepage banner images; empty until the singleton seed exists |
+| GET    | `/api/checkout/config` | Cacheable backend-authoritative delivery fee and non-refundable policy |
+| POST   | `/api/bkash/payments` | Create/idempotently retrieve an Order and start its frozen delivery-fee attempt |
+| GET    | `/api/bkash/callback` | Verify and reconcile the provider redirect, including valid late completions |
+| POST   | `/api/bkash/results/resolve` | Resolve an opaque result reference to Order number, fee, COD, and transaction details |
+| POST   | `/api/bkash/payments/retry` | Create another fee attempt from an opaque retry token without repricing |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/auth/login`     | Admin login, CSRF-header protected, rate-limited 10 req/15 min/IP |
@@ -384,10 +396,12 @@ The `subcategory` product filter is applied only when at least one `category` fi
 
 | Method | Route                                  | Role              | Description |
 | ------ | -------------------------------------- | ----------------- | ----------- |
-| GET    | `/api/admin/dashboard`                 | admin | Aggregated dashboard metrics for leads, product/category views, and traffic sources |
-| GET    | `/api/admin/leads`                     | admin | List leads |
-| GET    | `/api/admin/leads/:id`                 | admin | Get single lead |
-| PATCH  | `/api/admin/leads/:id`                 | admin | Update lead status + notes |
+| GET    | `/api/admin/dashboard`                 | admin | Order workflow plus product/category view and traffic metrics |
+| GET    | `/api/admin/orders`                    | admin | Paginated search/filter summaries |
+| GET    | `/api/admin/orders/changes`            | admin | Opaque-cursor new-Order polling |
+| GET    | `/api/admin/orders/export`             | admin | Filtered, injection-safe UTF-8 CSV; 10,000-row cap |
+| GET    | `/api/admin/orders/:id`                | admin | Full Order, activity, refunds, and payment attempts |
+| PATCH/POST | `/api/admin/orders/:id/*`          | admin | Revision-safe customer/items/workflow/courier/COD/notes/duplicates/returns/refunds/exchanges/payment-recheck operations |
 | GET    | `/api/admin/products`                  | admin | List all products, including inactive. Query params: `search`, `category_id`, `status`, `page`, `limit` |
 | POST   | `/api/admin/products`                  | admin | Create product |
 | PATCH  | `/api/admin/products/:id`              | admin | Update product, including `is_active: true` reactivation |
@@ -435,7 +449,11 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `/admin/products`   | Product Management  | Admin             |
 | `/admin/categories` | Category Management | Admin             |
 | `/admin/home-banners` | Homepage Banner Management | Admin        |
-| `/admin/leads`      | Lead Management     | Admin             |
+| `/admin/orders`     | Order Fulfillment   | Admin             |
+| `/admin/orders/[id]` | Order Detail       | Admin             |
+| `/admin/orders/[id]/invoice` | Printable invoice | Admin      |
+| `/admin/orders/[id]/packing-slip` | Printable packing slip | Admin |
+| `/admin/leads`      | Redirect to Orders  | Admin             |
 | `/admin/admins`     | Admin Management    | Admin             |
 
 `/admin/login` lives under the public route group at `app/(public)/admin/login/page.tsx`. Protected admin routes live under `app/(admin)/admin/`.
@@ -461,7 +479,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
 ---
 
-## 12. Checkout / Lead Form
+## 12. Checkout / Order Form
 
 | Field          | Type     | Required | Notes |
 | -------------- | -------- | -------- | ----- |
@@ -471,7 +489,9 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `address`      | textarea | yes      | min 8, max 400 |
 | `notes`        | textarea | no       | max 500 |
 
-`POST /api/bkash/payments` verifies the cart and price server-side, creates one lead per idempotency key, creates a separate payment attempt, and redirects to bKash Checkout URL mode `0011`. The callback executes the payment server-side and queries only when Execute is uncertain. Cart state is cleared only after a completed result is resolved.
+`GET /api/checkout/config` exposes the backend-authoritative positive integer delivery fee with ETag/revalidation metadata. Checkout is disabled when it is unavailable.
+
+`POST /api/bkash/payments` verifies products, variants, and prices server-side; creates one frozen Order per idempotency key; snapshots the configured delivery fee; and redirects to bKash Checkout URL mode `0011` for that fee only. Merchandise remains COD. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Callback Execute/query recovery, signature checks, amount/currency/invoice verification, result tokens, retry tokens, rate limits, and late completion reconciliation remain mandatory. Cart state clears only after a completed result resolves.
 
 ---
 
@@ -482,13 +502,13 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - WhatsApp ordering from PDP with pre-filled message and `/api/whatsapp-click`
 - Cart stored in Zustand and persisted to browser `localStorage`
 - Product catalog supports multi-select category/subcategory/color/size filters, effective min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
-- Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`; storefront cards, PDP, cart, buy-now, and verified lead snapshots use the effective discounted price.
+- Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`; storefront cards, PDP, cart, buy-now, and frozen Order lines use the effective discounted price.
 - Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
-- Checkout creates one MongoDB lead with separate auditable bKash payment attempts
-- Checkout verifies cart products, prices, sizes, and colors server-side before persisting the lead snapshot
-- Authenticated admin management for products, categories, ordered subcategories, leads, admins, and managed uploads
+- Checkout creates one MongoDB Order with separate auditable delivery-fee payment attempts
+- Checkout verifies cart products, prices, sizes, and colors server-side before persisting the frozen Order snapshot
+- Authenticated admin management for products, categories, ordered subcategories, Orders, admins, and managed uploads
 - Versioned homepage banner management with 16:9 desktop and 4:5 mobile Cloudinary assets, atomic ordering, and deferred cleanup
-- Dashboard aggregates Bangladesh-local daily/monthly leads, top viewed product/category, and traffic sources
+- Dashboard aggregates Bangladesh-local Order workflow metrics, top viewed product/category, and traffic sources
 - Vercel Speed Insights is mounted in the root frontend layout
 
 ---
@@ -581,12 +601,13 @@ Custom domains are required for production admin cookie auth.
 
 The Render API and Vercel web app must be rolled out as compatible releases:
 
-1. Configure all bKash API environment variables and prepare the `/api/bkash/*` API release.
-2. From that release checkout, run `npm --workspace @minan/api run migrate:lead-checkout` and review the production dry-run counts.
-3. Run `npm --workspace @minan/api run migrate:lead-checkout -- --apply` before promoting the new API release.
-4. Deploy the API first, then deploy the web app that calls `/api/bkash/payments`.
+1. Preview and apply `npm --workspace @minan/api run migrate:orders:expand -- --apply` to replace the required Lead sequence index with partial Lead/Order relationship indexes. Deploy the expansion API with Order/counter collections, nullable attempt relationships, compatibility routes, and `CHECKOUT_MAINTENANCE_MODE=false`.
+2. Take a database backup. Run `npm --workspace @minan/api run migrate:orders` and resolve missing snapshots, duplicate transactions, orphan links, or financial anomalies.
+3. Enable checkout maintenance for payment creation/retry only. Callbacks, results, and admin rechecks remain live.
+4. Run `npm --workspace @minan/api run migrate:orders -- --apply`, then re-run it to prove idempotency. Verify source/destination counts, Order numbers/counter maxima, financial totals, attempt links, transaction IDs, callback resolution, and dashboard metrics.
+5. Deploy `/admin/orders` plus fee-only checkout, complete the bKash sandbox matrix, and disable maintenance.
 
-The migration command is intentionally a dry run unless `--apply` is supplied. It maps legacy delivery statuses and preserves `bkash_txn_id` as `legacy_bkash_txn_id` for audit history.
+Migration preserves Lead `_id` values, timestamps, checkout snapshots and idempotency hashes; assigns deterministic Bangladesh-date Order numbers; classifies every pre-cutover attempt `legacy_full_order`; backfills `order_id` while retaining `lead_id`; and leaves `leads` untouched. Legacy Leads are not a rollback path for Orders created after cutover.
 
 Admin role removal changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window; old web against new API or new web against old API can break admin refresh/admin-user forms. Existing legacy JWTs that still include `role` are tolerated by the new parser as long as they contain valid `id` and `email` claims.
 
@@ -640,6 +661,8 @@ FRONTEND_URL=https://app.minan.com
 - `cleanup:admin-roles` is an optional post-deploy hygiene script that removes legacy `role` fields from `admin_users`; stale role fields are ignored by current code.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 - `API_PUBLIC_URL` must be the directly reachable Render API origin used for the bKash callback. `FRONTEND_URL` is the Vercel storefront origin used after callback verification.
+- `DELIVERY_FEE_BDT=100` is required and must be a positive integer. It is the only delivery-fee source; do not add a frontend public fee variable.
+- `CHECKOUT_MAINTENANCE_MODE=true` blocks payment creation and retry during migration while preserving callbacks, result resolution, and admin recheck.
 - The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL; it does not depend on the browser rewrite.
 - Use bKash sandbox credentials until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Replace the base URL and credentials together for production.
 - `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
@@ -653,8 +676,13 @@ FRONTEND_URL=https://app.minan.com
 
 | Metric              | Implemented Query |
 | ------------------- | -------------- |
-| Today's Leads       | `leads` count by current day |
-| This Month's Leads  | `leads` count by current month |
+| Orders Today        | `orders` count by current day |
+| Orders This Month   | `orders` count by current month |
+| New Orders          | `orders` with workflow `new` |
+| Awaiting Fee        | Orders awaiting/failed/pending/expired fee verification |
+| Processing / Packing | active fulfillment count |
+| Shipped             | shipped Orders |
+| Returns / Exceptions | returned, exchanged, held, or financial-review Orders |
 | Most Viewed Product | `analytics_events` product_view aggregation by `product_id` |
 | Top Category        | `analytics_events` product_view aggregation by `category_id` |
 | Traffic Source      | `analytics_events` aggregation by `utm_source` |
@@ -665,10 +693,10 @@ Top product and category IDs are resolved to their current names. Missing view d
 
 ## 19. Future Roadmap
 
-- Payment Gateway (bKash API, SSLCommerz)
-- Order Management
+- Automated merchandise refunds and optional additional payment rails
+- Inventory per SKU with atomic reservation/decrement
+- Courier API integration and customer shipment notifications
 - Customer Accounts
-- Inventory per SKU
 - Coupons, Reviews, Recommendations
 - Marketing Automation (email/SMS)
 - Advanced Analytics, Order Tracking
@@ -677,7 +705,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 
 ## 20. Backend Structure Rules
 
-- `apps/api/src/models/` contains Mongoose models: products, categories, subcategories, leads, analytics events, admins.
+- `apps/api/src/models/` contains Mongoose models for products, categories, subcategories, Orders/counters, legacy Leads, payment attempts, analytics events, and admins.
 - `apps/api/src/schemas/` contains backend Zod schemas. Backend schemas are independent from frontend schemas.
 - `apps/api/src/services/` owns business logic and DB access.
 - `apps/api/src/controllers/` owns Express request/response handling.
@@ -685,7 +713,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
-- Public routers: products (catalog, home groups, filters, quotes, PDP), bKash payments, analytics, whatsapp-click, auth.
+- Public routers: products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, auth.
 - Admin router is mounted at `/api/admin`.
 - All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh rather than through a database lookup on every request.
 - All admin writes require auth and CSRF header.

@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Package,
   Shield,
-  Users,
+  ClipboardList,
 } from "lucide-react";
 
 import { adminRoutes } from "@/constants/routes";
@@ -38,9 +38,9 @@ export const adminNavLinks: AdminNavLink[] = [
     icon: Images,
   },
   {
-    href: adminRoutes.leads,
-    label: "Leads",
-    icon: Users,
+    href: adminRoutes.orders,
+    label: "Orders",
+    icon: ClipboardList,
   },
   {
     href: adminRoutes.admins,

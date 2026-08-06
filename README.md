@@ -1,6 +1,6 @@
 # MINAN
 
-MINAN is a marketing-focused commerce platform for the Bangladesh market, built for lead generation and conversion. Checkout uses the Express API for verified carts, auditable payment attempts, and bKash Checkout URL payments.
+MINAN is a Bangladesh fashion-commerce platform with an Express-owned Order domain. Every checkout freezes a server-verified merchandise snapshot, charges a backend-authoritative non-refundable delivery fee through bKash, and leaves merchandise payable by COD.
 
 ## Architecture
 
@@ -39,11 +39,14 @@ minan/
 - Animations use GSAP only.
 - Product images are Cloudinary URLs rendered with `next/image`.
 
-## Payment rollout
+## Order and payment rollout
 
 The API and web app deploy independently. For payment-model releases, deploy in this order:
 
-1. Configure the API bKash environment variables and prepare the API release.
-2. From the release checkout, preview the production migration with `npm --workspace @minan/api run migrate:lead-checkout`.
-3. Apply it before promoting the API release with `npm --workspace @minan/api run migrate:lead-checkout -- --apply`.
-4. Deploy the API, then deploy the web app that uses `POST /api/bkash/payments`.
+1. Configure bKash plus `DELIVERY_FEE_BDT=100`, preview/apply `npm --workspace @minan/api run migrate:orders:expand -- --apply`, deploy the expansion API, and take a MongoDB backup.
+2. Run `npm --workspace @minan/api run migrate:orders` and resolve every dry-run anomaly.
+3. Enable `CHECKOUT_MAINTENANCE_MODE=true` for payment creation/retry while keeping callbacks, results, and admin rechecks available.
+4. Apply with `npm --workspace @minan/api run migrate:orders -- --apply`, run it again to prove idempotency, and verify counts, finances, counters, attempt links, transaction IDs, and dashboard metrics.
+5. Deploy the Orders frontend, confirm the bKash sandbox flow charges only the delivery fee, then disable maintenance.
+
+Legacy Leads remain untouched as a migration rollback source for one compatibility release. New Orders are not dual-written to Leads. Merchandise refunds are executed manually and recorded against the Order; delivery fees are never refundable. Exchange replacement Orders always waive delivery in v1 and do not create a payment link.

@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { LeadForm } from "@/features/checkout/components/LeadForm";
-import type { CartSnapshot } from "@/features/checkout/types";
+import type { CartSnapshot, CheckoutConfig } from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useBuyNowPricingSync } from "@/features/products/hooks/useBuyNowPricingSync";
 import { useBuyNowStore } from "@/store/buy-now.store";
@@ -16,7 +16,11 @@ function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
-export function BuyNowCheckoutClient() {
+export function BuyNowCheckoutClient({
+  config,
+}: {
+  config: CheckoutConfig | null;
+}) {
   useBuyNowPricingSync();
   const item = useBuyNowStore((state) => state.item);
   const hasHydrated = useBuyNowStore((state) => state.hasHydrated);
@@ -51,10 +55,7 @@ export function BuyNowCheckoutClient() {
           <div className="minan-skeleton mt-3 h-5 w-full max-w-xl rounded-md" />
           <div className="mt-8 grid gap-5">
             {[0, 1, 2, 3].map((field) => (
-              <div
-                key={field}
-                className="minan-skeleton h-12 rounded-md"
-              />
+              <div key={field} className="minan-skeleton h-12 rounded-md" />
             ))}
             <div className="minan-skeleton h-28 rounded-md" />
           </div>
@@ -102,8 +103,18 @@ export function BuyNowCheckoutClient() {
         <LeadForm
           cartSnapshot={cartSnapshot}
           checkoutSource="buy_now"
-          disabled={!item.isAvailable}
+          deliveryFee={config?.delivery_fee ?? 0}
+          disabled={!item.isAvailable || !config}
         />
+        {!config ? (
+          <p
+            className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+            role="alert"
+          >
+            Checkout pricing is temporarily unavailable. Please reload and try
+            again.
+          </p>
+        ) : null}
         {!item.isAvailable ? (
           <p className="mt-3 text-sm font-medium text-destructive">
             This product is currently unavailable. Choose another product to
@@ -146,9 +157,31 @@ export function BuyNowCheckoutClient() {
             <span>{formatCurrency(savings)}</span>
           </div>
         ) : null}
-        <div className="mt-5 flex items-center justify-between border-t pt-4 text-base font-semibold">
-          <span>Total</span>
-          <span>{formatCurrency(total)}</span>
+        <div className="mt-5 grid gap-2 border-t pt-4 text-sm">
+          <div className="flex justify-between">
+            <span>Merchandise subtotal</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Non-refundable delivery fee</span>
+            <span>
+              {config ? formatCurrency(config.delivery_fee) : "Unavailable"}
+            </span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>Pay through bKash now</span>
+            <span>{config ? formatCurrency(config.delivery_fee) : "—"}</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>Remaining COD</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+          <div className="flex justify-between border-t pt-2 text-base font-semibold">
+            <span>Overall Order value</span>
+            <span>
+              {config ? formatCurrency(total + config.delivery_fee) : "—"}
+            </span>
+          </div>
         </div>
       </aside>
     </section>

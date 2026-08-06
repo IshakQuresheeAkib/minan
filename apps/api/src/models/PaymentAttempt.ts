@@ -10,8 +10,12 @@ export type PaymentAttemptStatus =
   | "verification_pending"
   | "expired";
 
+export type PaymentPurpose = "delivery_fee" | "legacy_full_order";
+
 export interface PaymentAttemptDocument extends Document {
-  lead_id: Types.ObjectId;
+  lead_id?: Types.ObjectId;
+  order_id?: Types.ObjectId;
+  payment_purpose: PaymentPurpose;
   sequence: number;
   status: PaymentAttemptStatus;
   merchant_invoice_number: string;
@@ -39,7 +43,14 @@ export interface PaymentAttemptDocument extends Document {
 
 const paymentAttemptSchema = new Schema<PaymentAttemptDocument>(
   {
-    lead_id: { type: Schema.Types.ObjectId, ref: "Lead", required: true, index: true },
+    lead_id: { type: Schema.Types.ObjectId, ref: "Lead" },
+    order_id: { type: Schema.Types.ObjectId, ref: "Order" },
+    payment_purpose: {
+      type: String,
+      enum: ["delivery_fee", "legacy_full_order"] satisfies PaymentPurpose[],
+      required: true,
+      default: "legacy_full_order",
+    },
     sequence: { type: Number, required: true, min: 1 },
     status: {
       type: String,
@@ -79,7 +90,18 @@ const paymentAttemptSchema = new Schema<PaymentAttemptDocument>(
   { timestamps: true },
 );
 
-paymentAttemptSchema.index({ lead_id: 1, sequence: 1 }, { unique: true });
+paymentAttemptSchema.index(
+  { lead_id: 1, sequence: 1 },
+  { unique: true, partialFilterExpression: { lead_id: { $type: "objectId" } } },
+);
+paymentAttemptSchema.index(
+  { order_id: 1, sequence: 1 },
+  { unique: true, partialFilterExpression: { order_id: { $type: "objectId" } } },
+);
+paymentAttemptSchema.index(
+  { order_id: 1 },
+  { partialFilterExpression: { order_id: { $type: "objectId" } } },
+);
 paymentAttemptSchema.index({ status: 1, createdAt: -1 });
 
 export const PaymentAttempt = mongoose.model<PaymentAttemptDocument>(

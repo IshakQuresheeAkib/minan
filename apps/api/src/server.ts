@@ -18,6 +18,7 @@ import {
 } from "./routes/analytics.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { bkashRouter } from "./routes/bkash.routes.js";
+import { checkoutRouter } from "./routes/checkout.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
@@ -58,6 +59,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/products", productsRouter);
 app.use("/api/home-banners", homeBannersRouter);
 app.use("/api/bkash", bkashRouter);
+app.use("/api/checkout", checkoutRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);

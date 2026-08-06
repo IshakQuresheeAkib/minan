@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { LeadForm } from "@/features/checkout/components/LeadForm";
-import type { CartSnapshot } from "@/features/checkout/types";
+import type { CartSnapshot, CheckoutConfig } from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useCartPricingSync } from "@/features/products/hooks/useCartPricingSync";
 import { useCartStore } from "@/store/cart.store";
@@ -15,7 +15,7 @@ function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
-export function CheckoutClient() {
+export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
   useCartPricingSync();
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
@@ -57,10 +57,7 @@ export function CheckoutClient() {
           <div className="minan-skeleton mt-3 h-5 w-full max-w-xl rounded-md" />
           <div className="mt-8 grid gap-5">
             {[0, 1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="minan-skeleton h-12 rounded-md"
-              />
+              <div key={item} className="minan-skeleton h-12 rounded-md" />
             ))}
             <div className="minan-skeleton h-28 rounded-md" />
           </div>
@@ -108,13 +105,24 @@ export function CheckoutClient() {
       <div>
         <h1 className="text-3xl font-semibold tracking-normal">Checkout</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/70">
-          Share your delivery details, then complete payment securely with bKash.
+          Share your delivery details, then complete payment securely with
+          bKash.
         </p>
         <LeadForm
           cartSnapshot={cartSnapshot}
           checkoutSource="cart"
-          disabled={hasUnavailableItems}
+          deliveryFee={config?.delivery_fee ?? 0}
+          disabled={hasUnavailableItems || !config}
         />
+        {!config ? (
+          <p
+            className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+            role="alert"
+          >
+            Checkout pricing is temporarily unavailable. Please reload and try
+            again.
+          </p>
+        ) : null}
         {hasUnavailableItems ? (
           <p className="mt-3 text-sm font-medium text-destructive">
             Remove unavailable products from your cart before submitting.
@@ -152,9 +160,31 @@ export function CheckoutClient() {
             <span>{formatCurrency(savings)}</span>
           </div>
         ) : null}
-        <div className="mt-5 flex items-center justify-between border-t pt-4 text-base font-semibold">
-          <span>Total</span>
-          <span>{formatCurrency(total)}</span>
+        <div className="mt-5 grid gap-2 border-t pt-4 text-sm">
+          <div className="flex items-center justify-between">
+            <span>Merchandise subtotal</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Non-refundable delivery fee</span>
+            <span>
+              {config ? formatCurrency(config.delivery_fee) : "Unavailable"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between font-semibold">
+            <span>Pay through bKash now</span>
+            <span>{config ? formatCurrency(config.delivery_fee) : "—"}</span>
+          </div>
+          <div className="flex items-center justify-between font-semibold">
+            <span>Remaining COD</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+          <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">
+            <span>Overall Order value</span>
+            <span>
+              {config ? formatCurrency(total + config.delivery_fee) : "—"}
+            </span>
+          </div>
         </div>
       </aside>
     </section>

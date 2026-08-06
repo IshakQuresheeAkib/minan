@@ -1,9 +1,10 @@
-import { AdminLeads } from "@/features/admin/components/AdminLeads";
+import { redirect } from "next/navigation";
+import { adminRoutes } from "@/constants/routes";
 
 export const metadata = {
   title: "Leads",
 };
 
 export default function AdminLeadsPage() {
-  return <AdminLeads />;
+  redirect(adminRoutes.orders);
 }
