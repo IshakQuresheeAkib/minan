@@ -201,6 +201,11 @@ function ensureEditable(order: OrderDocument): void {
   if (!PRE_SHIPMENT.has(order.status)) throw new AppError("Order details lock after shipment", 409);
 }
 
+function codStatusForBalance(codDue: number, codCollected: number): "not_required" | "collected" | "due" {
+  if (codDue === 0) return "not_required";
+  return codCollected >= codDue ? "collected" : "due";
+}
+
 export async function updateOrderCustomer(id: string, input: OrderCustomerUpdateInput, admin: AuthenticatedAdmin) {
   const current = await Order.findById(id);
   if (!current) throw new AppError("Order not found", 404);
@@ -224,6 +229,9 @@ export async function updateOrderItems(id: string, input: OrderItemsUpdateInput,
   const current = await Order.findById(id);
   if (!current) throw new AppError("Order not found", 404);
   ensureEditable(current);
+  if (current.cod_status === "waived") {
+    throw new AppError("Order items lock after COD is waived", 409);
+  }
   const verified = await buildVerifiedCartSnapshot({
     items: input.items.map((item) => ({ ...item, name: "", price: 0 })), total: 0,
   });
@@ -264,8 +272,12 @@ export async function updateOrderItems(id: string, input: OrderItemsUpdateInput,
   if (financials.merchandise_paid_online + financials.exchange_credit_applied > financials.merchandise_total) {
     throw new AppError("The new merchandise total is below funds already applied", 409);
   }
+  if (financials.cod_collected > financials.cod_due) {
+    throw new AppError("The new merchandise total is below COD already collected", 409);
+  }
+  const codStatus = codStatusForBalance(financials.cod_due, financials.cod_collected);
   const order = await casUpdate(id, input.expected_revision, {
-    $set: { lines: allocated, financials, item_signature: buildItemSignature(allocated), cod_status: financials.cod_due ? "due" : "not_required" },
+    $set: { lines: allocated, financials, item_signature: buildItemSignature(allocated), cod_status: codStatus },
     $push: { activity: activity(admin, "order_items_updated", input.reason, { customer_confirmed: true }) },
   });
   return serializeOrder(order, [], true);
@@ -335,6 +347,9 @@ export async function updateOrderCourier(id: string, input: OrderCourierUpdateIn
 export async function recordOrderCod(id: string, input: OrderCodInput, admin: AuthenticatedAdmin) {
   const current = await Order.findById(id);
   if (!current) throw new AppError("Order not found", 404);
+  if (current.cod_status === "waived") {
+    throw new AppError("COD was waived and cannot be collected", 409);
+  }
   const outstanding = Math.max(current.financials.cod_due - current.financials.cod_collected, 0);
   if (input.action === "collect") {
     const amount = input.amount ?? outstanding;

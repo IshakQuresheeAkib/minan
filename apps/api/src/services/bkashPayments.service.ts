@@ -174,6 +174,19 @@ async function loadLatestAttempt(orderId: Types.ObjectId): Promise<PaymentAttemp
     );
 }
 
+async function loadCompletedDeliveryFeeAttempt(
+  orderId: Types.ObjectId,
+): Promise<PaymentAttemptDocument | null> {
+  const attempt = await PaymentAttempt.findOne({
+    order_id: orderId,
+    payment_purpose: "delivery_fee",
+    status: "completed",
+  })
+    .sort({ sequence: -1 })
+    .select("+result_token_hash +result_token_expires_at");
+  return attempt?.status === "completed" ? attempt : null;
+}
+
 function isActiveAttempt(attempt: PaymentAttemptDocument): boolean {
   return ACTIVE_STATUSES.includes(attempt.status);
 }
@@ -630,6 +643,12 @@ export async function retryBkashPayment(input: PaymentRetryInput): Promise<Retry
     if (!attempt.order_id) throw new AppError("Legacy payment attempts cannot use this retry link", 409);
     const order = await Order.findById(attempt.order_id);
     if (!order) throw new AppError("Order not found", 404);
+    const completed = await loadCompletedDeliveryFeeAttempt(order._id);
+    if (completed) {
+      const response = await responseForExisting(completed);
+      await consumeRetryClaim(attempt._id, claimedAt);
+      return response;
+    }
     const latest = await loadLatestAttempt(order._id);
     if (!latest || latest._id.toString() !== attempt._id.toString()) {
       if (latest) {
@@ -641,6 +660,27 @@ export async function retryBkashPayment(input: PaymentRetryInput): Promise<Retry
     }
 
     const response = await createAttempt(order, attempt.sequence + 1);
+    if (response.state === "redirect") {
+      const completed = await loadCompletedDeliveryFeeAttempt(order._id);
+      if (completed) {
+        await PaymentAttempt.updateOne(
+          {
+            order_id: order._id,
+            sequence: attempt.sequence + 1,
+            status: { $in: ["creating", "initiated", "verification_pending"] },
+          },
+          {
+            $set: {
+              status: "cancelled",
+              provider_status_message: "Payment was already confirmed by an earlier attempt",
+            },
+          },
+        );
+        const settled = await responseForExisting(completed);
+        await consumeRetryClaim(attempt._id, claimedAt);
+        return settled;
+      }
+    }
     await consumeRetryClaim(attempt._id, claimedAt);
     return response;
   } catch (error) {

@@ -192,6 +192,50 @@ describe("bKash Order lifecycle", () => {
     expect(mocks.createOrLoadOrder).not.toHaveBeenCalled();
   });
 
+  it("does not create a retry when an earlier delivery-fee attempt already completed", async () => {
+    const failed = attempt("failed");
+    const paid = attempt("completed");
+    const checkoutOrder = order();
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockResolvedValue(failed);
+    vi.spyOn(PaymentAttempt, "findOne").mockImplementation(((filter: { status?: unknown }) =>
+      filter.status === "completed" ? chainResult(paid) : chainResult(failed)
+    ) as never);
+    vi.spyOn(Order, "findById").mockResolvedValue(checkoutOrder as never);
+    const next = attempt("creating");
+    next.sequence = 2;
+    vi.spyOn(PaymentAttempt, "create").mockResolvedValue(next as never);
+    mocks.createPayment.mockResolvedValue({ statusCode: "0000", paymentID: "TR002", bkashURL: "https://sandbox.bka.sh/retry" });
+
+    const result = await retryBkashPayment({ retry_token: "x".repeat(43) });
+
+    expect(result.state).toBe("completed");
+    expect(PaymentAttempt.create).not.toHaveBeenCalled();
+    expect(mocks.createPayment).not.toHaveBeenCalled();
+  });
+
+  it("withholds a retry URL when an earlier attempt completes during retry creation", async () => {
+    const failed = attempt("failed");
+    const paid = attempt("completed");
+    const checkoutOrder = order();
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockResolvedValue(failed);
+    let completedLookupCount = 0;
+    vi.spyOn(PaymentAttempt, "findOne").mockImplementation(((filter: { status?: unknown }) => {
+      if (filter.status !== "completed") return chainResult(failed);
+      completedLookupCount += 1;
+      return chainResult(completedLookupCount === 1 ? null : paid);
+    }) as never);
+    vi.spyOn(Order, "findById").mockResolvedValue(checkoutOrder as never);
+    const next = attempt("creating");
+    next.sequence = 2;
+    vi.spyOn(PaymentAttempt, "create").mockResolvedValue(next as never);
+    mocks.createPayment.mockResolvedValue({ statusCode: "0000", paymentID: "TR002", bkashURL: "https://sandbox.bka.sh/retry" });
+
+    const result = await retryBkashPayment({ retry_token: "x".repeat(43) });
+
+    expect(result.state).toBe("completed");
+    expect(mocks.createPayment).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ["processing", {
       statusCode: "0000",
