@@ -6,7 +6,7 @@ import { useMemo } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
-import { LeadForm } from "@/features/checkout/components/LeadForm";
+import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
 import type { CartSnapshot, CheckoutConfig } from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useBuyNowPricingSync } from "@/features/products/hooks/useBuyNowPricingSync";
@@ -100,7 +100,7 @@ export function BuyNowCheckoutClient({
         <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/70">
           Complete checkout for this selected item. Your cart stays unchanged.
         </p>
-        <LeadForm
+        <CheckoutForm
           cartSnapshot={cartSnapshot}
           checkoutSource="buy_now"
           deliveryFee={config?.delivery_fee ?? 0}

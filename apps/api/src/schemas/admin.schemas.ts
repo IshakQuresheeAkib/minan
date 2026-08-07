@@ -3,15 +3,6 @@ import { z } from "zod";
 import { slugify } from "../lib/slugify.js";
 import { MAX_PRODUCT_DESCRIPTION_LENGTH } from "../utils/productDescription.js";
 
-const deliveryStatusSchema = z.enum([
-  "pending",
-  "processing",
-  "shipped",
-  "delivered",
-  "delivery_failed",
-  "cancelled",
-]);
-
 const discountSchema = z
   .number()
   .int("Discount must be a whole number")
@@ -169,15 +160,6 @@ export const homeBannerDeleteSchema = z.object({
   expected_revision: expectedRevisionSchema,
 });
 
-export const leadUpdateSchema = z
-  .object({
-    delivery_status: deliveryStatusSchema.optional(),
-    notes: z.string().trim().max(500).optional(),
-  })
-  .refine((value) => Object.keys(value).length > 0, {
-    message: "At least one field is required",
-  });
-
 export const adminCreateSchema = z.object({
   email: z.email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -215,6 +197,5 @@ export type HomeBannerUpdateInput = z.infer<
 export type HomeBannerReorderInput = z.infer<
   typeof homeBannerReorderSchema
 >;
-export type LeadUpdateInput = z.infer<typeof leadUpdateSchema>;
 export type AdminCreateInput = z.infer<typeof adminCreateSchema>;
 export type AdminUpdateInput = z.infer<typeof adminUpdateSchema>;

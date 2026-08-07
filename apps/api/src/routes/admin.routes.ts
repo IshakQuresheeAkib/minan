@@ -23,12 +23,6 @@ import {
   updateAdminSubcategoryHandler,
 } from "../controllers/admin/subcategories.controller.js";
 import {
-  getAdminLeadHandler,
-  listAdminLeadsHandler,
-  recheckAdminLeadPaymentHandler,
-  updateAdminLeadHandler,
-} from "../controllers/admin/leads.controller.js";
-import {
   createAdminUserHandler,
   deactivateAdminUserHandler,
   listAdminUsersHandler,
@@ -99,13 +93,6 @@ adminRouter.patch(
   requireCsrfHeader,
   updateAdminProductHandler,
 );
-adminRouter.post(
-  "/leads/:id/payments/recheck",
-  requireAuth,
-  requireCsrfHeader,
-  recheckAdminLeadPaymentHandler,
-);
-
 adminRouter.get(
   "/home-banners",
   requireAuth,
@@ -204,15 +191,6 @@ adminRouter.patch(
   requireAuth,
   requireCsrfHeader,
   reactivateAdminSubcategoryHandler,
-);
-
-adminRouter.get("/leads", requireAuth, listAdminLeadsHandler);
-adminRouter.get("/leads/:id", requireAuth, getAdminLeadHandler);
-adminRouter.patch(
-  "/leads/:id",
-  requireAuth,
-  requireCsrfHeader,
-  updateAdminLeadHandler,
 );
 
 adminRouter.get("/admins", requireAuth, listAdminUsersHandler);

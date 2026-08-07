@@ -1,14 +1,14 @@
 import "dotenv/config";
 
 import { connectDB, disconnectDB } from "../config/db.js";
-import { Lead } from "../models/Lead.js";
 import { leadCheckoutMigrationOperations } from "./leadCheckoutMigration.js";
+import { legacyLeadsCollection } from "./legacyLeads.js";
 
 const apply = process.argv.includes("--apply");
 
 async function migrateLeadCheckout(): Promise<void> {
   await connectDB();
-  const collection = Lead.collection;
+  const collection = legacyLeadsCollection();
   const [legacyPaymentField, legacyStatus, missingDelivery, missingSource] = await Promise.all([
     collection.countDocuments({ bkash_txn_id: { $exists: true } }),
     collection.countDocuments({ status: { $exists: true } }),

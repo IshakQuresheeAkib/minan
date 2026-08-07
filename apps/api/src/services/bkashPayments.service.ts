@@ -4,7 +4,6 @@ import { Types } from "mongoose";
 
 import { getBkashConfig } from "../config/bkash.js";
 import { AppError } from "../lib/errors.js";
-import { Lead } from "../models/Lead.js";
 import { Order, type OrderDocument } from "../models/Order.js";
 import {
   PaymentAttempt,
@@ -54,14 +53,10 @@ export type PaymentResult = {
   state: PaymentAttemptStatus | "unavailable";
   message: string;
   order_id?: string;
-  /** @deprecated Present only for migrated compatibility Orders. */
-  lead_id?: string;
   order_number?: string;
   checkout_source?: "cart" | "buy_now" | "exchange";
   fee_paid?: number;
   cod_due?: number;
-  /** @deprecated Legacy full-order amount before Order migration. */
-  amount?: number;
   merchant_invoice_number?: string;
   bkash_trx_id?: string;
   retry_token?: string;
@@ -577,21 +572,6 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
 
   await expireIfAbandoned(attempt);
   const order = attempt.order_id ? await Order.findById(attempt.order_id) : null;
-  if (!order && attempt.lead_id) {
-    const lead = await Lead.findById(attempt.lead_id);
-    if (lead) {
-      return {
-        state: attempt.status,
-        message: attempt.status === "completed" ? "Your legacy payment was confirmed." : resultMessage(attempt.status),
-        lead_id: lead._id.toString(),
-        checkout_source: lead.checkout_source,
-        amount: Number(attempt.expected_amount),
-        merchant_invoice_number: attempt.merchant_invoice_number,
-        bkash_trx_id: attempt.bkash_trx_id,
-        retry_token: TERMINAL_FAILURES.includes(attempt.status) ? await mintRetryToken(attempt) : undefined,
-      };
-    }
-  }
   if (!order) return { state: "unavailable", message: "The order could not be found." };
 
   const retryToken = TERMINAL_FAILURES.includes(attempt.status)
@@ -601,7 +581,6 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
     state: attempt.status,
     message: resultMessage(attempt.status),
     order_id: order._id.toString(),
-    lead_id: attempt.lead_id?.toString(),
     order_number: order.order_number,
     checkout_source: order.checkout_source,
     fee_paid: attempt.status === "completed" && attempt.payment_purpose === "delivery_fee"
@@ -697,7 +676,7 @@ export async function recheckPendingPayment(orderId: string): Promise<void> {
   if (!Types.ObjectId.isValid(orderId)) throw new AppError("Invalid order id", 400);
   const relationshipId = new Types.ObjectId(orderId);
   const attempt = await PaymentAttempt.findOne({
-    $or: [{ order_id: relationshipId }, { lead_id: relationshipId }],
+    order_id: relationshipId,
   })
     .sort({ sequence: -1 })
     .select(

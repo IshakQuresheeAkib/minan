@@ -53,20 +53,6 @@ export type AdminSubcategoryFormInput = z.infer<
   typeof adminSubcategoryFormSchema
 >;
 
-export const adminLeadUpdateSchema = z.object({
-  delivery_status: z.enum([
-    "pending",
-    "processing",
-    "shipped",
-    "delivered",
-    "delivery_failed",
-    "cancelled",
-  ]),
-  notes: z.string().trim().max(500),
-});
-
-export type AdminLeadUpdateInput = z.infer<typeof adminLeadUpdateSchema>;
-
 export const adminCreateFormSchema = z.object({
   email: z.email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),

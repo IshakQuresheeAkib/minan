@@ -5,7 +5,7 @@ import { useMemo } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
-import { LeadForm } from "@/features/checkout/components/LeadForm";
+import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
 import type { CartSnapshot, CheckoutConfig } from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useCartPricingSync } from "@/features/products/hooks/useCartPricingSync";
@@ -108,7 +108,7 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
           Share your delivery details, then complete payment securely with
           bKash.
         </p>
-        <LeadForm
+        <CheckoutForm
           cartSnapshot={cartSnapshot}
           checkoutSource="cart"
           deliveryFee={config?.delivery_fee ?? 0}

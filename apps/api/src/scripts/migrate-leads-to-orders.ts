@@ -2,14 +2,14 @@ import "../config/env.js";
 
 import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
-import { Types } from "mongoose";
+import type { Types } from "mongoose";
 
 import { connectDB, disconnectDB } from "../config/db.js";
-import { Lead } from "../models/Lead.js";
 import { Order, type OrderLine, type OrderStatus } from "../models/Order.js";
 import { OrderCounter } from "../models/OrderCounter.js";
 import { PaymentAttempt } from "../models/PaymentAttempt.js";
 import { buildItemSignature, calculateFinancials, normalizeBangladeshPhone } from "../services/orders.service.js";
+import { legacyLeadsCollection } from "./legacyLeads.js";
 
 const apply = process.argv.includes("--apply");
 const BANGLADESH_OFFSET_MS = 6 * 60 * 60 * 1000;
@@ -113,14 +113,15 @@ function status(value: string): { status: OrderStatus; review: boolean } {
 }
 
 async function report() {
+  const leads = legacyLeadsCollection();
   const [leadCount, orderCount, attempts, missingSnapshots, statuses, attemptStatuses, merchandiseTotals, orphanAttemptRows, duplicateTransactions] = await Promise.all([
-    Lead.countDocuments(),
+    leads.countDocuments(),
     Order.countDocuments(),
     PaymentAttempt.countDocuments({ lead_id: { $exists: true } }),
-    Lead.countDocuments({ $or: [{ cart_snapshot: { $exists: false } }, { "cart_snapshot.items.0": { $exists: false } }] }),
-    Lead.aggregate<{ _id: string; count: number }>([{ $group: { _id: "$delivery_status", count: { $sum: 1 } } }, { $sort: { _id: 1 } }]),
+    leads.countDocuments({ $or: [{ cart_snapshot: { $exists: false } }, { "cart_snapshot.items.0": { $exists: false } }] }),
+    leads.aggregate<{ _id: string; count: number }>([{ $group: { _id: "$delivery_status", count: { $sum: 1 } } }, { $sort: { _id: 1 } }]).toArray(),
     PaymentAttempt.aggregate<{ _id: string; count: number }>([{ $group: { _id: "$status", count: { $sum: 1 } } }, { $sort: { _id: 1 } }]),
-    Lead.aggregate<{ _id: null; total: number }>([{ $group: { _id: null, total: { $sum: "$cart_snapshot.total" } } }]),
+    leads.aggregate<{ _id: null; total: number }>([{ $group: { _id: null, total: { $sum: "$cart_snapshot.total" } } }]).toArray(),
     PaymentAttempt.aggregate<{ _id: Types.ObjectId }>([
       { $match: { lead_id: { $exists: true } } },
       { $lookup: { from: "leads", localField: "lead_id", foreignField: "_id", as: "lead" } },
@@ -153,7 +154,7 @@ async function migrate(): Promise<void> {
     throw new Error("Migration refused because dry-run anomalies remain");
   }
 
-  const leads = await Lead.find().select("+checkout_idempotency_hash").sort({ createdAt: 1, _id: 1 });
+  const leads = await legacyLeadsCollection().find().sort({ createdAt: 1, _id: 1 }).toArray();
   const existingOrders = await Order.find({ _id: { $in: leads.map((lead) => lead._id) } }).select("_id");
   const existingOrderIds = new Set(existingOrders.map((order) => String(order._id)));
   const leadsToCreate = leads.filter((lead) => !existingOrderIds.has(String(lead._id)));
@@ -177,7 +178,7 @@ async function migrate(): Promise<void> {
     const completed = await PaymentAttempt.findOne({ lead_id: lead._id, status: "completed" }).sort({ sequence: -1 });
     const parsedPaid = completed ? Number(completed.expected_amount) : 0;
     const paid = Number.isSafeInteger(parsedPaid) ? Math.min(parsedPaid, lead.cart_snapshot.total) : 0;
-    const mapped = status(lead.delivery_status);
+    const mapped = status(lead.delivery_status ?? "pending");
     const financials = calculateFinancials({ lines, deliveryFee: 0, merchandisePaidOnline: paid });
     await Order.collection.insertOne({
       _id: lead._id,
@@ -190,7 +191,7 @@ async function migrate(): Promise<void> {
       customer_notes: lead.notes,
       lines,
       item_signature: buildItemSignature(lines),
-      checkout_source: lead.checkout_source,
+      checkout_source: lead.checkout_source === "buy_now" ? "buy_now" : "cart",
       checkout_idempotency_hash: lead.checkout_idempotency_hash,
       status: mapped.status,
       financials,

@@ -1,7 +1,6 @@
 import { Types } from "mongoose";
 
 import { AppError } from "../lib/errors.js";
-import type { CartSnapshot } from "../models/Lead.js";
 import { Product } from "../models/Product.js";
 import { calculateDiscountedPrice } from "../utils/calculateDiscountedPrice.js";
 
@@ -17,6 +16,20 @@ export type CheckoutCartInput = {
   total: number;
 };
 
+export type VerifiedCartSnapshot = {
+  items: {
+    product_id: string;
+    name: string;
+    price: number;
+    original_price?: number;
+    discount?: number;
+    size: string;
+    color: string;
+    quantity: number;
+  }[];
+  total: number;
+};
+
 const CART_OPTION_FALLBACK = "N/A";
 
 function isValidCartOption(value: string, options: string[]): boolean {
@@ -25,7 +38,7 @@ function isValidCartOption(value: string, options: string[]): boolean {
 
 export async function buildVerifiedCartSnapshot(
   clientSnapshot: CheckoutCartInput,
-): Promise<CartSnapshot> {
+): Promise<VerifiedCartSnapshot> {
   const uniqueProductIds = [
     ...new Set(clientSnapshot.items.map((item) => item.product_id)),
   ];

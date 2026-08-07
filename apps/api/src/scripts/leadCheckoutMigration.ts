@@ -36,7 +36,7 @@ export function leadCheckoutMigrationOperations() {
     {
       updateMany: {
         filter: { status: { $exists: true } },
-        update: { $unset: { status: "" } },
+        update: { $unset: { status: "" as const } },
       },
     },
   ];
