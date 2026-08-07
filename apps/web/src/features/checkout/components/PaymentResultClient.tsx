@@ -106,21 +106,12 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
         {result.message}
       </p>
       {result.order_number ||
-      result.fee_paid !== undefined ||
-      result.amount !== undefined ? (
+      result.fee_paid !== undefined ? (
         <dl className="mt-6 grid w-full max-w-md gap-3 border-y py-4 text-sm">
           {result.order_number ? (
             <div className="flex justify-between gap-4">
               <dt className="text-foreground/65">Order</dt>
               <dd className="font-medium">{result.order_number}</dd>
-            </div>
-          ) : null}
-          {result.amount !== undefined ? (
-            <div className="flex justify-between gap-4">
-              <dt className="text-foreground/65">Legacy payment</dt>
-              <dd className="font-medium">
-                Tk {result.amount.toLocaleString("en-BD")}
-              </dd>
             </div>
           ) : null}
           {result.fee_paid !== undefined ? (

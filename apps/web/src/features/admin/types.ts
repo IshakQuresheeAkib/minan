@@ -148,14 +148,6 @@ export type AdminSubcategory = {
   updatedAt: string;
 };
 
-export type DeliveryStatus =
-  | "pending"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "delivery_failed"
-  | "cancelled";
-
 export type PaymentAttemptStatus =
   | "creating"
   | "initiated"
@@ -178,35 +170,6 @@ export type AdminPaymentAttempt = {
   provider_status_code: string | null;
   provider_status_message: string | null;
   last_query_at: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type AdminLead = {
-  _id: string;
-  name: string;
-  phone_number: string;
-  email: string | null;
-  address: string;
-  notes: string | null;
-  cart_snapshot: {
-    items: {
-      product_id: string;
-      name: string;
-      price: number;
-      original_price: number;
-      discount: number;
-      size: string;
-      color: string;
-      quantity: number;
-    }[];
-    total: number;
-  } | null;
-  delivery_status: DeliveryStatus;
-  checkout_source: "cart" | "buy_now";
-  legacy_bkash_txn_id: string | null;
-  latest_payment_status: PaymentAttemptStatus | null;
-  payment_attempts: AdminPaymentAttempt[];
   createdAt: string;
   updatedAt: string;
 };

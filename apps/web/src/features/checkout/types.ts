@@ -39,14 +39,10 @@ export type PaymentResult = {
     | "unavailable";
   message: string;
   order_id?: string;
-  /** @deprecated Compatibility only. */
-  lead_id?: string;
   order_number?: string;
   checkout_source?: CheckoutSource;
   fee_paid?: number;
   cod_due?: number;
-  /** @deprecated Legacy full-order payment before migration. */
-  amount?: number;
   merchant_invoice_number?: string;
   bkash_trx_id?: string;
   retry_token?: string;

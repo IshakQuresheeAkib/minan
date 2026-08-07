@@ -43,7 +43,7 @@ export interface PaymentAttemptDocument extends Document {
 
 const paymentAttemptSchema = new Schema<PaymentAttemptDocument>(
   {
-    lead_id: { type: Schema.Types.ObjectId, ref: "Lead" },
+    lead_id: { type: Schema.Types.ObjectId },
     order_id: { type: Schema.Types.ObjectId, ref: "Order" },
     payment_purpose: {
       type: String,

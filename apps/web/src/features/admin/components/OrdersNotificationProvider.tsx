@@ -1,10 +1,11 @@
 "use client";
 
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { fetchOrderChanges } from "@/features/admin/actions/orders.actions";
 import { useAuthStore } from "@/store/auth.store";
+import { useOrdersNotificationsStore } from "@/store/orders-notifications.store";
 
 const CURSOR_KEY = "minan:orders:cursor:v1";
 const PREFERENCE_KEY = "minan:orders:notifications:v1";
@@ -39,7 +40,7 @@ function notificationPreferenceSnapshot(): "unsupported" | "enabled" | "disabled
     : "disabled";
 }
 
-type NotificationContextValue = {
+type OrdersNotifications = {
   unreadCount: number;
   notificationsEnabled: boolean;
   notificationsSupported: boolean;
@@ -47,18 +48,19 @@ type NotificationContextValue = {
   markOrdersRead: () => void;
 };
 
-const NotificationContext = createContext<NotificationContextValue | null>(null);
-
-export function OrdersNotificationProvider({ children }: { children: ReactNode }) {
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const notificationPreference = useSyncExternalStore(
+function useNotificationPreference(): "unsupported" | "enabled" | "disabled" {
+  return useSyncExternalStore(
     subscribePreference,
     notificationPreferenceSnapshot,
     () => "unsupported",
   );
+}
+
+export function OrdersNotificationProvider({ children }: { children: ReactNode }) {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const addUnreadOrders = useOrdersNotificationsStore((state) => state.addUnreadOrders);
+  const notificationPreference = useNotificationPreference();
   const notificationsSupported = notificationPreference !== "unsupported";
-  const notificationsEnabled = notificationPreference === "enabled";
 
   useEffect(() => {
     if (!accessToken) return;
@@ -79,7 +81,7 @@ export function OrdersNotificationProvider({ children }: { children: ReactNode }
         failures = 0;
         if (response.cursor) writeStorage(CURSOR_KEY, response.cursor);
         if (response.data.length > 0) {
-          setUnreadCount((count) => count + response.data.length);
+          addUnreadOrders(response.data.length);
           const latest = response.data[response.data.length - 1]!;
           toast.info(`${response.data.length} new ${response.data.length === 1 ? "Order" : "Orders"}`, {
             description: `Latest: ${latest.order_number}`,
@@ -107,9 +109,19 @@ export function OrdersNotificationProvider({ children }: { children: ReactNode }
       controller.abort();
       if (timeoutId !== null) window.clearTimeout(timeoutId);
     };
-  }, [accessToken, notificationsSupported]);
+  }, [accessToken, addUnreadOrders, notificationsSupported]);
 
-  async function enableNotifications() {
+  return <>{children}</>;
+}
+
+export function useOrdersNotifications(): OrdersNotifications {
+  const unreadCount = useOrdersNotificationsStore((state) => state.unreadCount);
+  const markOrdersRead = useOrdersNotificationsStore((state) => state.markOrdersRead);
+  const notificationPreference = useNotificationPreference();
+  const notificationsSupported = notificationPreference !== "unsupported";
+  const notificationsEnabled = notificationPreference === "enabled";
+
+  async function enableNotifications(): Promise<void> {
     if (!notificationsSupported) {
       toast.error("Browser notifications are not supported here.");
       return;
@@ -126,17 +138,11 @@ export function OrdersNotificationProvider({ children }: { children: ReactNode }
     }
   }
 
-  const markOrdersRead = useCallback(() => setUnreadCount(0), []);
-
-  return (
-    <NotificationContext.Provider value={{ unreadCount, notificationsEnabled, notificationsSupported, enableNotifications, markOrdersRead }}>
-      {children}
-    </NotificationContext.Provider>
-  );
-}
-
-export function useOrdersNotifications(): NotificationContextValue {
-  const value = useContext(NotificationContext);
-  if (!value) throw new Error("useOrdersNotifications must be used inside OrdersNotificationProvider");
-  return value;
+  return {
+    unreadCount,
+    notificationsEnabled,
+    notificationsSupported,
+    enableNotifications,
+    markOrdersRead,
+  };
 }

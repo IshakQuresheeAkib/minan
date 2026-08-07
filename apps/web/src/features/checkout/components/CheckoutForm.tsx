@@ -24,19 +24,19 @@ import type {
 } from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
 
-type LeadFormProps = {
+type CheckoutFormProps = {
   cartSnapshot: CartSnapshot;
   checkoutSource: CheckoutSource;
   disabled?: boolean;
   deliveryFee: number;
 };
 
-export function LeadForm({
+export function CheckoutForm({
   cartSnapshot,
   checkoutSource,
   disabled = false,
   deliveryFee,
-}: LeadFormProps) {
+}: CheckoutFormProps) {
   const formId = useId();
   const [retryToken, setRetryToken] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);

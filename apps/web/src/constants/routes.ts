@@ -13,7 +13,6 @@ export const adminRoutes = {
   products: "/admin/products",
   categories: "/admin/categories",
   homeBanners: "/admin/home-banners",
-  leads: "/admin/leads",
   orders: "/admin/orders",
   admins: "/admin/admins",
 } as const;
