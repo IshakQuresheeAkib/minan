@@ -62,21 +62,24 @@ async function ensureIndex(
   });
 }
 
-async function prepare(): Promise<void> {
+export async function prepare(applyChanges = apply): Promise<void> {
   await connectDB();
-  const indexes = await PaymentAttempt.collection.indexes() as PaymentAttemptIndex[];
+  let indexes = await PaymentAttempt.collection.indexes() as PaymentAttemptIndex[];
   const legacyFullIndex = indexes.find((index) =>
     index.unique === true &&
     index.key.lead_id === 1 &&
     index.key.sequence === 1 &&
     !index.partialFilterExpression,
   );
-  console.log(`${apply ? "APPLY" : "DRY RUN"}: legacy full relationship index ${legacyFullIndex ? legacyFullIndex.name : "not present"}.`);
-  if (!apply) {
+  console.log(`${applyChanges ? "APPLY" : "DRY RUN"}: legacy full relationship index ${legacyFullIndex ? legacyFullIndex.name : "not present"}.`);
+  if (!applyChanges) {
     console.log("No indexes changed. Re-run with --apply before deploying Order-based payment creation.");
     return;
   }
-  if (legacyFullIndex?.name) await PaymentAttempt.collection.dropIndex(legacyFullIndex.name);
+  if (legacyFullIndex?.name) {
+    await PaymentAttempt.collection.dropIndex(legacyFullIndex.name);
+    indexes = await PaymentAttempt.collection.indexes() as PaymentAttemptIndex[];
+  }
   await ensureIndex(indexes, {
     key: { lead_id: 1, sequence: 1 },
     name: "lead_sequence_partial_unique",
