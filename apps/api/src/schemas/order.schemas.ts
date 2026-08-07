@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
+const bdPhoneRegex = /^(?:\+?88)?01[3-9]\d{8}$/;
 const expectedRevision = z.number().int().min(1);
 const money = z.number().finite().int().nonnegative();
 const reason = z.string().trim().min(3).max(500);
@@ -22,7 +23,11 @@ export const orderListQuerySchema = z.object({
 
 export const orderCustomerUpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
-  phone_number: z.string().trim().min(6).max(30).optional(),
+  phone_number: z
+    .string()
+    .trim()
+    .regex(bdPhoneRegex, "Enter a valid Bangladesh phone number.")
+    .optional(),
   email: z.email().max(254).optional(),
   address: z.string().trim().min(5).max(1000).optional(),
   expected_revision: expectedRevision,

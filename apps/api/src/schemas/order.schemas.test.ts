@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   orderCodSchema,
+  orderCustomerUpdateSchema,
   orderItemsUpdateSchema,
   orderRefundSchema,
   orderTransitionSchema,
@@ -38,5 +39,12 @@ describe("Order admin validation", () => {
     expect(orderTransitionSchema.safeParse({ ...base, status: "delivered" }).success).toBe(true);
     expect(orderTransitionSchema.safeParse({ ...base, status: "returned" }).success).toBe(false);
     expect(orderTransitionSchema.safeParse({ ...base, status: "exchanged" }).success).toBe(false);
+  });
+
+  it("requires Bangladesh-format phone numbers when editing a customer", () => {
+    const base = { expected_revision: 1, reason: "Customer corrected their phone number" };
+
+    expect(orderCustomerUpdateSchema.safeParse({ ...base, phone_number: "not-a-phone" }).success).toBe(false);
+    expect(orderCustomerUpdateSchema.safeParse({ ...base, phone_number: "+8801700000000" }).success).toBe(true);
   });
 });
