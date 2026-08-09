@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
-import { publicRoutes } from "@/constants/routes";
+import { getCollectionPath, publicRoutes } from "@/constants/routes";
 import type {
   ProductCategory,
   ProductSubcategory,
@@ -35,11 +35,22 @@ export function ProductBreadcrumbs({
         <li aria-hidden="true">
           <ChevronRight className="size-3.5" />
         </li>
+        <li>
+          <Link
+            href={publicRoutes.products}
+            className="transition-colors hover:text-foreground"
+          >
+            Products
+          </Link>
+        </li>
+        <li aria-hidden="true">
+          <ChevronRight className="size-3.5" />
+        </li>
         {category ? (
           <>
             <li>
               <Link
-                href={`${publicRoutes.products}?category=${category.slug}`}
+                href={getCollectionPath(category.slug)}
                 className="transition-colors hover:text-foreground"
               >
                 {category.name}
@@ -49,26 +60,12 @@ export function ProductBreadcrumbs({
               <ChevronRight className="size-3.5" />
             </li>
           </>
-        ) : (
-          <>
-            <li>
-              <Link
-                href={publicRoutes.products}
-                className="transition-colors hover:text-foreground"
-              >
-                Products
-              </Link>
-            </li>
-            <li aria-hidden="true">
-              <ChevronRight className="size-3.5" />
-            </li>
-          </>
-        )}
+        ) : null}
         {category && subcategory ? (
           <>
             <li>
               <Link
-                href={`${publicRoutes.products}?category=${encodeURIComponent(category.slug)}&subcategory=${encodeURIComponent(subcategory.slug)}`}
+                href={`${getCollectionPath(category.slug)}?subcategory=${encodeURIComponent(subcategory.slug)}`}
                 className="transition-colors hover:text-foreground"
               >
                 {subcategory.name}

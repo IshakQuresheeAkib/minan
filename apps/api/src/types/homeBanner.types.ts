@@ -1,5 +1,6 @@
 export type HomeBannerResponse = {
   _id: string;
+  alt_text: string;
   desktop_image_url: string;
   mobile_image_url: string;
 };

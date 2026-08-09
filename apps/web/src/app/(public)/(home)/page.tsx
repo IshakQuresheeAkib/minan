@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { connection } from "next/server";
 
+import { JsonLd } from "@/components/seo/JsonLd";
+import { siteConfig } from "@/config/site.config";
 import { HomeCatalog } from "@/features/home/components/HomeCatalog";
 import { HeroCarousel } from "@/features/home/components/HeroCarousel";
 import { HeroFirstSlideShell } from "@/features/home/components/HeroFirstSlideShell";
@@ -8,10 +11,23 @@ import { fallbackHomeBanners } from "@/features/home/data/home-banners";
 import { getCachedHomeBanners } from "@/features/home/services/home-banner.cache";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { getCachedHomeCatalog } from "@/features/products/services/product.cache";
+import { getHomeStructuredData } from "@/lib/seo/structured-data";
+
+export const metadata: Metadata = {
+  title: { absolute: siteConfig.title },
+  description: siteConfig.description,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: siteConfig.title,
+    description: siteConfig.description,
+    url: "/",
+  },
+};
 
 export default function HomePage() {
   return (
     <>
+      <JsonLd data={getHomeStructuredData()} />
       <h1 className="sr-only">
         MINAN premium fashion clothing in Bangladesh
       </h1>

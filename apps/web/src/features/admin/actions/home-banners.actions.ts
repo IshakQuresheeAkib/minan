@@ -14,6 +14,7 @@ export async function fetchAdminHomeBanners(accessToken: string) {
 export async function createAdminHomeBanner(
   accessToken: string,
   body: {
+    alt_text: string;
     desktop_image_url: string;
     mobile_image_url: string;
     expected_revision: number;
@@ -30,6 +31,7 @@ export async function updateAdminHomeBanner(
   accessToken: string,
   id: string,
   body: {
+    alt_text?: string;
     desktop_image_url?: string;
     mobile_image_url?: string;
     expected_revision: number;

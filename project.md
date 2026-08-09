@@ -343,10 +343,12 @@ Private singleton cache for the bKash token grant. It is shared across Render co
 | -------------------------- | -------- | ----- |
 | `key`                      | String   | singleton key `homepage`, unique |
 | `revision`                 | Number   | optimistic-concurrency revision |
-| `banners`                  | Array    | ordered 1-5 items with desktop/mobile image URLs |
+| `banners`                  | Array    | ordered 1-5 items with descriptive `alt_text` and desktop/mobile image URLs |
 | `storefront_sync_pending`  | Boolean  | retry signal when cache invalidation fails |
 | `pending_cleanup_urls`     | [String] | removed managed images retained until storefront sync succeeds |
 | `createdAt` / `updatedAt`  | Date     | timestamps |
+
+The storefront uses one generic screen-reader-only promotional heading for the hero carousel. Headlines are not stored or managed per banner.
 
 ### Mongoose Patterns
 
@@ -370,7 +372,7 @@ Private singleton cache for the bKash token grant. It is shared across Render co
 | GET    | `/api/products/filters` | Active catalog filter options: categories with referenced subcategories, colors, sizes, and effective min/max price |
 | POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
-| GET    | `/api/home-banners`   | Ordered homepage banner images; empty until the singleton seed exists |
+| GET    | `/api/home-banners`   | Ordered homepage banners with responsive images and image descriptions; empty until the singleton seed exists |
 | GET    | `/api/checkout/config` | Cacheable backend-authoritative delivery fee and non-refundable policy |
 | POST   | `/api/bkash/payments` | Create/idempotently retrieve an Order and start its frozen delivery-fee attempt |
 | GET    | `/api/bkash/callback` | Verify and reconcile the provider redirect, including valid late completions |
@@ -424,10 +426,10 @@ The `subcategory` product filter is applied only when at least one `category` fi
 | GET    | `/api/admin/uploads/signature`         | admin | Get Cloudinary signed upload params |
 | POST   | `/api/admin/uploads/delete`            | admin | Delete unreferenced managed Cloudinary uploads by public ID |
 | GET    | `/api/admin/home-banners`              | admin | Get the versioned ordered banner set and sync state |
-| POST   | `/api/admin/home-banners`              | admin | Append a banner using `expected_revision`, maximum five |
+| POST   | `/api/admin/home-banners`              | admin | Append a banner with an image description, responsive images, and `expected_revision`; maximum five |
 | PATCH  | `/api/admin/home-banners/reorder`      | admin | Replace the complete order using `expected_revision` |
 | POST   | `/api/admin/home-banners/sync`         | admin | Retry storefront invalidation and deferred media cleanup |
-| PATCH  | `/api/admin/home-banners/:id`          | admin | Replace one or both responsive images using `expected_revision` |
+| PATCH  | `/api/admin/home-banners/:id`          | admin | Update the image description or one/both responsive images using `expected_revision` |
 | DELETE | `/api/admin/home-banners/:id`          | admin | Remove a banner using `expected_revision`; the final banner is protected |
 
 Admin write routes require `requireAuth` and `requireCsrfHeader`.

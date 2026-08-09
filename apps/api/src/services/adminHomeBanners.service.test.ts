@@ -33,6 +33,7 @@ const imageUrl =
 function bannerSet(count: number, revision = 1) {
   const banners = Array.from({ length: count }, () => ({
     _id: new Types.ObjectId(),
+    alt_text: "A model wearing a MINAN panjabi",
     desktop_image_url: imageUrl,
     mobile_image_url: imageUrl,
   }));
@@ -60,6 +61,7 @@ describe("admin home banner concurrency guards", () => {
 
     await expect(
       createAdminHomeBanner({
+        alt_text: "A model wearing a MINAN panjabi",
         desktop_image_url: imageUrl,
         mobile_image_url: imageUrl,
         expected_revision: 1,
@@ -83,6 +85,7 @@ describe("admin home banner concurrency guards", () => {
 
     await expect(
       createAdminHomeBanner({
+        alt_text: "A model wearing a MINAN panjabi",
         desktop_image_url: imageUrl,
         mobile_image_url: imageUrl,
         expected_revision: 1,

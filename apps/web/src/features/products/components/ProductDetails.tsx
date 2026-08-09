@@ -18,7 +18,6 @@ import { ProductBreadcrumbs } from "@/features/products/components/ProductBreadc
 import { ProductDescription } from "@/features/products/components/ProductDescription";
 import { ProductGallery } from "@/features/products/components/ProductGallery";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
-import { SizeGuideModal } from "@/features/products/components/SizeGuideModal";
 import { SizeColorSelector } from "@/features/products/components/SizeColorSelector";
 import { TrustBadges } from "@/features/products/components/TrustBadges";
 import type { ProductDetail } from "@/features/products/schemas/product.schema";
@@ -224,20 +223,20 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
 
           <div ref={infoRef}>
             <section aria-label="Product information">
-              <div className="mb-4 hidden items-start justify-between gap-4 lg:flex">
+              <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-semibold tracking-normal text-foreground">
+                  <h1 className="mb-2 text-[22px] font-bold leading-tight tracking-tight text-foreground lg:mb-0 lg:text-3xl lg:font-semibold lg:tracking-normal">
                     {product.name}
                   </h1>
                   <ProductPrice
-                    className="mt-3 flex flex-wrap items-center gap-2"
+                    className="mt-3 hidden flex-wrap items-center gap-2 lg:flex"
                     price={product.discounted_price}
                     originalPrice={product.price}
                     discount={product.discount}
                     size="lg"
                   />
                   {hasDiscount ? (
-                  <p className="mt-4 flex w-fit basis-full items-center gap-1 rounded-full border border-primary/25 bg-primary/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase">
+                  <p className="mt-4 hidden w-fit basis-full items-center gap-1 rounded-full border border-primary/25 bg-primary/90 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase lg:flex">
                     <Tag className="size-3" aria-hidden="true" />
                     Save Tk {savings.toLocaleString("en-BD")} · {discount}% off
                   </p>
@@ -249,15 +248,11 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                   onClick={() => {
                     void handleShare();
                   }}
-                  className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-secondary bg-background transition-colors hover:bg-background"
+                  className="hidden size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-secondary bg-background transition-colors hover:bg-background lg:flex"
                 >
                   <Share2 className="size-4" aria-hidden="true" />
                 </button>
               </div>
-
-              <h2 className="mb-2 text-[22px] font-bold leading-tight tracking-tight lg:hidden">
-                {product.name}
-              </h2>
 
               <ProductPrice
                 className={hasDiscount ? "mb-3 lg:hidden" : "mb-6 lg:hidden"}
@@ -271,10 +266,6 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
                   Save Tk {savings.toLocaleString("en-BD")} · {discount}% off
                 </p>
               ) : null}
-
-              {/* <div className="mb-4 flex items-center justify-end lg:justify-start">
-                <SizeGuideModal />
-              </div> */}
 
               <SizeColorSelector
                 sizes={product.sizes}
@@ -332,9 +323,9 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
               <TrustBadges />
 
               <div className="mt-8">
-                <h3 className="mb-3 text-[17px] font-bold text-foreground lg:text-lg">
+                <h2 className="mb-3 text-[17px] font-bold text-foreground lg:text-lg">
                   Description
-                </h3>
+                </h2>
                 <ProductDescription
                   description={product.description}
                   descriptionHtml={product.description_html}

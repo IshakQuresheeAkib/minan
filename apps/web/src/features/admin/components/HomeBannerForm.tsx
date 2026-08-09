@@ -30,7 +30,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
 
 const MAX_BANNER_FILE_SIZE = 5 * 1024 * 1024;
@@ -123,6 +131,7 @@ function HomeBannerFormFields({
   const form = useForm<AdminHomeBannerFormInput>({
     resolver: zodResolver(adminHomeBannerFormSchema),
     defaultValues: {
+      alt_text: banner?.alt_text ?? "",
       desktop_image_url: banner?.desktop_image_url ?? "",
       mobile_image_url: banner?.mobile_image_url ?? "",
     },
@@ -169,6 +178,9 @@ function HomeBannerFormFields({
 
       if (banner) {
         const changes = {
+          ...(values.alt_text !== banner.alt_text
+            ? { alt_text: values.alt_text }
+            : {}),
           ...(values.desktop_image_url !== banner.desktop_image_url
             ? { desktop_image_url: values.desktop_image_url }
             : {}),
@@ -190,6 +202,7 @@ function HomeBannerFormFields({
         );
       } else {
         response = await createAdminHomeBanner(accessToken, {
+          alt_text: values.alt_text,
           desktop_image_url: values.desktop_image_url,
           mobile_image_url: values.mobile_image_url,
           expected_revision: revision,
@@ -224,6 +237,30 @@ function HomeBannerFormFields({
           void form.handleSubmit(onSubmit)(event);
         }}
       >
+        <div>
+          <FormField
+            control={form.control}
+            name="alt_text"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Image description</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    maxLength={160}
+                    placeholder="Two models wearing maroon embroidered panjabi"
+                  />
+                </FormControl>
+                <p className="text-xs leading-relaxed text-foreground/65">
+                  Describe what is visible so screen-reader users receive the
+                  same visual context.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.55fr)]">
           <div className="space-y-3">
             <BannerPreview
@@ -332,8 +369,8 @@ export function HomeBannerForm({
         <DialogHeader>
           <DialogTitle>{banner ? "Edit home banner" : "Add home banner"}</DialogTitle>
           <DialogDescription>
-            Upload separate desktop and mobile crops. JPEG, PNG, or WebP only,
-            up to 5 MB each.
+            Add an accessible image description and separate desktop and mobile
+            crops. JPEG, PNG, or WebP only, up to 5 MB each.
           </DialogDescription>
         </DialogHeader>
 

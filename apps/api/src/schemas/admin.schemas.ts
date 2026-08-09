@@ -29,6 +29,12 @@ const managedBannerImageUrlSchema = z
     return url.protocol === "https:" && url.hostname === "res.cloudinary.com";
   }, "Banner image must be a secure Cloudinary URL");
 
+const bannerAltTextSchema = z
+  .string()
+  .trim()
+  .min(5, "Image description must be at least 5 characters")
+  .max(160, "Image description must be at most 160 characters");
+
 const productDescriptionSchema = z
   .string()
   .trim()
@@ -127,6 +133,7 @@ export const uploadDeleteSchema = z.object({
 });
 
 export const homeBannerCreateSchema = z.object({
+  alt_text: bannerAltTextSchema,
   desktop_image_url: managedBannerImageUrlSchema,
   mobile_image_url: managedBannerImageUrlSchema,
   expected_revision: expectedRevisionSchema,
@@ -134,6 +141,7 @@ export const homeBannerCreateSchema = z.object({
 
 export const homeBannerUpdateSchema = z
   .object({
+    alt_text: bannerAltTextSchema.optional(),
     desktop_image_url: managedBannerImageUrlSchema.optional(),
     mobile_image_url: managedBannerImageUrlSchema.optional(),
     expected_revision: expectedRevisionSchema,
@@ -141,8 +149,9 @@ export const homeBannerUpdateSchema = z
   .refine(
     (value) =>
       value.desktop_image_url !== undefined ||
-      value.mobile_image_url !== undefined,
-    { message: "At least one banner image is required" },
+      value.mobile_image_url !== undefined ||
+      value.alt_text !== undefined,
+    { message: "At least one banner field is required" },
   );
 
 export const homeBannerReorderSchema = z.object({

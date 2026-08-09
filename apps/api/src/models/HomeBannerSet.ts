@@ -2,6 +2,7 @@ import mongoose, { type Document, Schema, Types } from "mongoose";
 
 export interface HomeBannerSubdocument {
   _id: Types.ObjectId;
+  alt_text: string;
   desktop_image_url: string;
   mobile_image_url: string;
 }
@@ -18,6 +19,14 @@ export interface HomeBannerSetDocument extends Document {
 
 const homeBannerSchema = new Schema<HomeBannerSubdocument>(
   {
+    alt_text: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 5,
+      maxlength: 160,
+      default: "MINAN fashion collection campaign",
+    },
     desktop_image_url: { type: String, required: true, trim: true },
     mobile_image_url: { type: String, required: true, trim: true },
   },

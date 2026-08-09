@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { publicRoutes } from "@/constants/routes";
+import { getCollectionPath } from "@/constants/routes";
 import { productCardShellClassName } from "@/features/products/components/product-card.styles";
 
 type CategoryGridCardProps = {
@@ -16,7 +16,7 @@ export function CategoryGridCard({
   name,
   slug,
 }: CategoryGridCardProps) {
-  const href = `${publicRoutes.products}?category=${encodeURIComponent(slug)}`;
+  const href = getCollectionPath(slug);
 
   return (
     <article className={productCardShellClassName}>
