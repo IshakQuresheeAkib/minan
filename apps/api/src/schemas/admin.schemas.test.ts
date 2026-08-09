@@ -14,6 +14,21 @@ const cloudinaryUrl =
   "https://res.cloudinary.com/minan/image/upload/v1/minan/admin/banner.webp";
 
 describe("home banner validation", () => {
+  it("does not fabricate alt text while hydrating legacy banners", () => {
+    const legacy = HomeBannerSet.hydrate({
+      key: "homepage",
+      revision: 1,
+      banners: [
+        {
+          desktop_image_url: "/hero/limited-offer.webp",
+          mobile_image_url: "/hero/limited-offer.webp",
+        },
+      ],
+    });
+
+    expect(legacy.banners[0]?.alt_text).toBeUndefined();
+  });
+
   it("accepts managed Cloudinary create payloads", () => {
     expect(
       homeBannerCreateSchema.safeParse({

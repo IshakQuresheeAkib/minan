@@ -25,7 +25,6 @@ const homeBannerSchema = new Schema<HomeBannerSubdocument>(
       trim: true,
       minlength: 5,
       maxlength: 160,
-      default: "MINAN fashion collection campaign",
     },
     desktop_image_url: { type: String, required: true, trim: true },
     mobile_image_url: { type: String, required: true, trim: true },

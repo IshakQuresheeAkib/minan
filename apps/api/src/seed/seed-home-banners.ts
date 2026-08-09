@@ -3,6 +3,7 @@ import "dotenv/config";
 import { connectDB, disconnectDB } from "../config/db.js";
 import { revalidateStorefront } from "../lib/revalidateStorefront.js";
 import { HomeBannerSet } from "../models/HomeBannerSet.js";
+import { DEFAULT_HOME_BANNERS } from "./defaultHomeBanners.js";
 
 async function seedHomeBanners(): Promise<void> {
   await connectDB();
@@ -13,20 +14,7 @@ async function seedHomeBanners(): Promise<void> {
       $setOnInsert: {
         key: "homepage",
         revision: 1,
-        banners: [
-          {
-            alt_text:
-              "Three men wearing brown, sage green, and ivory MINAN panjabi in an arched interior",
-            desktop_image_url: "/hero/limited-offer.webp",
-            mobile_image_url: "/hero/limited-offer.webp",
-          },
-          {
-            alt_text:
-              "Two models wearing maroon embroidered MINAN panjabi from the Eid collection",
-            desktop_image_url: "/hero/new-arrivals.jpg",
-            mobile_image_url: "/hero/new-arrivals.jpg",
-          },
-        ],
+        banners: DEFAULT_HOME_BANNERS.map((banner) => ({ ...banner })),
         storefront_sync_pending: false,
         pending_cleanup_urls: [],
       },

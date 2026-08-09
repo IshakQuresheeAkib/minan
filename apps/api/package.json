@@ -13,6 +13,7 @@
     "cleanup:admin-roles": "tsx src/scripts/cleanup-admin-roles.ts",
     "migrate:product-discounts": "tsx src/scripts/backfill-product-discounts.ts",
     "migrate:lead-checkout": "tsx src/scripts/migrate-lead-checkout.ts",
+    "migrate:home-banner-alt-text": "tsx src/scripts/migrate-home-banner-alt-text.ts",
     "migrate:orders": "tsx src/scripts/migrate-leads-to-orders.ts",
     "migrate:orders:expand": "tsx src/scripts/prepare-order-expansion.ts",
     "lint": "eslint src --ext .ts",

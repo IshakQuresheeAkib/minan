@@ -668,7 +668,7 @@ FRONTEND_URL=https://app.minan.com
 - The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL; it does not depend on the browser rewrite.
 - Use bKash sandbox credentials until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Replace the base URL and credentials together for production.
 - `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
-- Run `npm --workspace @minan/api run seed:home-banners` after the API deploy and before the banner-backed web release. The command atomically creates the two local fallback banners only when the singleton is absent.
+- Before deploying the required banner `alt_text` schema, back up MongoDB and run `npm --workspace @minan/api run migrate:home-banner-alt-text`; supply explicit descriptions for any reported custom banners, review the dry run, apply with `-- --apply`, and rerun the dry run to prove idempotency. The migration refuses unresolved images rather than assigning generic text. If the singleton is absent, run `npm --workspace @minan/api run seed:home-banners` after the API deploy and before the banner-backed web release.
 
 ---
 
