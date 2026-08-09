@@ -355,10 +355,10 @@ export function AdminHomeBanners() {
                   {index + 1}
                 </span>
                 <div>
-                  <h2 className="font-semibold">Banner {index + 1}</h2>
                   <p className="text-xs text-foreground/60">
-                    Carousel position {index + 1}
+                    Banner {index + 1} · Carousel position {index + 1}
                   </p>
+                  <h2 className="font-semibold">{banner.alt_text}</h2>
                 </div>
               </div>
 

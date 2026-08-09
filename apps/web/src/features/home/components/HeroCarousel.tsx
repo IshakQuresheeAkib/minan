@@ -15,6 +15,7 @@ import {
 
 import { Navbar } from "@/components/shared/navbar";
 import { ResponsiveBannerImage } from "@/features/home/components/ResponsiveBannerImage";
+import { HERO_ACCESSIBLE_HEADING } from "@/features/home/hero-copy";
 import type { HomeBanner } from "@/features/home/schemas/home-banner.schema";
 import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
@@ -263,17 +264,19 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
             >
               <Link
                 href={publicRoutes.products}
-                aria-label="Shop products from this promotion"
+                aria-label="Shop the latest MINAN collection"
                 tabIndex={isActive ? undefined : -1}
                 onClick={handleSlideClick}
                 draggable={false}
                 className="absolute inset-0 block cursor-grab focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset focus-visible:outline-none active:cursor-grabbing"
               >
                 <ResponsiveBannerImage
+                  alt={slide.alt_text}
                   desktopSrc={slide.desktop_image_url}
                   mobileSrc={slide.mobile_image_url}
                   eager={index === 0}
                 />
+                <h2 className="sr-only">{HERO_ACCESSIBLE_HEADING}</h2>
               </Link>
             </div>
           );

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { getCollectionPath } from "@/constants/routes";
 import { CategoryGridCard } from "@/features/home/components/CategoryGridCard";
 import { ProductCard } from "@/features/products/components/ProductCard";
 import { ProductCardSkeleton } from "@/features/products/components/ProductCardSkeleton";
@@ -74,7 +75,7 @@ function CategoryProductGrid({
   const { category } = group;
   const visibleProducts = showViewMore ? products.slice(0, 7) : products;
   const cardProducts = visibleProducts.map(mapProductToCard);
-  const viewMoreHref = `/products?category=${encodeURIComponent(category.slug)}`;
+  const viewMoreHref = getCollectionPath(category.slug);
   const compactHasMore = showViewMore && group.products.total > 5;
   const desktopHasMore = showViewMore && group.products.total > 7;
   const titleId = `home-category-${category.slug}`;

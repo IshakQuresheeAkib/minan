@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { JsonLd } from "@/components/seo/JsonLd";
+import { getProductPath } from "@/constants/routes";
 import { ProductDetails } from "@/features/products/components/ProductDetails";
 import { ProductDetailsSkeleton } from "@/features/products/components/ProductDetailsSkeleton";
 import { RelatedProducts } from "@/features/products/components/RelatedProducts";
@@ -15,6 +17,7 @@ import {
   mapProductToCard,
 } from "@/features/products/services/product.service";
 import type { Product } from "@/features/products/schemas/product.schema";
+import { getProductStructuredData } from "@/lib/seo/structured-data";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -42,18 +45,19 @@ export async function generateMetadata({
 
   const description = getMetaDescription(product.description);
   const image = product.images[0];
+  const productPath = getProductPath(product.slug);
 
   return {
     title: product.name,
     description,
     alternates: {
-      canonical: `/products/${product.slug}`,
+      canonical: productPath,
     },
     openGraph: {
       type: "website",
       title: product.name,
       description,
-      url: `/products/${product.slug}`,
+      url: productPath,
       images: image
         ? [
             {
@@ -92,11 +96,14 @@ async function ProductDetailContent({ slug }: { slug: string }) {
   }
 
   return (
-    <ProductDetails product={product}>
-      <Suspense fallback={<RelatedProductsSkeleton />}>
-        <ProductRelatedProducts product={product} />
-      </Suspense>
-    </ProductDetails>
+    <>
+      <JsonLd data={getProductStructuredData(product)} />
+      <ProductDetails product={product}>
+        <Suspense fallback={<RelatedProductsSkeleton />}>
+          <ProductRelatedProducts product={product} />
+        </Suspense>
+      </ProductDetails>
+    </>
   );
 }
 

@@ -123,6 +123,7 @@ export async function createAdminHomeBanner(input: HomeBannerCreateInput) {
       $push: {
         banners: {
           _id: bannerId,
+          alt_text: input.alt_text,
           desktop_image_url: input.desktop_image_url,
           mobile_image_url: input.mobile_image_url,
         },
@@ -178,10 +179,16 @@ export async function updateAdminHomeBanner(
       ? { "banners.$[banner].mobile_image_url": input.mobile_image_url }
       : {}),
   };
+  const contentUpdates = {
+    ...(input.alt_text !== undefined
+      ? { "banners.$[banner].alt_text": input.alt_text }
+      : {}),
+  };
   const updated = await HomeBannerSet.findOneAndUpdate(
     { _id: current._id, revision: input.expected_revision },
     {
       $set: {
+        ...contentUpdates,
         ...imageUpdates,
         storefront_sync_pending: true,
       },
@@ -236,6 +243,7 @@ export async function reorderAdminHomeBanners(
 
     return {
       _id: banner._id,
+      alt_text: banner.alt_text,
       desktop_image_url: banner.desktop_image_url,
       mobile_image_url: banner.mobile_image_url,
     };

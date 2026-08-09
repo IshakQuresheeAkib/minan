@@ -9,6 +9,7 @@ describe("home banner response schema", () => {
         data: [
           {
             _id: "seed",
+            alt_text: "Three models wearing MINAN panjabi",
             desktop_image_url: "/hero/limited-offer.webp",
             mobile_image_url: "/hero/limited-offer.webp",
           },
@@ -22,9 +23,24 @@ describe("home banner response schema", () => {
       homeBannerListSchema.safeParse({
         data: Array.from({ length: 6 }, (_, index) => ({
           _id: String(index),
+          alt_text: "Three models wearing MINAN panjabi",
           desktop_image_url: "/hero/limited-offer.webp",
           mobile_image_url: "/hero/limited-offer.webp",
         })),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires descriptive image text", () => {
+    expect(
+      homeBannerListSchema.safeParse({
+        data: [
+          {
+            _id: "missing-copy",
+            desktop_image_url: "/hero/limited-offer.webp",
+            mobile_image_url: "/hero/limited-offer.webp",
+          },
+        ],
       }).success,
     ).toBe(false);
   });

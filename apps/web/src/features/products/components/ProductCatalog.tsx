@@ -34,6 +34,7 @@ import { SearchBar } from "@/features/home/components/SearchBar";
 import { ProductGrid } from "@/features/products/components/ProductGrid";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { productColorSwatches } from "@/features/products/constants/product-colors";
+import type { ProductCatalogFilters } from "@/features/products/lib/catalog-filters";
 import type { Product } from "@/features/products/schemas/product.schema";
 import {
   mapProductToCard,
@@ -51,20 +52,10 @@ const sortLabels: Record<ProductSortOption, string> = {
   "name-asc": "Name A-Z",
 };
 
-export type ProductCatalogFilters = {
-  categories: string[];
-  subcategories: string[];
-  colors: string[];
-  sizes: string[];
-  search?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  sort: ProductSortOption;
-};
-
 type ProductCatalogProps = {
   filters: ProductCatalogFilters;
   filterOptions: ProductFilterOptions;
+  fixedCategorySlug?: string;
   initialData: ApiList<Product>;
 };
 
@@ -98,6 +89,7 @@ function isChecked(values: readonly string[], value: string) {
 export function ProductCatalog({
   filters,
   filterOptions,
+  fixedCategorySlug,
   initialData,
 }: ProductCatalogProps) {
   const router = useRouter();
@@ -174,9 +166,11 @@ export function ProductCatalog({
   function buildUrl(nextFilters: ProductCatalogFilters) {
     const params = new URLSearchParams();
 
-    nextFilters.categories.forEach((category) => {
-      params.append("category", category);
-    });
+    if (!fixedCategorySlug) {
+      nextFilters.categories.forEach((category) => {
+        params.append("category", category);
+      });
+    }
     nextFilters.subcategories.forEach((subcategory) => {
       params.append("subcategory", subcategory);
     });
@@ -218,6 +212,10 @@ export function ProductCatalog({
     value: string,
     checked: boolean,
   ) {
+    if (key === "category" && fixedCategorySlug) {
+      return;
+    }
+
     const map = {
       category: filters.categories,
       subcategory: filters.subcategories,
@@ -282,7 +280,7 @@ export function ProductCatalog({
 
   function resetFilters() {
     pushFilters({
-      categories: [],
+      categories: fixedCategorySlug ? [fixedCategorySlug] : [],
       subcategories: [],
       colors: [],
       sizes: [],
@@ -306,7 +304,8 @@ export function ProductCatalog({
   }
 
   const activeFilterCount =
-    filters.categories.length +
+    filters.categories.filter((category) => category !== fixedCategorySlug)
+      .length +
     filters.subcategories.length +
     filters.colors.length +
     filters.sizes.length +
@@ -326,6 +325,7 @@ export function ProductCatalog({
         colors={filterOptions.colors}
         sizes={filterOptions.sizes}
         filters={filters}
+        fixedCategorySlug={fixedCategorySlug}
         priceRange={filterOptions.price}
         onApplyPrice={applyPrice}
         onClearPrice={clearPrice}
@@ -436,13 +436,17 @@ export function ProductCatalog({
                 onRemove={clearSearch}
               />
             )}
-            {filters.categories.map((category) => (
-              <FilterChip
-                key={category}
-                label={categoryLabelBySlug.get(category) ?? category}
-                onRemove={() => toggleMultiFilter("category", category, false)}
-              />
-            ))}
+            {filters.categories
+              .filter((category) => category !== fixedCategorySlug)
+              .map((category) => (
+                <FilterChip
+                  key={category}
+                  label={categoryLabelBySlug.get(category) ?? category}
+                  onRemove={() =>
+                    toggleMultiFilter("category", category, false)
+                  }
+                />
+              ))}
             {filters.subcategories.map((subcategory) => {
               const details = subcategoryDetailsBySlug.get(subcategory);
               return (
@@ -560,6 +564,7 @@ type FilterPanelProps = {
   colors: string[];
   sizes: string[];
   filters: ProductCatalogFilters;
+  fixedCategorySlug?: string;
   priceRange: ProductFilterOptions["price"];
   onApplyPrice: (event: FormEvent<HTMLFormElement>) => void;
   onClearPrice: () => void;
@@ -571,6 +576,7 @@ function FilterPanel({
   categories,
   colors,
   filters,
+  fixedCategorySlug,
   onApplyPrice,
   onClearPrice,
   onReset,
@@ -603,18 +609,20 @@ function FilterPanel({
         </Button>
       </div>
 
-      <FilterGroup title="Category">
-        {categories.map((category) => (
-          <CheckboxRow
-            key={category.slug}
-            checked={isChecked(filters.categories, category.slug)}
-            label={category.name}
-            onCheckedChange={(checked) =>
-              onToggle("category", category.slug, checked)
-            }
-          />
-        ))}
-      </FilterGroup>
+      {!fixedCategorySlug ? (
+        <FilterGroup title="Category">
+          {categories.map((category) => (
+            <CheckboxRow
+              key={category.slug}
+              checked={isChecked(filters.categories, category.slug)}
+              label={category.name}
+              onCheckedChange={(checked) =>
+                onToggle("category", category.slug, checked)
+              }
+            />
+          ))}
+        </FilterGroup>
+      ) : null}
 
       {selectedCategories.some(
         (category) => category.subcategories.length > 0,

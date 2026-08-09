@@ -35,6 +35,11 @@ export const adminCategoryFormSchema = z.object({
 export type AdminCategoryFormInput = z.infer<typeof adminCategoryFormSchema>;
 
 export const adminHomeBannerFormSchema = z.object({
+  alt_text: z
+    .string()
+    .trim()
+    .min(5, "Image description must be at least 5 characters")
+    .max(160, "Image description must be at most 160 characters"),
   desktop_image_url: z.string().trim().min(1, "Desktop image is required"),
   mobile_image_url: z.string().trim().min(1, "Mobile image is required"),
 });

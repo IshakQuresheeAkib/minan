@@ -1,147 +1,63 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
+import { ProductCatalog } from "@/features/products/components/ProductCatalog";
 import {
-  ProductCatalog,
-  type ProductCatalogFilters,
-} from "@/features/products/components/ProductCatalog";
+  hasCatalogQuery,
+  parseCatalogFilters,
+  type ProductSearchParams,
+} from "@/features/products/lib/catalog-filters";
 import {
   getCachedProductFilterOptions,
   getCachedProducts,
 } from "@/features/products/services/product.cache";
-import { type ProductSortOption } from "@/features/products/services/product.service";
+import { filteredCatalogRobots } from "@/lib/seo/metadata";
 
-type ProductSearchParams = {
-  category?: string | string[];
-  subcategory?: string | string[];
-  color?: string | string[];
-  size?: string | string[];
-  search?: string | string[];
-  minPrice?: string | string[];
-  maxPrice?: string | string[];
-  sort?: string | string[];
-};
+const productsSocialImage = {
+  url: "/hero/limited-offer.webp",
+  width: 1200,
+  height: 720,
+  alt: "MINAN premium fashion collection in Bangladesh",
+} as const;
 
 type ProductsPageProps = {
   searchParams: Promise<ProductSearchParams>;
 };
 
-function hasFilters(params: ProductSearchParams): boolean {
-  return Object.values(params).some((value) =>
-    Array.isArray(value) ? value.some(Boolean) : Boolean(value),
-  );
-}
-
 export async function generateMetadata({
   searchParams,
 }: ProductsPageProps): Promise<Metadata> {
-  const filtered = hasFilters(await searchParams);
-  const title = "Products";
+  const filtered = hasCatalogQuery(await searchParams);
+  const title = "Shop Premium Fashion Online in Bangladesh";
   const description =
-    "Browse premium daily wear from the current MINAN collection.";
+    "Shop MINAN's premium fashion collection in Bangladesh. Browse shirts, pants, panjabi, footwear, women's styles, kids' clothing, and more.";
 
   return {
     title,
     description,
     alternates: { canonical: "/products" },
     openGraph: {
+      type: "website",
       title,
       description,
       url: "/products",
+      images: [productsSocialImage],
     },
-    robots: filtered ? { index: false, follow: true } : undefined,
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [productsSocialImage.url],
+    },
+    robots: filtered ? filteredCatalogRobots : undefined,
   };
-}
-
-function getFirstParam(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function getParamValues(value: string | string[] | undefined): string[] {
-  const values = Array.isArray(value) ? value : value ? [value] : [];
-
-  return [
-    ...new Set(
-      values
-        .flatMap((item) => item.split(","))
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  ];
-}
-
-function getNumberParam(value: string | string[] | undefined) {
-  const param = getFirstParam(value)?.trim();
-  if (!param) {
-    return undefined;
-  }
-
-  const parsed = Number(param);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-}
-
-function normalizePriceRange(
-  minPrice: number | undefined,
-  maxPrice: number | undefined,
-) {
-  if (
-    minPrice !== undefined &&
-    maxPrice !== undefined &&
-    minPrice > maxPrice
-  ) {
-    return {
-      minPrice: maxPrice,
-      maxPrice: minPrice,
-    };
-  }
-
-  return {
-    minPrice,
-    maxPrice,
-  };
-}
-
-function getSortParam(
-  value: string | string[] | undefined,
-): ProductSortOption {
-  const sort = getFirstParam(value);
-
-  if (
-    sort === "price-asc" ||
-    sort === "price-desc" ||
-    sort === "name-asc"
-  ) {
-    return sort;
-  }
-
-  return "newest";
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   await connection();
 
   const params = await searchParams;
-  const categories = getParamValues(params.category);
-  const subcategories =
-    categories.length > 0 ? getParamValues(params.subcategory) : [];
-  const colors = getParamValues(params.color);
-  const sizes = getParamValues(params.size);
-  const search = getFirstParam(params.search)?.trim();
-  const { minPrice, maxPrice } = normalizePriceRange(
-    getNumberParam(params.minPrice),
-    getNumberParam(params.maxPrice),
-  );
-  const sort = getSortParam(params.sort);
-  const filters: ProductCatalogFilters = {
-    categories,
-    subcategories,
-    colors,
-    sizes,
-    search,
-    minPrice,
-    maxPrice,
-    sort,
-  };
+  const filters = parseCatalogFilters(params);
   const [products, filterOptions] = await Promise.all([
     getCachedProducts({
       category: filters.categories,
@@ -162,10 +78,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     <section className="mx-auto w-full max-w-11/12 py-10 2xl:px-12">
       <div className="mb-8 flex flex-col gap-2">
         <h1 className="text-3xl font-semibold tracking-normal">
-          {search ? `Search results for "${search}"` : "Products"}
+          {filters.search
+            ? `Search results for "${filters.search}"`
+            : "Products"}
         </h1>
         <p className="max-w-2xl text-sm leading-6 text-foreground/70">
-          {search
+          {filters.search
             ? "Browse matching pieces from the current MINAN collection."
             : "Premium daily wear selected for fast browsing and easy ordering."}
         </p>

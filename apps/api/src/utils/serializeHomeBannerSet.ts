@@ -12,6 +12,7 @@ export function serializeHomeBanner(
 ): HomeBannerResponse {
   return {
     _id: banner._id.toString(),
+    alt_text: banner.alt_text,
     desktop_image_url: banner.desktop_image_url,
     mobile_image_url: banner.mobile_image_url,
   };

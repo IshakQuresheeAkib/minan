@@ -8,6 +8,7 @@ export const homeBannerImageSchema = z.union([z.url(), localImagePathSchema]);
 
 export const homeBannerSchema = z.object({
   _id: z.string().min(1),
+  alt_text: z.string().trim().min(5).max(160),
   desktop_image_url: homeBannerImageSchema,
   mobile_image_url: homeBannerImageSchema,
 });

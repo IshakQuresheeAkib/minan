@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
+
 import { PaymentResultClient } from "@/features/checkout/components/PaymentResultClient";
 import type { PaymentResult } from "@/features/checkout/types";
 import { resolvePaymentResult } from "@/lib/api/server";
+import { privatePageRobots } from "@/lib/seo/metadata";
+
+export const metadata: Metadata = {
+  title: "Payment Result",
+  robots: privatePageRobots,
+};
 
 type PaymentResultPageProps = {
   searchParams: Promise<{ reference?: string | string[] }>;

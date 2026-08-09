@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   metadataBase: siteOrigin,
   applicationName: siteConfig.name,
   title: {
-    default: siteConfig.name,
+    default: siteConfig.title,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_BD",
     siteName: siteConfig.name,
-    title: siteConfig.name,
+    title: siteConfig.title,
     description: siteConfig.description,
     url: "/",
     images: [
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: siteConfig.name,
+    title: siteConfig.title,
     description: siteConfig.description,
     images: ["/logo.png"],
   },

@@ -2,19 +2,21 @@ import { getImageProps } from "next/image";
 import Image from "next/image";
 
 type ResponsiveBannerImageProps = {
+  alt: string;
   desktopSrc: string;
   mobileSrc: string;
   eager?: boolean;
 };
 
 export function ResponsiveBannerImage({
+  alt,
   desktopSrc,
   mobileSrc,
   eager = false,
 }: ResponsiveBannerImageProps) {
   const desktop = getImageProps({
     src: desktopSrc,
-    alt: "",
+    alt,
     width: 1920,
     height: 1080,
     sizes: "100vw",
@@ -29,7 +31,7 @@ export function ResponsiveBannerImage({
       />
       <Image
         src={mobileSrc}
-        alt=""
+        alt={alt}
         fill
         sizes="100vw"
         loading={eager ? "eager" : "lazy"}

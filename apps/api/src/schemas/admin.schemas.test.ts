@@ -14,9 +14,25 @@ const cloudinaryUrl =
   "https://res.cloudinary.com/minan/image/upload/v1/minan/admin/banner.webp";
 
 describe("home banner validation", () => {
+  it("does not fabricate alt text while hydrating legacy banners", () => {
+    const legacy = HomeBannerSet.hydrate({
+      key: "homepage",
+      revision: 1,
+      banners: [
+        {
+          desktop_image_url: "/hero/limited-offer.webp",
+          mobile_image_url: "/hero/limited-offer.webp",
+        },
+      ],
+    });
+
+    expect(legacy.banners[0]?.alt_text).toBeUndefined();
+  });
+
   it("accepts managed Cloudinary create payloads", () => {
     expect(
       homeBannerCreateSchema.safeParse({
+        alt_text: "A model wearing a maroon embroidered panjabi",
         desktop_image_url: cloudinaryUrl,
         mobile_image_url: cloudinaryUrl,
         expected_revision: 1,
@@ -27,6 +43,7 @@ describe("home banner validation", () => {
   it("rejects non-Cloudinary admin image URLs", () => {
     expect(
       homeBannerCreateSchema.safeParse({
+        alt_text: "A model wearing a maroon embroidered panjabi",
         desktop_image_url: "https://example.com/banner.jpg",
         mobile_image_url: cloudinaryUrl,
         expected_revision: 1,
@@ -38,6 +55,15 @@ describe("home banner validation", () => {
     expect(
       homeBannerUpdateSchema.safeParse({ expected_revision: 2 }).success,
     ).toBe(false);
+  });
+
+  it("accepts image description changes without replacing images", () => {
+    expect(
+      homeBannerUpdateSchema.safeParse({
+        alt_text: "Three models wearing neutral MINAN panjabi",
+        expected_revision: 2,
+      }).success,
+    ).toBe(true);
   });
 
   it("rejects duplicate reorder ids", () => {

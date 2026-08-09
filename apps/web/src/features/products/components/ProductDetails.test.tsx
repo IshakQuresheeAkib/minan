@@ -80,6 +80,26 @@ const discountedProduct: ProductDetail = {
 };
 
 describe("ProductDetails discount messaging", () => {
+  it("renders one responsive product-name h1", () => {
+    const markup = renderToStaticMarkup(
+      <ProductDetails product={discountedProduct} />,
+    );
+
+    expect(markup.match(/<h1\b/g)).toHaveLength(1);
+    expect(markup).toContain("<h1");
+    expect(markup).toContain("Linen Shirt</h1>");
+    expect(markup).not.toContain("Linen Shirt</h2>");
+  });
+
+  it("uses an h2 for the product description section", () => {
+    const markup = renderToStaticMarkup(
+      <ProductDetails product={discountedProduct} />,
+    );
+
+    expect(markup).toContain("Description</h2>");
+    expect(markup).not.toContain("Description</h3>");
+  });
+
   it("renders the savings amount and percentage in the mobile layout", () => {
     const markup = renderToStaticMarkup(
       <ProductDetails product={discountedProduct} />,
@@ -87,6 +107,16 @@ describe("ProductDetails discount messaging", () => {
 
     expect(markup).toMatch(
       /<p class="[^"]*lg:hidden[^"]*"[^>]*>.*Save Tk 200 · 20% off<\/p>/s,
+    );
+  });
+
+  it("hides the desktop savings message from the mobile layout", () => {
+    const markup = renderToStaticMarkup(
+      <ProductDetails product={discountedProduct} />,
+    );
+
+    expect(markup).toMatch(
+      /<p class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*"[^>]*>.*Save Tk 200 · 20% off<\/p>/s,
     );
   });
 });

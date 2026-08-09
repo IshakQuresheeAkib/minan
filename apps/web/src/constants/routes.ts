@@ -16,3 +16,11 @@ export const adminRoutes = {
   orders: "/admin/orders",
   admins: "/admin/admins",
 } as const;
+
+export function getCollectionPath(slug: string): string {
+  return `/collections/${encodeURIComponent(slug)}`;
+}
+
+export function getProductPath(slug: string): string {
+  return `/products/${encodeURIComponent(slug)}`;
+}
