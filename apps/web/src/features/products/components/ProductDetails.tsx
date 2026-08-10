@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
@@ -31,15 +32,21 @@ type ProductDetailsProps = {
 };
 
 export function ProductDetails({ children, product }: ProductDetailsProps) {
+  return (
+    <ProductDetailsContent key={product._id} product={product}>
+      {children}
+    </ProductDetailsContent>
+  );
+}
+
+function ProductDetailsContent({ children, product }: ProductDetailsProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const setBuyNowItem = useBuyNowStore((state) => state.setItem);
   const galleryRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
 
-  const [selectedSize, setSelectedSize] = useState<string | null>(
-    product.sizes[0] ?? null,
-  );
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(
     product.colors[0] ?? null,
   );
@@ -125,10 +132,12 @@ export function ProductDetails({ children, product }: ProductDetailsProps) {
     }
 
     if (product.sizes.length > 0 && !selectedSize) {
+      toast.error("Select a size before continuing.");
       return null;
     }
 
     if (product.colors.length > 0 && !selectedColor) {
+      toast.error("Select a color before continuing.");
       return null;
     }
 

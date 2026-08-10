@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CircleCheck } from "lucide-react";
 import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -177,8 +178,9 @@ export function CheckoutForm({
         disabled={disabled}
         loading={form.formState.isSubmitting}
         loadingText="Opening bKash..."
+        leftIcon={<CircleCheck className="size-4" aria-hidden="true" />}
       >
-        Pay Tk {deliveryFee.toLocaleString("en-BD")} delivery fee with bKash
+        Complete order
       </Button>
       <p className="text-sm font-medium text-foreground/70">
         The Tk {deliveryFee.toLocaleString("en-BD")} delivery fee is non-refundable. Merchandise is payable by cash on delivery.
