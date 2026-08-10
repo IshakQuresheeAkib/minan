@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { Types } from "mongoose";
 
-import { getDeliveryFeeForShippingZone } from "../config/shipping.js";
+import { getDeliveryFeeForCheckout } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
 import {
   Order,
@@ -198,7 +198,7 @@ export async function createOrLoadCheckoutOrder(
     returned_quantity: 0,
     credited_amount: 0,
   }));
-  const deliveryFee = getDeliveryFeeForShippingZone(input.shipping_zone);
+  const deliveryFee = getDeliveryFeeForCheckout(input.shipping_zone);
   const now = new Date();
   const orderNumber = await allocateOrderNumber(now);
   const normalizedPhone = normalizeBangladeshPhone(input.phone_number);

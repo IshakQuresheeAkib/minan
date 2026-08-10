@@ -38,9 +38,11 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
     [items],
   );
   const hasUnavailableItems = items.some((item) => !item.isAvailable);
-  const selectedShippingOption = config?.shipping_options.find(
+  const selectedShippingOption = config?.shipping_options?.find(
     (option) => option.id === shippingZone,
   );
+  const payableDeliveryFee = selectedShippingOption?.delivery_fee ??
+    (config?.shipping_options ? undefined : config?.delivery_fee);
 
   const cartSnapshot = useMemo<CartSnapshot>(
     () => ({
@@ -119,6 +121,7 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
         <CheckoutForm
           cartSnapshot={cartSnapshot}
           checkoutSource="cart"
+          deliveryFee={config?.delivery_fee ?? 0}
           disabled={hasUnavailableItems || !config}
           onShippingZoneChange={setShippingZone}
           selectedShippingZone={shippingZone}
@@ -180,16 +183,16 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
             <span>
               {!config
                 ? "Unavailable"
-                : selectedShippingOption
-                  ? formatCurrency(selectedShippingOption.delivery_fee)
+                : payableDeliveryFee
+                  ? formatCurrency(payableDeliveryFee)
                   : "Select shipping method"}
             </span>
           </div>
           <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">
             <span>Overall Order value</span>
             <span>
-              {selectedShippingOption
-                ? formatCurrency(total + selectedShippingOption.delivery_fee)
+              {payableDeliveryFee
+                ? formatCurrency(total + payableDeliveryFee)
                 : "—"}
             </span>
           </div>

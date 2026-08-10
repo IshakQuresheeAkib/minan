@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { leadInputSchema } from "./lead.schema";
+import { getLeadInputSchema, leadInputSchema } from "./lead.schema";
 
 const validInput = {
   name: "MINAN Customer",
@@ -11,11 +11,13 @@ const validInput = {
 };
 
 describe("checkout form validation", () => {
-  it("requires a known shipping method", () => {
+  it("requires a known shipping method only for the zone-aware contract", () => {
     const missingZone = Object.fromEntries(
       Object.entries(validInput).filter(([key]) => key !== "shipping_zone"),
     );
-    expect(leadInputSchema.safeParse(missingZone).success).toBe(false);
+    expect(leadInputSchema.safeParse(missingZone).success).toBe(true);
+    expect(getLeadInputSchema(true).safeParse(missingZone).success).toBe(false);
+    expect(getLeadInputSchema(false).safeParse(missingZone).success).toBe(true);
     expect(leadInputSchema.safeParse({
       ...validInput,
       shipping_zone: "near_sylhet",

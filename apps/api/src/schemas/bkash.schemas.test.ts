@@ -23,12 +23,12 @@ const validCheckout = {
 };
 
 describe("checkout payment validation", () => {
-  it("requires a known shipping zone", () => {
+  it("accepts legacy zone-less requests but rejects unknown zones", () => {
     const missingZone = Object.fromEntries(
       Object.entries(validCheckout).filter(([key]) => key !== "shipping_zone"),
     );
 
-    expect(paymentCreateSchema.safeParse(missingZone).success).toBe(false);
+    expect(paymentCreateSchema.safeParse(missingZone).success).toBe(true);
     expect(paymentCreateSchema.safeParse({
       ...validCheckout,
       shipping_zone: "near_sylhet",
@@ -40,10 +40,11 @@ describe("checkout payment validation", () => {
     const withoutZone = Object.fromEntries(
       Object.entries(validCheckout).filter(([key]) => key !== "shipping_zone"),
     );
-    expect(paymentCreateSchema.safeParse({
+    const parsedLegacy = paymentCreateSchema.parse({
       ...withoutZone,
       delivery_fee: 1,
-    }).success).toBe(false);
+    });
+    expect(parsedLegacy).not.toHaveProperty("delivery_fee");
 
     const parsed = paymentCreateSchema.parse({
       ...validCheckout,

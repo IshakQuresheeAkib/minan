@@ -7,7 +7,7 @@ export const paymentCreateSchema = leadCreateSchema.extend({
   checkout_source: z.enum(["cart", "buy_now"]),
   shipping_zone: z.enum(shippingZones, {
     error: "Select a valid shipping method.",
-  }),
+  }).optional(),
 });
 
 export const paymentRetrySchema = z.object({

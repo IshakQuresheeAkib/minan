@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { checkoutConfigSchema } from "./checkout-config.schema";
 
 const validConfig = {
+  delivery_fee: 100,
   shipping_options: [
     {
       id: "inside_sylhet",
@@ -21,7 +22,17 @@ const validConfig = {
 
 describe("checkout configuration validation", () => {
   it("accepts the complete ordered shipping contract", () => {
-    expect(checkoutConfigSchema.safeParse(validConfig).success).toBe(true);
+    expect(checkoutConfigSchema.parse(validConfig)).toEqual(validConfig);
+  });
+
+  it("accepts the previous single-fee API contract", () => {
+    const legacyConfig = {
+      delivery_fee: 100,
+      currency: "BDT",
+      refundable: false,
+    };
+
+    expect(checkoutConfigSchema.parse(legacyConfig)).toEqual(legacyConfig);
   });
 
   it("rejects incomplete, duplicated, and malformed options", () => {

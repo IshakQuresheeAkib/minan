@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleCheck } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ import {
 import { ShippingMethodSelector } from "@/features/checkout/components/ShippingMethodSelector";
 import { getCheckoutIdempotencyKey } from "@/features/checkout/lib/checkoutSession";
 import {
-  leadInputSchema,
+  getLeadInputSchema,
   type LeadInput,
 } from "@/features/checkout/schemas/lead.schema";
 import type {
@@ -31,6 +31,7 @@ import { ApiError } from "@/lib/api/client";
 type CheckoutFormProps = {
   cartSnapshot: CartSnapshot;
   checkoutSource: CheckoutSource;
+  deliveryFee: number;
   disabled?: boolean;
   onShippingZoneChange: (zone: ShippingZone) => void;
   selectedShippingZone?: ShippingZone;
@@ -40,6 +41,7 @@ type CheckoutFormProps = {
 export function CheckoutForm({
   cartSnapshot,
   checkoutSource,
+  deliveryFee,
   disabled = false,
   onShippingZoneChange,
   selectedShippingZone,
@@ -48,8 +50,13 @@ export function CheckoutForm({
   const formId = useId();
   const [retryToken, setRetryToken] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const usesShippingZones = shippingOptions.length > 0;
+  const validationSchema = useMemo(
+    () => getLeadInputSchema(usesShippingZones),
+    [usesShippingZones],
+  );
   const form = useForm<LeadInput>({
-    resolver: zodResolver(leadInputSchema),
+    resolver: zodResolver(validationSchema),
     defaultValues: {
       name: "",
       phone_number: "",
@@ -62,6 +69,8 @@ export function CheckoutForm({
   const selectedOption = shippingOptions.find(
     (option) => option.id === selectedShippingZone,
   );
+  const payableDeliveryFee = selectedOption?.delivery_fee ??
+    (usesShippingZones ? undefined : deliveryFee);
   const errorIds = {
     address: `${formId}-address-error`,
     email: `${formId}-email-error`,
@@ -130,7 +139,9 @@ export function CheckoutForm({
       className="mt-8 grid gap-4"
       onSubmit={(event) =>
         void form.handleSubmit(onSubmit, (invalidFields) => {
-          if (invalidFields.shipping_zone) form.setFocus("shipping_zone");
+          if (usesShippingZones && invalidFields.shipping_zone) {
+            form.setFocus("shipping_zone");
+          }
         })(event)
       }
     >
@@ -177,27 +188,29 @@ export function CheckoutForm({
         />
         {errors.address ? <span id={errorIds.address} className="text-xs text-destructive" role="alert">{errors.address.message}</span> : null}
       </label>
-      <Controller
-        control={form.control}
-        name="shipping_zone"
-        render={({ field }) => (
-          <ShippingMethodSelector
-            ref={field.ref}
-            disabled={disabled || form.formState.isSubmitting || retrying}
-            errorId={errorIds.shipping_zone}
-            errorMessage={errors.shipping_zone?.message}
-            name={field.name}
-            onBlur={field.onBlur}
-            onChange={(zone) => {
-              field.onChange(zone);
-              setRetryToken(null);
-              onShippingZoneChange(zone);
-            }}
-            options={shippingOptions}
-            value={field.value}
-          />
-        )}
-      />
+      {usesShippingZones ? (
+        <Controller
+          control={form.control}
+          name="shipping_zone"
+          render={({ field }) => (
+            <ShippingMethodSelector
+              ref={field.ref}
+              disabled={disabled || form.formState.isSubmitting || retrying}
+              errorId={errorIds.shipping_zone}
+              errorMessage={errors.shipping_zone?.message}
+              name={field.name}
+              onBlur={field.onBlur}
+              onChange={(zone) => {
+                field.onChange(zone);
+                setRetryToken(null);
+                onShippingZoneChange(zone);
+              }}
+              options={shippingOptions}
+              value={field.value}
+            />
+          )}
+        />
+      ) : null}
       <label className="grid gap-2 text-sm font-medium">
         Notes
         <Textarea
@@ -216,8 +229,8 @@ export function CheckoutForm({
         loadingText="Opening bKash..."
         leftIcon={<CircleCheck className="size-4" aria-hidden="true" />}
       >
-        {selectedOption
-          ? `Pay Tk ${selectedOption.delivery_fee.toLocaleString("en-BD")} delivery fee with bKash`
+        {payableDeliveryFee
+          ? `Pay Tk ${payableDeliveryFee.toLocaleString("en-BD")} delivery fee with bKash`
           : "Continue to bKash"}
       </Button>
       <p className="text-sm font-medium text-foreground/70">
