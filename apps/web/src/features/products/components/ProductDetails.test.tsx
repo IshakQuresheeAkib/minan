@@ -39,7 +39,9 @@ vi.mock("@/features/products/components/SizeGuideModal", () => ({
 }));
 
 vi.mock("@/features/products/components/SizeColorSelector", () => ({
-  SizeColorSelector: () => null,
+  SizeColorSelector: ({ selectedSize }: { selectedSize: string | null }) => (
+    <div data-selected-size={selectedSize ?? ""} />
+  ),
 }));
 
 vi.mock("@/features/products/components/TrustBadges", () => ({
@@ -79,7 +81,21 @@ const discountedProduct: ProductDetail = {
   updatedAt: "2026-07-26T00:00:00.000Z",
 };
 
-describe("ProductDetails discount messaging", () => {
+describe("ProductDetails", () => {
+  it("does not preselect a size for the shopper", () => {
+    const productWithSizes: ProductDetail = {
+      ...discountedProduct,
+      sizes: ["S", "M"],
+    };
+
+    const markup = renderToStaticMarkup(
+      <ProductDetails product={productWithSizes} />,
+    );
+
+    expect(markup).toContain('data-selected-size=""');
+    expect(markup).not.toContain('data-selected-size="S"');
+  });
+
   it("renders one responsive product-name h1", () => {
     const markup = renderToStaticMarkup(
       <ProductDetails product={discountedProduct} />,

@@ -1,5 +1,7 @@
 import mongoose, { type Document, Schema, Types } from "mongoose";
 
+import type { ShippingZone } from "../config/shipping.js";
+
 export type OrderStatus =
   | "new"
   | "confirmed"
@@ -90,6 +92,7 @@ export interface OrderDocument extends Document {
   lines: OrderLine[];
   item_signature: string;
   checkout_source: CheckoutSource;
+  shipping_zone?: ShippingZone;
   checkout_idempotency_hash?: string;
   status: OrderStatus;
   held_from_status?: HoldableOrderStatus;
@@ -170,6 +173,7 @@ const orderSchema = new Schema<OrderDocument>(
     lines: { type: [orderLineSchema], required: true },
     item_signature: { type: String, required: true },
     checkout_source: { type: String, enum: ["cart", "buy_now", "exchange"], required: true },
+    shipping_zone: { type: String, enum: ["inside_sylhet", "outside_sylhet"] },
     checkout_idempotency_hash: { type: String, unique: true, sparse: true, select: false },
     status: {
       type: String,

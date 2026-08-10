@@ -1,12 +1,16 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
-import type { CartSnapshot, CheckoutConfig } from "@/features/checkout/types";
+import type {
+  CartSnapshot,
+  CheckoutConfig,
+  ShippingZone,
+} from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useCartPricingSync } from "@/features/products/hooks/useCartPricingSync";
 import { useCartStore } from "@/store/cart.store";
@@ -19,6 +23,7 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
   useCartPricingSync();
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
+  const [shippingZone, setShippingZone] = useState<ShippingZone>();
 
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -33,6 +38,11 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
     [items],
   );
   const hasUnavailableItems = items.some((item) => !item.isAvailable);
+  const selectedShippingOption = config?.shipping_options?.find(
+    (option) => option.id === shippingZone,
+  );
+  const payableDeliveryFee = selectedShippingOption?.delivery_fee ??
+    (config?.shipping_options ? undefined : config?.delivery_fee);
 
   const cartSnapshot = useMemo<CartSnapshot>(
     () => ({
@@ -113,6 +123,9 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
           checkoutSource="cart"
           deliveryFee={config?.delivery_fee ?? 0}
           disabled={hasUnavailableItems || !config}
+          onShippingZoneChange={setShippingZone}
+          selectedShippingZone={shippingZone}
+          shippingOptions={config?.shipping_options ?? []}
         />
         {!config ? (
           <p
@@ -160,29 +173,27 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
             <span>{formatCurrency(savings)}</span>
           </div>
         ) : null}
-        <div className="mt-5 grid gap-2 border-t pt-4 text-sm">
+        <div className="mt-5 grid gap-2 border-t pt-4 text-sm" aria-live="polite">
           <div className="flex items-center justify-between">
-            <span>Merchandise subtotal</span>
+            <span>Subtotal</span>
             <span>{formatCurrency(total)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>Non-refundable delivery fee</span>
+            <span>Delivery fee</span>
             <span>
-              {config ? formatCurrency(config.delivery_fee) : "Unavailable"}
+              {!config
+                ? "Unavailable"
+                : payableDeliveryFee
+                  ? formatCurrency(payableDeliveryFee)
+                  : "Select shipping method"}
             </span>
-          </div>
-          <div className="flex items-center justify-between font-semibold">
-            <span>Pay through bKash now</span>
-            <span>{config ? formatCurrency(config.delivery_fee) : "—"}</span>
-          </div>
-          <div className="flex items-center justify-between font-semibold">
-            <span>Remaining COD</span>
-            <span>{formatCurrency(total)}</span>
           </div>
           <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">
             <span>Overall Order value</span>
             <span>
-              {config ? formatCurrency(total + config.delivery_fee) : "—"}
+              {payableDeliveryFee
+                ? formatCurrency(total + payableDeliveryFee)
+                : "—"}
             </span>
           </div>
         </div>

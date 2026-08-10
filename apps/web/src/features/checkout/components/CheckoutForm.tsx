@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useId, useState } from "react";
-import { useForm } from "react-hook-form";
+import { CircleCheck } from "lucide-react";
+import { useId, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -12,36 +13,50 @@ import {
   retryCheckoutPayment,
   startCheckoutPayment,
 } from "@/features/checkout/actions/checkout.actions";
+import { ShippingMethodSelector } from "@/features/checkout/components/ShippingMethodSelector";
 import { getCheckoutIdempotencyKey } from "@/features/checkout/lib/checkoutSession";
 import {
-  leadInputSchema,
+  getLeadInputSchema,
   type LeadInput,
 } from "@/features/checkout/schemas/lead.schema";
 import type {
   CartSnapshot,
   CheckoutSource,
   PaymentStartResult,
+  ShippingOption,
+  ShippingZone,
 } from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
 
 type CheckoutFormProps = {
   cartSnapshot: CartSnapshot;
   checkoutSource: CheckoutSource;
-  disabled?: boolean;
   deliveryFee: number;
+  disabled?: boolean;
+  onShippingZoneChange: (zone: ShippingZone) => void;
+  selectedShippingZone?: ShippingZone;
+  shippingOptions: readonly ShippingOption[];
 };
 
 export function CheckoutForm({
   cartSnapshot,
   checkoutSource,
-  disabled = false,
   deliveryFee,
+  disabled = false,
+  onShippingZoneChange,
+  selectedShippingZone,
+  shippingOptions,
 }: CheckoutFormProps) {
   const formId = useId();
   const [retryToken, setRetryToken] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const usesShippingZones = shippingOptions.length > 0;
+  const validationSchema = useMemo(
+    () => getLeadInputSchema(usesShippingZones),
+    [usesShippingZones],
+  );
   const form = useForm<LeadInput>({
-    resolver: zodResolver(leadInputSchema),
+    resolver: zodResolver(validationSchema),
     defaultValues: {
       name: "",
       phone_number: "",
@@ -51,12 +66,18 @@ export function CheckoutForm({
     },
   });
   const errors = form.formState.errors;
+  const selectedOption = shippingOptions.find(
+    (option) => option.id === selectedShippingZone,
+  );
+  const payableDeliveryFee = selectedOption?.delivery_fee ??
+    (usesShippingZones ? undefined : deliveryFee);
   const errorIds = {
     address: `${formId}-address-error`,
     email: `${formId}-email-error`,
     name: `${formId}-name-error`,
     notes: `${formId}-notes-error`,
     phone_number: `${formId}-phone-number-error`,
+    shipping_zone: `${formId}-shipping-zone-error`,
   };
 
   function handlePaymentResult(result: PaymentStartResult): void {
@@ -116,7 +137,13 @@ export function CheckoutForm({
   return (
     <form
       className="mt-8 grid gap-4"
-      onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
+      onSubmit={(event) =>
+        void form.handleSubmit(onSubmit, (invalidFields) => {
+          if (usesShippingZones && invalidFields.shipping_zone) {
+            form.setFocus("shipping_zone");
+          }
+        })(event)
+      }
     >
       <label className="grid gap-2 text-sm font-medium">
         Name
@@ -161,6 +188,29 @@ export function CheckoutForm({
         />
         {errors.address ? <span id={errorIds.address} className="text-xs text-destructive" role="alert">{errors.address.message}</span> : null}
       </label>
+      {usesShippingZones ? (
+        <Controller
+          control={form.control}
+          name="shipping_zone"
+          render={({ field }) => (
+            <ShippingMethodSelector
+              ref={field.ref}
+              disabled={disabled || form.formState.isSubmitting || retrying}
+              errorId={errorIds.shipping_zone}
+              errorMessage={errors.shipping_zone?.message}
+              name={field.name}
+              onBlur={field.onBlur}
+              onChange={(zone) => {
+                field.onChange(zone);
+                setRetryToken(null);
+                onShippingZoneChange(zone);
+              }}
+              options={shippingOptions}
+              value={field.value}
+            />
+          )}
+        />
+      ) : null}
       <label className="grid gap-2 text-sm font-medium">
         Notes
         <Textarea
@@ -177,11 +227,15 @@ export function CheckoutForm({
         disabled={disabled}
         loading={form.formState.isSubmitting}
         loadingText="Opening bKash..."
+        leftIcon={<CircleCheck className="size-4" aria-hidden="true" />}
       >
-        Pay Tk {deliveryFee.toLocaleString("en-BD")} delivery fee with bKash
+        {payableDeliveryFee
+          ? `Pay Tk ${payableDeliveryFee.toLocaleString("en-BD")} delivery fee with bKash`
+          : "Continue to bKash"}
       </Button>
       <p className="text-sm font-medium text-foreground/70">
-        The Tk {deliveryFee.toLocaleString("en-BD")} delivery fee is non-refundable. Merchandise is payable by cash on delivery.
+        The delivery fee is non-refundable. Merchandise is payable by cash on
+        delivery.
       </p>
       {retryToken ? (
         <div className="grid gap-3" role="status">

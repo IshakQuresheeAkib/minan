@@ -124,7 +124,7 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
           ) : null}
           {result.cod_due !== undefined ? (
             <div className="flex justify-between gap-4">
-              <dt className="text-foreground/65">Remaining COD</dt>
+              <dt className="text-foreground/65">Remaining Cash on Delivery</dt>
               <dd className="font-medium">
                 Tk {result.cod_due.toLocaleString("en-BD")}
               </dd>

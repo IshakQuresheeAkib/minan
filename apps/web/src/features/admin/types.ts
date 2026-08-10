@@ -43,6 +43,7 @@ export type AdminOrder = {
   customer_notes: string | null;
   lines: AdminOrderLine[];
   checkout_source: "cart" | "buy_now" | "exchange";
+  shipping_zone: "inside_sylhet" | "outside_sylhet" | null;
   status: OrderStatus;
   held_from_status: "new" | "confirmed" | "processing" | "packing" | null;
   financials: {

@@ -10,6 +10,7 @@ import {
   getDBStatus,
   isDBConnected,
 } from "./config/db.js";
+import { getShippingConfig } from "./config/shipping.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import {
@@ -69,6 +70,7 @@ app.use(errorHandler);
 async function bootstrap(): Promise<void> {
   // Fail during startup instead of creating checkout attempts that cannot be paid.
   getBkashConfig();
+  getShippingConfig();
   await connectDB();
 
   const server = app.listen(port, () => {

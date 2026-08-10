@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { QueryFilter, UpdateQuery } from "mongoose";
 import { Types } from "mongoose";
 
+import { shippingAreaLabel } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
 import {
   Order,
@@ -159,7 +160,7 @@ export async function exportAdminOrdersCsv(query: OrderListQuery): Promise<strin
   }
   const rows: unknown[][] = [[
     "Order number", "Created", "Workflow status", "Fee status", "COD status",
-    "Customer", "Phone", "Email", "Address", "Items", "Merchandise subtotal",
+    "Customer", "Phone", "Email", "Address", "Shipping area", "Items", "Merchandise subtotal",
     "Order discount", "Merchandise total", "Delivery fee", "COD due", "COD collected",
     "Merchandise refunded", "bKash transaction", "Courier", "Tracking number",
   ]];
@@ -167,6 +168,7 @@ export async function exportAdminOrdersCsv(query: OrderListQuery): Promise<strin
     rows.push([
       order.order_number, order.createdAt.toISOString(), order.status, order.delivery_fee_status,
       order.cod_status, order.name, order.phone_number, order.email, order.address,
+      shippingAreaLabel(order.shipping_zone),
       order.lines.map((line) => `${line.name} (${line.size}/${line.color}) x${line.quantity}`).join("; "),
       order.financials.merchandise_subtotal, order.financials.order_discount,
       order.financials.merchandise_total, order.financials.delivery_fee,

@@ -8,7 +8,6 @@ export type BkashConfig = {
   password: string;
   apiPublicUrl: string;
   frontendUrl: string;
-  deliveryFeeBdt: number;
 };
 
 function required(name: string): string {
@@ -31,15 +30,6 @@ function normalizedUrl(name: string): string {
   return value;
 }
 
-function positiveInteger(name: string): number {
-  const raw = required(name);
-  const value = Number(raw);
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new AppError(`${name} must be a positive whole number`, 503);
-  }
-  return value;
-}
-
 export function getBkashConfig(): BkashConfig {
   return {
     baseUrl: normalizedUrl("BKASH_BASE_URL"),
@@ -49,6 +39,5 @@ export function getBkashConfig(): BkashConfig {
     password: required("BKASH_PASSWORD"),
     apiPublicUrl: normalizedUrl("API_PUBLIC_URL"),
     frontendUrl: normalizedUrl("FRONTEND_URL"),
-    deliveryFeeBdt: positiveInteger("DELIVERY_FEE_BDT"),
   };
 }

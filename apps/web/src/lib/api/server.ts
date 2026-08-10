@@ -1,5 +1,6 @@
 import "server-only";
 
+import { checkoutConfigSchema } from "@/features/checkout/schemas/checkout-config.schema";
 import type { CheckoutConfig, PaymentResult } from "@/features/checkout/types";
 
 function apiBaseUrl(): string {
@@ -35,13 +36,10 @@ export async function getCheckoutConfig(): Promise<CheckoutConfig> {
     next: { revalidate: 60 },
   });
   if (!response.ok) throw new Error("Checkout configuration is unavailable");
-  const payload = (await response.json()) as { data?: CheckoutConfig };
-  if (
-    !payload.data ||
-    !Number.isSafeInteger(payload.data.delivery_fee) ||
-    payload.data.delivery_fee <= 0
-  ) {
+  const payload = (await response.json()) as { data?: unknown };
+  const parsed = checkoutConfigSchema.safeParse(payload.data);
+  if (!parsed.success) {
     throw new Error("Checkout configuration response was invalid");
   }
-  return payload.data;
+  return parsed.data satisfies CheckoutConfig;
 }

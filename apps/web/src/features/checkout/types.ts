@@ -14,8 +14,17 @@ export type CartSnapshot = {
 
 export type CheckoutSource = "cart" | "buy_now";
 
+export type ShippingZone = "inside_sylhet" | "outside_sylhet";
+
+export type ShippingOption = {
+  id: ShippingZone;
+  label: string;
+  delivery_fee: number;
+};
+
 export type CheckoutConfig = {
   delivery_fee: number;
+  shipping_options?: [ShippingOption, ShippingOption];
   currency: "BDT";
   refundable: false;
 };

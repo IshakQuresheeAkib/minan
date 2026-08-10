@@ -29,6 +29,7 @@ describe("serializeOrder", () => {
       }],
       item_signature: "product-1:M:Black:1",
       checkout_source: "cart",
+      shipping_zone: "inside_sylhet",
       status: "new",
       financials: {
         merchandise_subtotal: 1200,
@@ -66,5 +67,9 @@ describe("serializeOrder", () => {
       returned_quantity: 0,
       credited_amount: 0,
     });
+    expect(serialized.shipping_zone).toBe("inside_sylhet");
+
+    order.shipping_zone = undefined;
+    expect(serializeOrder(order, [], true).shipping_zone).toBeNull();
   });
 });

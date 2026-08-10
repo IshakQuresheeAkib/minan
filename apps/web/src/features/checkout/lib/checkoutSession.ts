@@ -15,8 +15,10 @@ export function getCheckoutIdempotencyKey(
 ): string {
   const key = storageKey(source);
   const existing = sessionStorage.getItem(key);
+  const { shipping_zone: shippingZone, ...customerDetails } = customer;
   const fingerprint = JSON.stringify({
-    customer,
+    customer: customerDetails,
+    shipping_zone: shippingZone,
     items: cartSnapshot.items.map((item) => ({
       product_id: item.product_id,
       size: item.size,

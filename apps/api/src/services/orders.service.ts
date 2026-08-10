@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { Types } from "mongoose";
 
-import { getBkashConfig } from "../config/bkash.js";
+import { getDeliveryFeeForCheckout } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
 import {
   Order,
@@ -41,7 +41,7 @@ export function buildItemSignature(
 export function allocateOrderDiscount(lines: OrderLine[], discount: number): OrderLine[] {
   const subtotal = lines.reduce((sum, line) => sum + line.unit_price * line.quantity, 0);
   if (!Number.isSafeInteger(discount) || discount < 0 || discount > subtotal) {
-    throw new AppError("Order discount must be a whole amount within the merchandise subtotal", 400);
+    throw new AppError("Order discount must be a whole amount within the subtotal", 400);
   }
   if (subtotal === 0 || discount === 0) {
     return lines.map((line) => ({ ...line, allocated_order_discount: 0 }));
@@ -133,6 +133,7 @@ export function checkoutRequestMatchesOrder(
     input.address !== order.address ||
     (input.notes ?? "") !== (order.customer_notes ?? "") ||
     input.checkout_source !== order.checkout_source ||
+    input.shipping_zone !== order.shipping_zone ||
     input.cart_snapshot.items.length !== order.lines.length
   ) {
     return false;
@@ -197,7 +198,7 @@ export async function createOrLoadCheckoutOrder(
     returned_quantity: 0,
     credited_amount: 0,
   }));
-  const deliveryFee = getBkashConfig().deliveryFeeBdt;
+  const deliveryFee = getDeliveryFeeForCheckout(input.shipping_zone);
   const now = new Date();
   const orderNumber = await allocateOrderNumber(now);
   const normalizedPhone = normalizeBangladeshPhone(input.phone_number);
@@ -213,6 +214,7 @@ export async function createOrLoadCheckoutOrder(
       lines,
       item_signature: buildItemSignature(lines),
       checkout_source: input.checkout_source,
+      shipping_zone: input.shipping_zone,
       checkout_idempotency_hash: idempotencyHash,
       status: "new",
       financials: calculateFinancials({ lines, deliveryFee }),
@@ -222,7 +224,10 @@ export async function createOrLoadCheckoutOrder(
       activity: [{
         actor_type: "customer",
         event: "order_created",
-        metadata: { checkout_source: input.checkout_source },
+        metadata: {
+          checkout_source: input.checkout_source,
+          shipping_zone: input.shipping_zone,
+        },
         created_at: now,
       }],
     });
