@@ -17,6 +17,7 @@ import {
   recheckAdminOrderPayment,
 } from "@/features/admin/actions/orders.actions";
 import { useAdminOrder } from "@/features/admin/hooks/useAdminOrders";
+import { shippingAreaLabel } from "@/features/admin/lib/shippingArea";
 import type {
   AdminOrder,
   AdminProduct,
@@ -206,6 +207,12 @@ function CustomerEditor({
           <div className="sm:col-span-2">
             <dt className="text-foreground/55">Address</dt>
             <dd className="mt-1 whitespace-pre-wrap">{order.address}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-foreground/55">Shipping area</dt>
+            <dd className="mt-1 font-medium">
+              {shippingAreaLabel(order.shipping_zone)}
+            </dd>
           </div>
           {order.customer_notes ? (
             <div className="sm:col-span-2">

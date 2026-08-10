@@ -33,6 +33,7 @@ export function serializeOrder(
       credited_amount: line.credited_amount,
     })),
     checkout_source: order.checkout_source,
+    shipping_zone: order.shipping_zone ?? null,
     status: order.status,
     held_from_status: order.held_from_status ?? null,
     financials: {

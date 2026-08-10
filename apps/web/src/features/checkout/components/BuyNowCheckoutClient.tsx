@@ -2,12 +2,16 @@
 
 import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
-import type { CartSnapshot, CheckoutConfig } from "@/features/checkout/types";
+import type {
+  CartSnapshot,
+  CheckoutConfig,
+  ShippingZone,
+} from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useBuyNowPricingSync } from "@/features/products/hooks/useBuyNowPricingSync";
 import { useBuyNowStore } from "@/store/buy-now.store";
@@ -24,9 +28,13 @@ export function BuyNowCheckoutClient({
   useBuyNowPricingSync();
   const item = useBuyNowStore((state) => state.item);
   const hasHydrated = useBuyNowStore((state) => state.hasHydrated);
+  const [shippingZone, setShippingZone] = useState<ShippingZone>();
 
   const total = item ? item.price * item.quantity : 0;
   const savings = item ? (item.originalPrice - item.price) * item.quantity : 0;
+  const selectedShippingOption = config?.shipping_options.find(
+    (option) => option.id === shippingZone,
+  );
   const cartSnapshot = useMemo<CartSnapshot | null>(() => {
     if (!item) {
       return null;
@@ -103,8 +111,10 @@ export function BuyNowCheckoutClient({
         <CheckoutForm
           cartSnapshot={cartSnapshot}
           checkoutSource="buy_now"
-          deliveryFee={config?.delivery_fee ?? 0}
           disabled={!item.isAvailable || !config}
+          onShippingZoneChange={setShippingZone}
+          selectedShippingZone={shippingZone}
+          shippingOptions={config?.shipping_options ?? []}
         />
         {!config ? (
           <p
@@ -157,29 +167,27 @@ export function BuyNowCheckoutClient({
             <span>{formatCurrency(savings)}</span>
           </div>
         ) : null}
-        <div className="mt-5 grid gap-2 border-t pt-4 text-sm">
+        <div className="mt-5 grid gap-2 border-t pt-4 text-sm" aria-live="polite">
           <div className="flex justify-between">
-            <span>Merchandise subtotal</span>
+            <span>Subtotal</span>
             <span>{formatCurrency(total)}</span>
           </div>
           <div className="flex justify-between">
-            <span>Non-refundable delivery fee</span>
+            <span>Delivery fee</span>
             <span>
-              {config ? formatCurrency(config.delivery_fee) : "Unavailable"}
+              {!config
+                ? "Unavailable"
+                : selectedShippingOption
+                  ? formatCurrency(selectedShippingOption.delivery_fee)
+                  : "Select shipping method"}
             </span>
-          </div>
-          <div className="flex justify-between font-semibold">
-            <span>Pay through bKash now</span>
-            <span>{config ? formatCurrency(config.delivery_fee) : "—"}</span>
-          </div>
-          <div className="flex justify-between font-semibold">
-            <span>Remaining COD</span>
-            <span>{formatCurrency(total)}</span>
           </div>
           <div className="flex justify-between border-t pt-2 text-base font-semibold">
             <span>Overall Order value</span>
             <span>
-              {config ? formatCurrency(total + config.delivery_fee) : "—"}
+              {selectedShippingOption
+                ? formatCurrency(total + selectedShippingOption.delivery_fee)
+                : "—"}
             </span>
           </div>
         </div>

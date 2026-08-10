@@ -290,6 +290,7 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `lines`                   | Array    | frozen product/variant/price/discount lines with return and credit accounting |
 | `status`                  | String   | `new | confirmed | processing | packing | shipped | delivered | on_hold | cancelled | returned | exchanged` |
 | `checkout_source`         | String   | `cart | buy_now | exchange` |
+| `shipping_zone`           | String   | optional `inside_sylhet` or `outside_sylhet`; historical/exchange Orders remain unspecified |
 | `checkout_idempotency_hash` | String | unique, sparse, server-only |
 | `financials`              | Object   | integer-BDT merchandise, discount, fee, COD, paid, refunded, and exchange-credit snapshots |
 | `delivery_fee_status`     | String   | independent fee lifecycle |
@@ -373,7 +374,7 @@ The storefront uses one generic screen-reader-only promotional heading for the h
 | POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
 | GET    | `/api/home-banners`   | Ordered homepage banners with responsive images and image descriptions; empty until the singleton seed exists |
-| GET    | `/api/checkout/config` | Cacheable backend-authoritative delivery fee and non-refundable policy |
+| GET    | `/api/checkout/config` | Cacheable backend-authoritative ordered shipping options, BDT fees, and non-refundable policy |
 | POST   | `/api/bkash/payments` | Create/idempotently retrieve an Order and start its frozen delivery-fee attempt |
 | GET    | `/api/bkash/callback` | Verify and reconcile the provider redirect, including valid late completions |
 | POST   | `/api/bkash/results/resolve` | Resolve an opaque result reference to Order number, fee, COD, and transaction details |
@@ -489,11 +490,12 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `phone_number` | text     | yes      | BD regex `/^(?:\+?88)?01[3-9]\d{8}$/` |
 | `email`        | email    | yes      | valid email |
 | `address`      | textarea | yes      | min 8, max 400 |
+| `shipping_zone` | radio   | yes      | `inside_sylhet` or `outside_sylhet`; the browser never submits a fee amount |
 | `notes`        | textarea | no       | max 500 |
 
-`GET /api/checkout/config` exposes the backend-authoritative positive integer delivery fee with ETag/revalidation metadata. Checkout is disabled when it is unavailable.
+`GET /api/checkout/config` exposes `inside_sylhet` and `outside_sylhet` in display order with backend-authoritative positive integer fees, BDT currency, the non-refundable policy, and ETag/revalidation metadata. Checkout is disabled when either required fee is unavailable or invalid. The storefront starts with neither option selected.
 
-`POST /api/bkash/payments` verifies products, variants, and prices server-side; creates one frozen Order per idempotency key; snapshots the configured delivery fee; and redirects to bKash Checkout URL mode `0011` for that fee only. Merchandise remains COD. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Callback Execute/query recovery, signature checks, amount/currency/invoice verification, result tokens, retry tokens, rate limits, and late completion reconciliation remain mandatory. Cart state clears only after a completed result resolves.
+`POST /api/bkash/payments` requires a shipping-zone ID, maps it to the current server configuration, verifies products, variants, and prices server-side, creates one frozen Order per idempotency key, snapshots the zone and delivery fee, and redirects to bKash Checkout URL mode `0011` for that fee only. The zone participates in browser and server idempotency matching. Merchandise remains COD. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Callback Execute/query recovery, signature checks, amount/currency/invoice verification, result tokens, retry tokens, rate limits, and late completion reconciliation remain mandatory. Retry uses the original Order fee without reading current shipping configuration. Cart state clears only after a completed result resolves.
 
 ---
 
@@ -654,6 +656,9 @@ BKASH_APP_KEY=
 BKASH_APP_SECRET=
 BKASH_USERNAME=
 BKASH_PASSWORD=
+DELIVERY_FEE_BDT=100
+DELIVERY_FEE_INSIDE_SYLHET_BDT=60
+DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120
 API_PUBLIC_URL=https://api.minan.com
 FRONTEND_URL=https://app.minan.com
 ```
@@ -663,7 +668,7 @@ FRONTEND_URL=https://app.minan.com
 - `cleanup:admin-roles` is an optional post-deploy hygiene script that removes legacy `role` fields from `admin_users`; stale role fields are ignored by current code.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 - `API_PUBLIC_URL` must be the directly reachable Render API origin used for the bKash callback. `FRONTEND_URL` is the Vercel storefront origin used after callback verification.
-- `DELIVERY_FEE_BDT=100` is required and must be a positive integer. It is the only delivery-fee source; do not add a frontend public fee variable.
+- `DELIVERY_FEE_INSIDE_SYLHET_BDT=60` and `DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120` are required positive integers and are the only current-release fee sources; do not add frontend public fee variables. Keep legacy `DELIVERY_FEE_BDT=100` only during the rollback window, then remove it.
 - `CHECKOUT_MAINTENANCE_MODE=true` blocks payment creation and retry during migration while preserving callbacks, result resolution, and admin recheck.
 - The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL; it does not depend on the browser rewrite.
 - Use bKash sandbox credentials until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Replace the base URL and credentials together for production.

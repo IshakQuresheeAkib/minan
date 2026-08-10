@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { adminRoutes } from "@/constants/routes";
 import { useAdminOrder } from "@/features/admin/hooks/useAdminOrders";
-import { getOutstandingCod } from "@/features/admin/lib/orderFinancials";
+import { shippingAreaLabel } from "@/features/admin/lib/shippingArea";
 
 function money(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
@@ -70,6 +70,9 @@ export function OrderPrintView({
             <p className="mt-2 font-semibold">{order.name}</p>
             <p>{order.phone_number}</p>
             <p className="mt-1 whitespace-pre-wrap">{order.address}</p>
+            <p className="my-2">
+              Shipping area: {shippingAreaLabel(order.shipping_zone)}
+            </p>
           </div>
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide">
@@ -123,7 +126,7 @@ export function OrderPrintView({
           <section className="ml-auto mt-6 max-w-sm">
             <dl className="grid gap-2 text-sm">
               <div className="flex justify-between">
-                <dt>Merchandise subtotal</dt>
+                <dt>Subtotal</dt>
                 <dd>{money(order.financials.merchandise_subtotal)}</dd>
               </div>
               <div className="flex justify-between">
@@ -131,7 +134,7 @@ export function OrderPrintView({
                 <dd>− {money(order.financials.order_discount)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt>Non-refundable delivery fee</dt>
+                <dt>Delivery fee</dt>
                 <dd>{money(order.financials.delivery_fee)}</dd>
               </div>
               <div className="flex justify-between border-t pt-2 font-semibold">
@@ -145,14 +148,6 @@ export function OrderPrintView({
                     order.delivery_fee_status === "paid"
                       ? order.financials.delivery_fee
                       : 0,
-                  )}
-                </dd>
-              </div>
-              <div className="flex justify-between text-base font-bold">
-                <dt>Remaining COD</dt>
-                <dd>
-                  {money(
-                    getOutstandingCod(order.financials, order.cod_status),
                   )}
                 </dd>
               </div>

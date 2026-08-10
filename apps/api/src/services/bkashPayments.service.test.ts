@@ -16,7 +16,6 @@ vi.mock("../config/bkash.js", () => ({
     baseUrl: "https://tokenized.sandbox.bka.sh",
     appKey: "key", appSecret: "secret", username: "user", password: "password",
     apiPublicUrl: "https://api.example.com", frontendUrl: "https://shop.example.com",
-    deliveryFeeBdt: 100,
   }),
 }));
 vi.mock("./bkashClient.service.js", () => ({
@@ -57,14 +56,17 @@ function hash(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function attempt(status: PaymentAttemptDocument["status"] = "initiated") {
+function attempt(
+  status: PaymentAttemptDocument["status"] = "initiated",
+  expectedAmount = "60.00",
+) {
   const document = new PaymentAttempt({
     order_id: new Types.ObjectId("507f1f77bcf86cd799439011"),
     payment_purpose: "delivery_fee",
     sequence: 1,
     status,
     merchant_invoice_number: "MN-20260805-0001-01",
-    expected_amount: "100.00",
+    expected_amount: expectedAmount,
     currency: "BDT",
     payment_id: "TR001",
   });
@@ -73,7 +75,10 @@ function attempt(status: PaymentAttemptDocument["status"] = "initiated") {
   return persistable(document);
 }
 
-function order() {
+function order(
+  deliveryFee = 60,
+  shippingZone: "inside_sylhet" | "outside_sylhet" = "inside_sylhet",
+) {
   const id = new Types.ObjectId("507f1f77bcf86cd799439011");
   return {
     _id: id,
@@ -85,8 +90,9 @@ function order() {
     address: "Dhaka",
     customer_notes: "",
     checkout_source: "cart",
+    shipping_zone: shippingZone,
     lines: [{ product_id: new Types.ObjectId().toString(), size: "M", color: "Black", quantity: 1 }],
-    financials: { delivery_fee: 100, cod_due: 1200 },
+    financials: { delivery_fee: deliveryFee, cod_due: 1200 },
   };
 }
 
@@ -97,6 +103,7 @@ const input = {
   address: "Dhaka",
   notes: "",
   checkout_source: "cart" as const,
+  shipping_zone: "inside_sylhet" as const,
   cart_snapshot: {
     items: [{ product_id: new Types.ObjectId().toString(), name: "Shirt", price: 1200, size: "M", color: "Black", quantity: 1 }],
     total: 1200,
@@ -106,7 +113,7 @@ const input = {
 describe("bKash delivery-fee verification", () => {
   const completed = {
     statusCode: "0000", transactionStatus: "Completed", paymentID: "TR001",
-    trxID: "AJH7ABC123", amount: "100.00", currency: "BDT",
+    trxID: "AJH7ABC123", amount: "60.00", currency: "BDT",
     merchantInvoiceNumber: "MN-20260805-0001-01",
   };
 
@@ -149,10 +156,10 @@ describe("bKash Order lifecycle", () => {
     expect(PaymentAttempt.create).toHaveBeenCalledWith(expect.objectContaining({
       order_id: checkoutOrder._id,
       payment_purpose: "delivery_fee",
-      expected_amount: "100.00",
+      expected_amount: "60.00",
       merchant_invoice_number: "MN-20260805-0001-01",
     }));
-    expect(mocks.createPayment).toHaveBeenCalledWith(expect.objectContaining({ amount: "100.00", payerReference: checkoutOrder.order_number }));
+    expect(mocks.createPayment).toHaveBeenCalledWith(expect.objectContaining({ amount: "60.00", payerReference: checkoutOrder.order_number }));
   });
 
   it("rejects an idempotency key reused for different checkout data", async () => {
@@ -174,13 +181,13 @@ describe("bKash Order lifecycle", () => {
     expect(mocks.createPayment).not.toHaveBeenCalled();
   });
 
-  it("retries the same frozen Tk 100 Order without product validation", async () => {
-    const failed = attempt("failed");
-    const checkoutOrder = order();
+  it("retries the same frozen Tk 120 outside-Sylhet Order without product validation", async () => {
+    const failed = attempt("failed", "120.00");
+    const checkoutOrder = order(120, "outside_sylhet");
     vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockResolvedValue(failed);
     vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(failed) as never);
     vi.spyOn(Order, "findById").mockResolvedValue(checkoutOrder as never);
-    const next = attempt("creating");
+    const next = attempt("creating", "120.00");
     next.sequence = 2;
     vi.spyOn(PaymentAttempt, "create").mockResolvedValue(next as never);
     mocks.createPayment.mockResolvedValue({ statusCode: "0000", paymentID: "TR002", bkashURL: "https://sandbox.bka.sh/retry" });
@@ -188,7 +195,7 @@ describe("bKash Order lifecycle", () => {
     const result = await retryBkashPayment({ retry_token: "x".repeat(43) });
 
     expect(result.state).toBe("redirect");
-    expect(PaymentAttempt.create).toHaveBeenCalledWith(expect.objectContaining({ expected_amount: "100.00", sequence: 2 }));
+    expect(PaymentAttempt.create).toHaveBeenCalledWith(expect.objectContaining({ expected_amount: "120.00", sequence: 2 }));
     expect(mocks.createOrLoadOrder).not.toHaveBeenCalled();
   });
 
@@ -300,7 +307,7 @@ describe("bKash Order lifecycle", () => {
     vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(expired);
     mocks.queryPayment.mockResolvedValue({
       statusCode: "0000", transactionStatus: "Completed", paymentID: "TR001",
-      trxID: "LATE123", amount: "100.00", currency: "BDT",
+      trxID: "LATE123", amount: "60.00", currency: "BDT",
       merchantInvoiceNumber: expired.merchant_invoice_number,
     });
 
@@ -356,7 +363,7 @@ describe("bKash Order lifecycle", () => {
 
     const result = await resolvePaymentResult("r".repeat(43));
 
-    expect(result).toMatchObject({ state: "completed", order_number: "MN-20260805-0001", fee_paid: 100, cod_due: 1200 });
+    expect(result).toMatchObject({ state: "completed", order_number: "MN-20260805-0001", fee_paid: 60, cod_due: 1200 });
     expect(result).not.toHaveProperty("amount");
   });
 

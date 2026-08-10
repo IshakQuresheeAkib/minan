@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { NextFunction, Request, Response } from "express";
 
-import { getBkashConfig } from "../config/bkash.js";
+import { getShippingConfig } from "../config/shipping.js";
 
 export function getCheckoutConfigHandler(
   req: Request,
@@ -10,8 +10,7 @@ export function getCheckoutConfigHandler(
   next: NextFunction,
 ): void {
   try {
-    const deliveryFee = getBkashConfig().deliveryFeeBdt;
-    const data = { delivery_fee: deliveryFee, currency: "BDT" as const, refundable: false };
+    const data = getShippingConfig();
     const etag = `"${createHash("sha256").update(JSON.stringify(data)).digest("base64url")}"`;
     if (req.get("If-None-Match") === etag) {
       res.status(304).end();

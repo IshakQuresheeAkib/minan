@@ -23,6 +23,7 @@ const customer: LeadInput = {
   phone_number: "01700000000",
   email: "customer@example.com",
   address: "Original delivery address",
+  shipping_zone: "inside_sylhet",
   notes: "",
 };
 
@@ -50,5 +51,15 @@ describe("checkout idempotency session", () => {
 
     expect(replay).toBe(first);
     expect(corrected).not.toBe(first);
+  });
+
+  it("rotates the key when the selected shipping zone changes", () => {
+    const inside = getCheckoutIdempotencyKey("cart", cartSnapshot, customer);
+    const outside = getCheckoutIdempotencyKey("cart", cartSnapshot, {
+      ...customer,
+      shipping_zone: "outside_sylhet",
+    });
+
+    expect(outside).not.toBe(inside);
   });
 });
