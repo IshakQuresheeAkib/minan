@@ -1,6 +1,6 @@
 # MINAN
 
-MINAN is a Bangladesh fashion-commerce platform with an Express-owned Order domain. Every checkout freezes a server-verified merchandise snapshot, charges a backend-authoritative non-refundable delivery fee through bKash, and leaves merchandise payable by COD.
+MINAN is a Bangladesh fashion-commerce platform with an Express-owned Order domain. Every checkout freezes a server-verified merchandise snapshot and lets the customer either pay the complete Order through bKash or pay the non-refundable delivery fee in advance and leave merchandise payable by COD.
 
 ## Architecture
 
@@ -47,6 +47,6 @@ The API and web app deploy independently. For payment-model releases, deploy in 
 2. Run `npm --workspace @minan/api run migrate:orders` and resolve every dry-run anomaly.
 3. Enable `CHECKOUT_MAINTENANCE_MODE=true` for payment creation/retry while keeping callbacks, results, and admin rechecks available.
 4. Apply with `npm --workspace @minan/api run migrate:orders -- --apply`, run it again to prove idempotency, and verify counts, finances, counters, attempt links, transaction IDs, and dashboard metrics.
-5. Deploy the Orders frontend, confirm the bKash sandbox flow charges only the delivery fee, then disable maintenance.
+5. Deploy the Orders frontend, confirm both sandbox amounts (full Order and fee-only COD) plus result/admin reconciliation, then disable maintenance.
 
 Legacy Leads remain untouched as a migration rollback source for one compatibility release. New Orders are not dual-written to Leads. Merchandise refunds are executed manually and recorded against the Order; delivery fees are never refundable. Exchange replacement Orders always waive delivery in v1 and do not create a payment link.

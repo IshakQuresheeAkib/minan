@@ -44,6 +44,8 @@ export type AdminOrder = {
   lines: AdminOrderLine[];
   checkout_source: "cart" | "buy_now" | "exchange";
   shipping_zone: "inside_sylhet" | "outside_sylhet" | null;
+  payment_method: "bkash_full" | "cod" | null;
+  settled_payment_attempt_id: string | null;
   status: OrderStatus;
   held_from_status: "new" | "confirmed" | "processing" | "packing" | null;
   financials: {
@@ -88,7 +90,7 @@ export type AdminOrder = {
     admin_email: string;
     created_at: string;
   }[];
-  payment_attempts?: (AdminPaymentAttempt & { payment_purpose: "delivery_fee" | "legacy_full_order" })[];
+  payment_attempts?: (AdminPaymentAttempt & { payment_purpose: "delivery_fee" | "order_total" | "legacy_full_order" })[];
   createdAt: string;
   updatedAt: string;
 };
@@ -170,6 +172,7 @@ export type AdminPaymentAttempt = {
   bkash_trx_id: string | null;
   provider_status_code: string | null;
   provider_status_message: string | null;
+  terminal_confirmed_at: string | null;
   last_query_at: string | null;
   createdAt: string;
   updatedAt: string;

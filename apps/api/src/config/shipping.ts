@@ -1,4 +1,8 @@
 import { AppError } from "../lib/errors.js";
+import {
+  getCheckoutPaymentContract,
+  type CheckoutPaymentContract,
+} from "./checkoutPayment.js";
 
 export const shippingZones = ["inside_sylhet", "outside_sylhet"] as const;
 
@@ -15,6 +19,7 @@ export type ShippingConfig = {
   shipping_options: [ShippingOption, ShippingOption];
   currency: "BDT";
   refundable: false;
+  payment_contract: CheckoutPaymentContract;
 };
 
 function requiredPositiveInteger(name: string): number {
@@ -47,6 +52,7 @@ export function getShippingConfig(): ShippingConfig {
     ],
     currency: "BDT",
     refundable: false,
+    payment_contract: getCheckoutPaymentContract(),
   };
 }
 

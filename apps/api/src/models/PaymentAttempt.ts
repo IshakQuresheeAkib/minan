@@ -10,13 +10,14 @@ export type PaymentAttemptStatus =
   | "verification_pending"
   | "expired";
 
-export type PaymentPurpose = "delivery_fee" | "legacy_full_order";
+export type PaymentPurpose = "delivery_fee" | "order_total" | "legacy_full_order";
 
 export interface PaymentAttemptDocument extends Document {
   lead_id?: Types.ObjectId;
   order_id?: Types.ObjectId;
   payment_purpose: PaymentPurpose;
   sequence: number;
+  order_revision?: number;
   status: PaymentAttemptStatus;
   merchant_invoice_number: string;
   expected_amount: string;
@@ -29,6 +30,7 @@ export interface PaymentAttemptDocument extends Document {
   cancel_signature_hash?: string;
   provider_status_code?: string;
   provider_status_message?: string;
+  terminal_confirmed_at?: Date;
   execute_started_at?: Date;
   last_query_at?: Date;
   result_token_hash?: string;
@@ -47,11 +49,12 @@ const paymentAttemptSchema = new Schema<PaymentAttemptDocument>(
     order_id: { type: Schema.Types.ObjectId, ref: "Order" },
     payment_purpose: {
       type: String,
-      enum: ["delivery_fee", "legacy_full_order"] satisfies PaymentPurpose[],
+      enum: ["delivery_fee", "order_total", "legacy_full_order"] satisfies PaymentPurpose[],
       required: true,
       default: "legacy_full_order",
     },
     sequence: { type: Number, required: true, min: 1 },
+    order_revision: { type: Number, min: 1 },
     status: {
       type: String,
       enum: [
@@ -78,6 +81,7 @@ const paymentAttemptSchema = new Schema<PaymentAttemptDocument>(
     cancel_signature_hash: { type: String, select: false },
     provider_status_code: { type: String, maxlength: 32 },
     provider_status_message: { type: String, maxlength: 300 },
+    terminal_confirmed_at: { type: Date },
     execute_started_at: { type: Date },
     last_query_at: { type: Date },
     result_token_hash: { type: String, select: false },

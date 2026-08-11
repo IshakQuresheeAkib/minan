@@ -15,7 +15,14 @@ export function getCheckoutIdempotencyKey(
 ): string {
   const key = storageKey(source);
   const existing = sessionStorage.getItem(key);
-  const { shipping_zone: shippingZone, ...customerDetails } = customer;
+  const customerDetails: Omit<LeadInput, "payment_method" | "shipping_zone"> = {
+    name: customer.name,
+    phone_number: customer.phone_number,
+    email: customer.email,
+    address: customer.address,
+    notes: customer.notes,
+  };
+  const shippingZone = customer.shipping_zone;
   const fingerprint = JSON.stringify({
     customer: customerDetails,
     shipping_zone: shippingZone,

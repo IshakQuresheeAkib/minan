@@ -47,6 +47,10 @@ describe("shipping configuration", () => {
       ],
       currency: "BDT",
       refundable: false,
+      payment_contract: {
+        version: 2,
+        methods: ["bkash_full", "cod"],
+      },
     });
     expect(getDeliveryFeeForCheckout()).toBe(100);
     expect(getDeliveryFeeForCheckout("inside_sylhet")).toBe(60);

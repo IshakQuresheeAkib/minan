@@ -6,9 +6,11 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
+import { getPaymentSplit } from "@/features/checkout/lib/paymentContract";
 import type {
   CartSnapshot,
   CheckoutConfig,
+  PaymentMethod,
   ShippingZone,
 } from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
@@ -24,6 +26,7 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const [shippingZone, setShippingZone] = useState<ShippingZone>();
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>();
 
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -43,6 +46,14 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
   );
   const payableDeliveryFee = selectedShippingOption?.delivery_fee ??
     (config?.shipping_options ? undefined : config?.delivery_fee);
+  const summaryPaymentMethod = config?.payment_contract
+    ? paymentMethod
+    : config
+      ? "cod"
+      : undefined;
+  const paymentSplit = summaryPaymentMethod && payableDeliveryFee !== undefined
+    ? getPaymentSplit(summaryPaymentMethod, total, payableDeliveryFee)
+    : undefined;
 
   const cartSnapshot = useMemo<CartSnapshot>(
     () => ({
@@ -123,7 +134,10 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
           checkoutSource="cart"
           deliveryFee={config?.delivery_fee ?? 0}
           disabled={hasUnavailableItems || !config}
+          merchandiseTotal={total}
+          onPaymentMethodChange={setPaymentMethod}
           onShippingZoneChange={setShippingZone}
+          paymentContract={config?.payment_contract}
           selectedShippingZone={shippingZone}
           shippingOptions={config?.shipping_options ?? []}
         />
@@ -193,6 +207,22 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
             <span>
               {payableDeliveryFee
                 ? formatCurrency(total + payableDeliveryFee)
+                : "—"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Pay now via bKash</span>
+            <span>
+              {paymentSplit
+                ? formatCurrency(paymentSplit.payNow)
+                : "Select payment method"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between font-medium">
+            <span>Due on delivery</span>
+            <span>
+              {paymentSplit
+                ? formatCurrency(paymentSplit.dueOnDelivery)
                 : "—"}
             </span>
           </div>

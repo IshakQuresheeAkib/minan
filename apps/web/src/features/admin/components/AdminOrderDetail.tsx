@@ -163,7 +163,7 @@ function CustomerEditor({
             />
           </label>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">
-            Address
+            Detailed Address
             <Textarea
               value={address}
               onChange={(event) => setAddress(event.target.value)}
@@ -697,6 +697,18 @@ function OrderUtility({
           <div className="flex justify-between border-t pt-2 font-semibold">
             <dt>Overall value</dt>
             <dd>{money(order.financials.overall_order_value)}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt>Payment method</dt>
+            <dd>{order.payment_method === "bkash_full" ? "bKash — full" : order.payment_method === "cod" ? "COD" : "Not selected"}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt>Merchandise paid online</dt>
+            <dd>{money(order.financials.merchandise_paid_online)}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt>Delivery fee paid</dt>
+            <dd>{money(order.delivery_fee_status === "paid" ? order.financials.delivery_fee : 0)}</dd>
           </div>
           <div className="flex justify-between">
             <dt>COD outstanding</dt>

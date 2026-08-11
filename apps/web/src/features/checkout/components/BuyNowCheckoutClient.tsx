@@ -7,9 +7,11 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
+import { getPaymentSplit } from "@/features/checkout/lib/paymentContract";
 import type {
   CartSnapshot,
   CheckoutConfig,
+  PaymentMethod,
   ShippingZone,
 } from "@/features/checkout/types";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
@@ -29,6 +31,7 @@ export function BuyNowCheckoutClient({
   const item = useBuyNowStore((state) => state.item);
   const hasHydrated = useBuyNowStore((state) => state.hasHydrated);
   const [shippingZone, setShippingZone] = useState<ShippingZone>();
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>();
 
   const total = item ? item.price * item.quantity : 0;
   const savings = item ? (item.originalPrice - item.price) * item.quantity : 0;
@@ -37,6 +40,14 @@ export function BuyNowCheckoutClient({
   );
   const payableDeliveryFee = selectedShippingOption?.delivery_fee ??
     (config?.shipping_options ? undefined : config?.delivery_fee);
+  const summaryPaymentMethod = config?.payment_contract
+    ? paymentMethod
+    : config
+      ? "cod"
+      : undefined;
+  const paymentSplit = summaryPaymentMethod && payableDeliveryFee !== undefined
+    ? getPaymentSplit(summaryPaymentMethod, total, payableDeliveryFee)
+    : undefined;
   const cartSnapshot = useMemo<CartSnapshot | null>(() => {
     if (!item) {
       return null;
@@ -115,7 +126,10 @@ export function BuyNowCheckoutClient({
           checkoutSource="buy_now"
           deliveryFee={config?.delivery_fee ?? 0}
           disabled={!item.isAvailable || !config}
+          merchandiseTotal={total}
+          onPaymentMethodChange={setPaymentMethod}
           onShippingZoneChange={setShippingZone}
+          paymentContract={config?.payment_contract}
           selectedShippingZone={shippingZone}
           shippingOptions={config?.shipping_options ?? []}
         />
@@ -190,6 +204,22 @@ export function BuyNowCheckoutClient({
             <span>
               {payableDeliveryFee
                 ? formatCurrency(total + payableDeliveryFee)
+                : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Pay now via bKash</span>
+            <span>
+              {paymentSplit
+                ? formatCurrency(paymentSplit.payNow)
+                : "Select payment method"}
+            </span>
+          </div>
+          <div className="flex justify-between font-medium">
+            <span>Due on delivery</span>
+            <span>
+              {paymentSplit
+                ? formatCurrency(paymentSplit.dueOnDelivery)
                 : "—"}
             </span>
           </div>

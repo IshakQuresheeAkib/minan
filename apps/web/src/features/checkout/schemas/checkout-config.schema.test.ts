@@ -18,6 +18,10 @@ const validConfig = {
   ],
   currency: "BDT",
   refundable: false,
+  payment_contract: {
+    version: 2,
+    methods: ["bkash_full", "cod"],
+  },
 };
 
 describe("checkout configuration validation", () => {
@@ -33,6 +37,17 @@ describe("checkout configuration validation", () => {
     };
 
     expect(checkoutConfigSchema.parse(legacyConfig)).toEqual(legacyConfig);
+  });
+
+  it("rejects an unknown payment contract version or method order", () => {
+    expect(checkoutConfigSchema.safeParse({
+      ...validConfig,
+      payment_contract: { version: 3, methods: ["bkash_full", "cod"] },
+    }).success).toBe(false);
+    expect(checkoutConfigSchema.safeParse({
+      ...validConfig,
+      payment_contract: { version: 2, methods: ["cod", "bkash_full"] },
+    }).success).toBe(false);
   });
 
   it("rejects incomplete, duplicated, and malformed options", () => {

@@ -18,4 +18,8 @@ export const checkoutConfigSchema = z.object({
   ]).optional(),
   currency: z.literal("BDT"),
   refundable: z.literal(false),
+  payment_contract: z.object({
+    version: z.literal(2),
+    methods: z.tuple([z.literal("bkash_full"), z.literal("cod")]),
+  }).optional(),
 });

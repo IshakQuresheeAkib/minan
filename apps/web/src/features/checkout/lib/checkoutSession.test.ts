@@ -24,6 +24,7 @@ const customer: LeadInput = {
   email: "customer@example.com",
   address: "Original delivery address",
   shipping_zone: "inside_sylhet",
+  payment_method: "cod",
   notes: "",
 };
 
@@ -61,5 +62,15 @@ describe("checkout idempotency session", () => {
     });
 
     expect(outside).not.toBe(inside);
+  });
+
+  it("reuses the Order key when only the payment method changes", () => {
+    const cod = getCheckoutIdempotencyKey("cart", cartSnapshot, customer);
+    const full = getCheckoutIdempotencyKey("cart", cartSnapshot, {
+      ...customer,
+      payment_method: "bkash_full",
+    });
+
+    expect(full).toBe(cod);
   });
 });
