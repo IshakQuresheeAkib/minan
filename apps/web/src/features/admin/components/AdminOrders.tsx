@@ -90,8 +90,17 @@ function StatusBadge({
   const destructive = ["cancelled", "returned", "failed", "expired"].includes(
     value,
   );
+  const settled =
+    (kind === "fee" && value === "paid") ||
+    (kind === "cod" && value === "collected");
+
   return (
     <Badge
+      className={
+        settled
+          ? "bg-emerald-600 text-white [a&]:hover:bg-emerald-700"
+          : undefined
+      }
       variant={
         destructive
           ? "destructive"

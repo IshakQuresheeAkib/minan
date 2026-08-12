@@ -3,7 +3,7 @@ import { Package, RefreshCw, Truck } from "lucide-react";
 const trustItems = [
   {
     icon: Truck,
-    label: "Free delivery Sylhet",
+    label: "Fast Delivery",
   },
   {
     icon: RefreshCw,

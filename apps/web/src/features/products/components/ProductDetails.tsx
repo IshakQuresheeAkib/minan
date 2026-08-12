@@ -31,6 +31,23 @@ type ProductDetailsProps = {
   product: ProductDetail;
 };
 
+type ProductShareData = {
+  title: string;
+  text: string;
+  url: string;
+};
+
+export function createProductShareData(
+  product: Pick<ProductDetail, "name">,
+  productUrl: string,
+): ProductShareData {
+  return {
+    title: product.name,
+    text: productUrl,
+    url: productUrl,
+  };
+}
+
 export function ProductDetails({ children, product }: ProductDetailsProps) {
   return (
     <ProductDetailsContent key={product._id} product={product}>
@@ -112,18 +129,14 @@ function ProductDetailsContent({ children, product }: ProductDetailsProps) {
   }, []);
 
   const handleShare = async () => {
-    const shareData = {
-      title: product.name,
-      text: product.description,
-      url: window.location.href,
-    };
+    const shareData = createProductShareData(product, window.location.href);
 
     if (navigator.share) {
       await navigator.share(shareData);
       return;
     }
 
-    await navigator.clipboard.writeText(window.location.href);
+    await navigator.clipboard.writeText(shareData.url);
   };
 
   const getSelectedCartItem = (): CartItemInput | null => {

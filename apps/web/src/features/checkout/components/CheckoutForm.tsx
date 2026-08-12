@@ -322,7 +322,7 @@ export function CheckoutForm({
       </Button>
       <p className="text-sm font-medium text-foreground/70">
         {supportsPaymentChoice
-          ? "The delivery fee is non-refundable. Full bKash payments cover both merchandise and delivery; COD requires the delivery fee in advance."
+          ? "The delivery fee is non-refundable. Full bKash payments cover total order value. If you selected cash on delivery, you need to pay delivery fee in advance."
           : "The delivery fee is non-refundable. Merchandise is payable by cash on delivery."}
       </p>
       {retryContext ? (
