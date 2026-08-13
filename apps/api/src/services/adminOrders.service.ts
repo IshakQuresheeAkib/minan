@@ -151,30 +151,60 @@ export async function exportAdminOrdersCsv(query: OrderListQuery): Promise<strin
   const orders = await Order.find(buildFilter(query)).sort(sortFor(query.sort)).limit(10_000);
   const orderIds = orders.map((order) => order._id);
   const attempts = await PaymentAttempt.find({ order_id: { $in: orderIds }, status: "completed" })
-    .sort({ sequence: -1 });
+    .sort({ sequence: 1 });
+  const settledAttemptIdByOrder = new Map(
+    orders
+      .filter((order) => order.settled_payment_attempt_id)
+      .map((order) => [
+        order._id.toString(),
+        order.settled_payment_attempt_id!.toString(),
+      ]),
+  );
   const transactionByOrder = new Map<string, string>();
+  const duplicateTransactionsByOrder = new Map<string, string[]>();
   for (const attempt of attempts) {
-    if (attempt.order_id && attempt.bkash_trx_id && !transactionByOrder.has(attempt.order_id.toString())) {
-      transactionByOrder.set(attempt.order_id.toString(), attempt.bkash_trx_id);
+    if (!attempt.order_id || !attempt.bkash_trx_id) continue;
+    const orderId = attempt.order_id.toString();
+    const settledAttemptId = settledAttemptIdByOrder.get(orderId);
+    if (settledAttemptId) {
+      if (attempt._id.toString() === settledAttemptId) {
+        transactionByOrder.set(orderId, attempt.bkash_trx_id);
+      } else {
+        const duplicates = duplicateTransactionsByOrder.get(orderId) ?? [];
+        duplicates.push(attempt.bkash_trx_id);
+        duplicateTransactionsByOrder.set(orderId, duplicates);
+      }
+      continue;
+    }
+    if (!transactionByOrder.has(orderId)) {
+      transactionByOrder.set(orderId, attempt.bkash_trx_id);
+    } else {
+      const duplicates = duplicateTransactionsByOrder.get(orderId) ?? [];
+      duplicates.push(attempt.bkash_trx_id);
+      duplicateTransactionsByOrder.set(orderId, duplicates);
     }
   }
   const rows: unknown[][] = [[
-    "Order number", "Created", "Workflow status", "Fee status", "COD status",
+    "Order number", "Created", "Workflow status", "Payment method", "Fee status", "COD status",
     "Customer", "Phone", "Email", "Address", "Shipping area", "Items", "Merchandise subtotal",
-    "Order discount", "Merchandise total", "Delivery fee", "COD due", "COD collected",
-    "Merchandise refunded", "bKash transaction", "Courier", "Tracking number",
+    "Order discount", "Merchandise total", "Merchandise paid online", "Delivery fee", "COD due", "COD collected",
+    "Merchandise refunded", "bKash transaction", "Duplicate bKash transactions", "Courier", "Tracking number",
   ]];
   for (const order of orders) {
     rows.push([
-      order.order_number, order.createdAt.toISOString(), order.status, order.delivery_fee_status,
+      order.order_number, order.createdAt.toISOString(), order.status, order.payment_method ?? "",
+      order.delivery_fee_status,
       order.cod_status, order.name, order.phone_number, order.email, order.address,
       shippingAreaLabel(order.shipping_zone),
       order.lines.map((line) => `${line.name} (${line.size}/${line.color}) x${line.quantity}`).join("; "),
       order.financials.merchandise_subtotal, order.financials.order_discount,
-      order.financials.merchandise_total, order.financials.delivery_fee,
+      order.financials.merchandise_total, order.financials.merchandise_paid_online,
+      order.financials.delivery_fee,
       order.financials.cod_due, order.financials.cod_collected,
       order.financials.merchandise_refunded,
-      transactionByOrder.get(order._id.toString()) ?? "", order.courier_name ?? "",
+      transactionByOrder.get(order._id.toString()) ?? "",
+      duplicateTransactionsByOrder.get(order._id.toString())?.join("; ") ?? "",
+      order.courier_name ?? "",
       order.tracking_number ?? "",
     ]);
   }
@@ -189,10 +219,15 @@ async function casUpdate(
   id: string,
   expectedRevision: number,
   update: UpdateQuery<OrderDocument>,
+  guard: QueryFilter<OrderDocument> = {},
 ): Promise<OrderDocument> {
   if (!Types.ObjectId.isValid(id)) throw new AppError("Invalid order id", 400);
   const next: UpdateQuery<OrderDocument> = { ...update, $inc: { ...(update.$inc ?? {}), revision: 1 } };
-  const order = await Order.findOneAndUpdate({ _id: id, revision: expectedRevision }, next, { new: true, runValidators: true });
+  const order = await Order.findOneAndUpdate(
+    { _id: id, revision: expectedRevision, ...guard },
+    next,
+    { new: true, runValidators: true },
+  );
   if (order) return order;
   const latest = await Order.findById(id).select("revision");
   if (!latest) throw new AppError("Order not found", 404);
@@ -233,6 +268,13 @@ export async function updateOrderItems(id: string, input: OrderItemsUpdateInput,
   ensureEditable(current);
   if (current.cod_status === "waived") {
     throw new AppError("Order items lock after COD is waived", 409);
+  }
+  const fullPaymentAttemptExists = await PaymentAttempt.exists({
+    order_id: current._id,
+    payment_purpose: "order_total",
+  });
+  if (fullPaymentAttemptExists) {
+    throw new AppError("Order items lock after a full-payment attempt starts", 409);
   }
   const verified = await buildVerifiedCartSnapshot({
     items: input.items.map((item) => ({ ...item, name: "", price: 0 })), total: 0,
@@ -281,7 +323,7 @@ export async function updateOrderItems(id: string, input: OrderItemsUpdateInput,
   const order = await casUpdate(id, input.expected_revision, {
     $set: { lines: allocated, financials, item_signature: buildItemSignature(allocated), cod_status: codStatus },
     $push: { activity: activity(admin, "order_items_updated", input.reason, { customer_confirmed: true }) },
-  });
+  }, { full_payment_locked_revision: { $exists: false } });
   return serializeOrder(order, [], true);
 }
 

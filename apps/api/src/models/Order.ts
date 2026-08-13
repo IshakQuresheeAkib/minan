@@ -1,5 +1,6 @@
 import mongoose, { type Document, Schema, Types } from "mongoose";
 
+import type { PaymentMethod } from "../config/checkoutPayment.js";
 import type { ShippingZone } from "../config/shipping.js";
 
 export type OrderStatus =
@@ -93,6 +94,9 @@ export interface OrderDocument extends Document {
   item_signature: string;
   checkout_source: CheckoutSource;
   shipping_zone?: ShippingZone;
+  payment_method?: PaymentMethod;
+  settled_payment_attempt_id?: Types.ObjectId;
+  full_payment_locked_revision?: number;
   checkout_idempotency_hash?: string;
   status: OrderStatus;
   held_from_status?: HoldableOrderStatus;
@@ -174,6 +178,9 @@ const orderSchema = new Schema<OrderDocument>(
     item_signature: { type: String, required: true },
     checkout_source: { type: String, enum: ["cart", "buy_now", "exchange"], required: true },
     shipping_zone: { type: String, enum: ["inside_sylhet", "outside_sylhet"] },
+    payment_method: { type: String, enum: ["bkash_full", "cod"] },
+    settled_payment_attempt_id: { type: Schema.Types.ObjectId, ref: "PaymentAttempt" },
+    full_payment_locked_revision: { type: Number, min: 1 },
     checkout_idempotency_hash: { type: String, unique: true, sparse: true, select: false },
     status: {
       type: String,

@@ -16,7 +16,7 @@
 | Phase     | MVP v1                                      |
 | Market    | Bangladesh (Sylhet)                         |
 | Traffic   | Facebook Ads                                |
-| Payment   | bKash API for non-refundable delivery fee; merchandise COD |
+| Payment   | bKash full Order payment or advance non-refundable delivery fee with merchandise COD |
 
 ---
 
@@ -291,6 +291,8 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `status`                  | String   | `new | confirmed | processing | packing | shipped | delivered | on_hold | cancelled | returned | exchanged` |
 | `checkout_source`         | String   | `cart | buy_now | exchange` |
 | `shipping_zone`           | String   | optional `inside_sylhet` or `outside_sylhet`; historical/exchange Orders remain unspecified |
+| `payment_method`          | String   | optional `bkash_full | cod`; absent on historical/exchange Orders |
+| `settled_payment_attempt_id` | ObjectId | first successfully reconciled current-checkout attempt; prevents cross-purpose overwrite |
 | `checkout_idempotency_hash` | String | unique, sparse, server-only |
 | `financials`              | Object   | integer-BDT merchandise, discount, fee, COD, paid, refunded, and exchange-credit snapshots |
 | `delivery_fee_status`     | String   | independent fee lifecycle |
@@ -303,7 +305,7 @@ The legacy `leads` collection remains unchanged for one compatibility release an
 
 ### `payment_attempts`
 
-Each checkout retry creates an auditable attempt linked through `order_id` with `payment_purpose: delivery_fee`. It stores the frozen fee amount, Order-number invoice, provider result, and hashed short-lived result/retry references. `lead_id` remains nullable only for the compatibility release; migrated attempts are classified `legacy_full_order`. Retries never reprice merchandise.
+Each checkout attempt is linked through `order_id` with `payment_purpose: delivery_fee | order_total`. It stores the frozen purpose and exact amount, Order-number invoice, provider result, and hashed short-lived result/retry references. `lead_id` remains nullable only for the compatibility release; migrated attempts are classified `legacy_full_order`. Retries preserve the prior purpose and amount and never reprice merchandise.
 
 ### `bkash_tokens`
 
@@ -491,11 +493,12 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `email`        | email    | yes      | valid email |
 | `address`      | textarea | yes      | min 8, max 400 |
 | `shipping_zone` | radio   | yes      | `inside_sylhet` or `outside_sylhet`; the browser never submits a fee amount |
+| `payment_method` | radio  | yes      | `bkash_full` or `cod`; neither is preselected under payment contract v2 |
 | `notes`        | textarea | no       | max 500 |
 
-`GET /api/checkout/config` exposes `inside_sylhet` and `outside_sylhet` in display order with backend-authoritative positive integer fees, BDT currency, the non-refundable policy, and ETag/revalidation metadata. During the compatibility release it also exposes the legacy `delivery_fee`; the current storefront uses the zone options when present and uses the legacy single-fee flow only when paired with the previous API. Checkout is disabled when the applicable fee contract is unavailable or invalid. The zone-aware storefront starts with neither option selected.
+`GET /api/checkout/config` exposes `inside_sylhet` and `outside_sylhet` in display order with backend-authoritative positive integer fees, BDT currency, the non-refundable policy, payment contract v2 (`bkash_full`, `cod`), and ETag/revalidation metadata. During the compatibility release it also exposes the legacy `delivery_fee`; absence of `payment_contract` keeps the previous fee-only COD storefront behavior. Checkout is disabled when the applicable fee contract is unavailable or invalid. Shipping and v2 payment choices start unselected.
 
-`POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. During the compatibility release it also accepts a missing zone from the previous storefront and snapshots `DELIVERY_FEE_BDT` with the Order area left unspecified. It verifies products, variants, and prices server-side, creates one frozen Order per idempotency key, snapshots the zone and delivery fee, and redirects to bKash Checkout URL mode `0011` for that fee only. The zone participates in browser and server idempotency matching when present. Merchandise remains COD. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Callback Execute/query recovery, signature checks, amount/currency/invoice verification, result tokens, retry tokens, rate limits, and late completion reconciliation remain mandatory. Retry uses the original Order fee without reading current shipping configuration. Cart state clears only after a completed result resolves.
+`POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. It accepts `payment_method: bkash_full | cod`; missing values temporarily default to `cod` for the previous storefront. It verifies products, variants, and prices server-side, creates one frozen Order per idempotency key, and charges either `overall_order_value` for full payment or `delivery_fee` for COD. The payment method is excluded from the browser idempotency fingerprint so a confirmed-terminal switch reuses the Order, while active or uncertain attempts block switching. Full payment sets online-paid merchandise to the frozen merchandise total and COD due to zero; COD completion pays only the fee. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Retries preserve the original purpose and exact amount. First completion wins atomically; a late second completion triggers financial review instead of overwriting settled balances. Callback Execute/query recovery, signature checks, amount/currency/invoice verification, result tokens, rate limits, and late completion reconciliation remain mandatory. Cart state clears only after a completed result resolves.
 
 ---
 
@@ -508,7 +511,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - Product catalog supports multi-select category/subcategory/color/size filters, effective min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
 - Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`; storefront cards, PDP, cart, buy-now, and frozen Order lines use the effective discounted price.
 - Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
-- Checkout creates one MongoDB Order with separate auditable delivery-fee payment attempts
+- Checkout creates one MongoDB Order with separate auditable full-Order or delivery-fee payment attempts
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the frozen Order snapshot
 - Authenticated admin management for products, categories, ordered subcategories, Orders, admins, and managed uploads
 - Versioned homepage banner management with 16:9 desktop and 4:5 mobile Cloudinary assets, atomic ordering, and deferred cleanup
@@ -609,7 +612,7 @@ The Render API and Vercel web app must be rolled out as compatible releases:
 2. Take a database backup. Run `npm --workspace @minan/api run migrate:orders` and resolve missing snapshots, duplicate transactions, orphan links, or financial anomalies.
 3. Enable checkout maintenance for payment creation/retry only. Callbacks, results, and admin rechecks remain live.
 4. Run `npm --workspace @minan/api run migrate:orders -- --apply`, then re-run it to prove idempotency. Verify source/destination counts, Order numbers/counter maxima, financial totals, attempt links, transaction IDs, callback resolution, and dashboard metrics.
-5. Deploy `/admin/orders` plus fee-only checkout, complete the bKash sandbox matrix, and disable maintenance.
+5. Deploy `/admin/orders` plus payment contract v2 checkout, complete full-Order and fee-only COD sandbox matrices, and disable maintenance.
 
 Migration preserves Lead `_id` values, timestamps, checkout snapshots and idempotency hashes; assigns deterministic Bangladesh-date Order numbers; classifies every pre-cutover attempt `legacy_full_order`; backfills `order_id` while retaining `lead_id`; and leaves `leads` untouched. Legacy Leads are not a rollback path for Orders created after cutover.
 

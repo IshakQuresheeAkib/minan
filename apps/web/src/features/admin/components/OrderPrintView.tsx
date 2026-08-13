@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { adminRoutes } from "@/constants/routes";
 import { useAdminOrder } from "@/features/admin/hooks/useAdminOrders";
+import { getOutstandingCod } from "@/features/admin/lib/orderFinancials";
 import { shippingAreaLabel } from "@/features/admin/lib/shippingArea";
 
 function money(value: number): string {
@@ -142,6 +143,20 @@ export function OrderPrintView({
                 <dd>{money(order.financials.overall_order_value)}</dd>
               </div>
               <div className="flex justify-between">
+                <dt>Payment method</dt>
+                <dd>
+                  {order.payment_method === "bkash_full"
+                    ? "bKash — full payment"
+                    : order.payment_method === "cod"
+                      ? "Cash on Delivery"
+                      : "Not selected"}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt>Merchandise paid online</dt>
+                <dd>{money(order.financials.merchandise_paid_online)}</dd>
+              </div>
+              <div className="flex justify-between">
                 <dt>Delivery fee paid by bKash</dt>
                 <dd>
                   {money(
@@ -150,6 +165,10 @@ export function OrderPrintView({
                       : 0,
                   )}
                 </dd>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <dt>Due on delivery</dt>
+                <dd>{money(getOutstandingCod(order.financials, order.cod_status))}</dd>
               </div>
             </dl>
             <p className="mt-4 text-xs">

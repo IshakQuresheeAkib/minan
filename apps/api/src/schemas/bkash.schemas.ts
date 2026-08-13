@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { paymentMethods } from "../config/checkoutPayment.js";
 import { shippingZones } from "../config/shipping.js";
 import { leadCreateSchema } from "./lead.schemas.js";
 
@@ -8,6 +9,7 @@ export const paymentCreateSchema = leadCreateSchema.extend({
   shipping_zone: z.enum(shippingZones, {
     error: "Select a valid shipping method.",
   }).optional(),
+  payment_method: z.enum(paymentMethods).default("cod"),
 });
 
 export const paymentRetrySchema = z.object({

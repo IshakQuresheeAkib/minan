@@ -23,6 +23,18 @@ const validCheckout = {
 };
 
 describe("checkout payment validation", () => {
+  it("accepts both methods and defaults an older storefront request to COD", () => {
+    expect(paymentCreateSchema.parse(validCheckout).payment_method).toBe("cod");
+    expect(paymentCreateSchema.parse({
+      ...validCheckout,
+      payment_method: "bkash_full",
+    }).payment_method).toBe("bkash_full");
+    expect(paymentCreateSchema.safeParse({
+      ...validCheckout,
+      payment_method: "card",
+    }).success).toBe(false);
+  });
+
   it("accepts legacy zone-less requests but rejects unknown zones", () => {
     const missingZone = Object.fromEntries(
       Object.entries(validCheckout).filter(([key]) => key !== "shipping_zone"),

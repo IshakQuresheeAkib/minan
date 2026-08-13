@@ -34,6 +34,8 @@ export function serializeOrder(
     })),
     checkout_source: order.checkout_source,
     shipping_zone: order.shipping_zone ?? null,
+    payment_method: order.payment_method ?? null,
+    settled_payment_attempt_id: order.settled_payment_attempt_id?.toString() ?? null,
     status: order.status,
     held_from_status: order.held_from_status ?? null,
     financials: {
@@ -97,6 +99,7 @@ export function serializeOrder(
       bkash_trx_id: attempt.bkash_trx_id ?? null,
       provider_status_code: attempt.provider_status_code ?? null,
       provider_status_message: attempt.provider_status_message ?? null,
+      terminal_confirmed_at: date(attempt.terminal_confirmed_at),
       last_query_at: date(attempt.last_query_at),
       createdAt: attempt.createdAt.toISOString(),
       updatedAt: attempt.updatedAt.toISOString(),

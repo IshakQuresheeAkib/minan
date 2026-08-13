@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { retryCheckoutPayment } from "@/features/checkout/actions/checkout.actions";
 import { clearCheckoutIdempotencyKey } from "@/features/checkout/lib/checkoutSession";
+import { paymentResponseMatchesContract } from "@/features/checkout/lib/paymentContract";
 import { shouldStripPaymentResultReference } from "@/features/checkout/lib/paymentResultReference";
 import type { PaymentResult, PaymentStartResult } from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
@@ -56,6 +57,19 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
   }, [clearBuyNow, clearCart, result.checkout_source, result.state]);
 
   function continuePayment(next: PaymentStartResult): void {
+    if (
+      result.payment_method &&
+      result.pay_now_amount !== undefined &&
+      !paymentResponseMatchesContract(
+        next,
+        { version: 2, methods: ["bkash_full", "cod"] },
+        result.payment_method,
+        result.pay_now_amount,
+      )
+    ) {
+      toast.error("The retry payment details did not match this Order. Return to checkout and review the payment method.");
+      return;
+    }
     if (next.state === "redirect") {
       window.location.assign(next.bkash_url);
       return;
@@ -105,6 +119,15 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
       <p className="mt-3 max-w-lg text-sm leading-6 text-foreground/70">
         {result.message}
       </p>
+      {result.financial_review_required ? (
+        <p
+          className="mt-4 w-full max-w-lg rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm font-medium text-foreground"
+          role="alert"
+        >
+          Do not make another payment for this Order. MINAN support must review
+          the payment record first.
+        </p>
+      ) : null}
       {result.order_number ||
       result.fee_paid !== undefined ? (
         <dl className="mt-6 grid w-full max-w-md gap-3 border-y py-4 text-sm">
@@ -119,6 +142,24 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
               <dt className="text-foreground/65">Delivery fee paid</dt>
               <dd className="font-medium">
                 Tk {result.fee_paid.toLocaleString("en-BD")}
+              </dd>
+            </div>
+          ) : null}
+          {result.payment_method ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">Payment method</dt>
+              <dd className="font-medium">
+                {result.payment_method === "bkash_full"
+                  ? "bKash — full payment"
+                  : "Cash on Delivery"}
+              </dd>
+            </div>
+          ) : null}
+          {result.merchandise_paid_online !== undefined ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/65">Merchandise paid online</dt>
+              <dd className="font-medium">
+                Tk {result.merchandise_paid_online.toLocaleString("en-BD")}
               </dd>
             </div>
           ) : null}
@@ -150,8 +191,9 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
       ) : null}
       {result.state === "completed" ? (
         <p className="mt-5 text-sm font-medium text-foreground/70">
-          The delivery fee is non-refundable. Merchandise remains payable by
-          cash on delivery.
+          {result.payment_method === "bkash_full"
+            ? "Your merchandise and delivery fee are paid. The delivery fee remains non-refundable."
+            : "The delivery fee is non-refundable. Pay the merchandise balance in cash on delivery."}
         </p>
       ) : null}
       <div className="mt-7 flex flex-wrap justify-center gap-3">
@@ -172,7 +214,7 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
             loadingText="Retrying..."
             onClick={() => void retry()}
           >
-            Retry delivery-fee payment
+            Retry {result.payment_method === "bkash_full" ? "full" : "delivery-fee"} payment
           </Button>
         ) : null}
         <Button

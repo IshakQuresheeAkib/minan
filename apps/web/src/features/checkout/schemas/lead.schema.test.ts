@@ -8,6 +8,7 @@ const validInput = {
   email: "customer@example.com",
   address: "Sylhet, Bangladesh",
   shipping_zone: "inside_sylhet",
+  payment_method: "cod",
 };
 
 describe("checkout form validation", () => {
@@ -23,5 +24,15 @@ describe("checkout form validation", () => {
       shipping_zone: "near_sylhet",
     }).success).toBe(false);
     expect(leadInputSchema.safeParse(validInput).success).toBe(true);
+  });
+
+  it("requires payment choice only when the API advertises the versioned contract", () => {
+    const missingMethod = Object.fromEntries(
+      Object.entries(validInput).filter(([key]) => key !== "payment_method"),
+    );
+
+    expect(getLeadInputSchema(true, true).safeParse(missingMethod).success).toBe(false);
+    expect(getLeadInputSchema(true, false).safeParse(missingMethod).success).toBe(true);
+    expect(getLeadInputSchema(true, true).safeParse(validInput).success).toBe(true);
   });
 });

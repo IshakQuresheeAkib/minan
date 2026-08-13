@@ -215,6 +215,7 @@ export async function createOrLoadCheckoutOrder(
       item_signature: buildItemSignature(lines),
       checkout_source: input.checkout_source,
       shipping_zone: input.shipping_zone,
+      payment_method: input.payment_method,
       checkout_idempotency_hash: idempotencyHash,
       status: "new",
       financials: calculateFinancials({ lines, deliveryFee }),
@@ -227,6 +228,7 @@ export async function createOrLoadCheckoutOrder(
         metadata: {
           checkout_source: input.checkout_source,
           shipping_zone: input.shipping_zone,
+          payment_method: input.payment_method,
         },
         created_at: now,
       }],

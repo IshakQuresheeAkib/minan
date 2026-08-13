@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleCheck } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -14,14 +14,21 @@ import {
   startCheckoutPayment,
 } from "@/features/checkout/actions/checkout.actions";
 import { ShippingMethodSelector } from "@/features/checkout/components/ShippingMethodSelector";
+import { PaymentMethodSelector } from "@/features/checkout/components/PaymentMethodSelector";
 import { getCheckoutIdempotencyKey } from "@/features/checkout/lib/checkoutSession";
+import {
+  getPaymentSplit,
+  paymentResponseMatchesContract,
+} from "@/features/checkout/lib/paymentContract";
 import {
   getLeadInputSchema,
   type LeadInput,
 } from "@/features/checkout/schemas/lead.schema";
 import type {
   CartSnapshot,
+  CheckoutPaymentContract,
   CheckoutSource,
+  PaymentMethod,
   PaymentStartResult,
   ShippingOption,
   ShippingZone,
@@ -33,7 +40,10 @@ type CheckoutFormProps = {
   checkoutSource: CheckoutSource;
   deliveryFee: number;
   disabled?: boolean;
+  merchandiseTotal: number;
+  onPaymentMethodChange: (method?: PaymentMethod) => void;
   onShippingZoneChange: (zone: ShippingZone) => void;
+  paymentContract?: CheckoutPaymentContract;
   selectedShippingZone?: ShippingZone;
   shippingOptions: readonly ShippingOption[];
 };
@@ -43,17 +53,25 @@ export function CheckoutForm({
   checkoutSource,
   deliveryFee,
   disabled = false,
+  merchandiseTotal,
+  onPaymentMethodChange,
   onShippingZoneChange,
+  paymentContract,
   selectedShippingZone,
   shippingOptions,
 }: CheckoutFormProps) {
   const formId = useId();
-  const [retryToken, setRetryToken] = useState<string | null>(null);
+  const [retryContext, setRetryContext] = useState<{
+    token: string;
+    method: PaymentMethod;
+    payNow: number;
+  } | null>(null);
   const [retrying, setRetrying] = useState(false);
   const usesShippingZones = shippingOptions.length > 0;
+  const supportsPaymentChoice = paymentContract !== undefined;
   const validationSchema = useMemo(
-    () => getLeadInputSchema(usesShippingZones),
-    [usesShippingZones],
+    () => getLeadInputSchema(usesShippingZones, supportsPaymentChoice),
+    [supportsPaymentChoice, usesShippingZones],
   );
   const form = useForm<LeadInput>({
     resolver: zodResolver(validationSchema),
@@ -66,6 +84,10 @@ export function CheckoutForm({
     },
   });
   const errors = form.formState.errors;
+  const selectedPaymentMethod = useWatch({
+    control: form.control,
+    name: "payment_method",
+  });
   const selectedOption = shippingOptions.find(
     (option) => option.id === selectedShippingZone,
   );
@@ -77,10 +99,22 @@ export function CheckoutForm({
     name: `${formId}-name-error`,
     notes: `${formId}-notes-error`,
     phone_number: `${formId}-phone-number-error`,
+    payment_method: `${formId}-payment-method-error`,
     shipping_zone: `${formId}-shipping-zone-error`,
   };
 
-  function handlePaymentResult(result: PaymentStartResult): void {
+  function handlePaymentResult(
+    result: PaymentStartResult,
+    method: PaymentMethod,
+    payNow: number,
+  ): void {
+    if (!paymentResponseMatchesContract(result, paymentContract, method, payNow)) {
+      setRetryContext(null);
+      toast.error(
+        "Payment details changed before bKash opened. Refresh checkout and review the amounts before trying again.",
+      );
+      return;
+    }
     if (result.state === "redirect") {
       window.location.assign(result.bkash_url);
       return;
@@ -92,7 +126,7 @@ export function CheckoutForm({
       return;
     }
     if (result.state === "failed") {
-      setRetryToken(result.retry_token);
+      setRetryContext({ token: result.retry_token, method, payNow });
       toast.error(result.message);
       return;
     }
@@ -100,16 +134,26 @@ export function CheckoutForm({
   }
 
   async function onSubmit(values: LeadInput) {
+    const paymentMethod = supportsPaymentChoice
+      ? values.payment_method
+      : "cod";
+    if (!paymentMethod) return;
+    const { payNow } = getPaymentSplit(
+      paymentMethod,
+      merchandiseTotal,
+      payableDeliveryFee ?? deliveryFee,
+    );
     try {
       const response = await startCheckoutPayment(
         {
           ...values,
           cart_snapshot: cartSnapshot,
           checkout_source: checkoutSource,
+          payment_method: paymentMethod,
         },
         getCheckoutIdempotencyKey(checkoutSource, cartSnapshot, values),
       );
-      handlePaymentResult(response.data);
+      handlePaymentResult(response.data, paymentMethod, payNow);
     } catch (error) {
       toast.error(
         error instanceof ApiError
@@ -120,11 +164,15 @@ export function CheckoutForm({
   }
 
   async function onRetry() {
-    if (!retryToken) return;
+    if (!retryContext) return;
     setRetrying(true);
     try {
-      const response = await retryCheckoutPayment(retryToken);
-      handlePaymentResult(response.data);
+      const response = await retryCheckoutPayment(retryContext.token);
+      handlePaymentResult(
+        response.data,
+        retryContext.method,
+        retryContext.payNow,
+      );
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : "Failed to retry payment.",
@@ -141,6 +189,8 @@ export function CheckoutForm({
         void form.handleSubmit(onSubmit, (invalidFields) => {
           if (usesShippingZones && invalidFields.shipping_zone) {
             form.setFocus("shipping_zone");
+          } else if (supportsPaymentChoice && invalidFields.payment_method) {
+            form.setFocus("payment_method");
           }
         })(event)
       }
@@ -178,7 +228,7 @@ export function CheckoutForm({
         {errors.email ? <span id={errorIds.email} className="text-xs text-destructive" role="alert">{errors.email.message}</span> : null}
       </label>
       <label className="grid gap-2 text-sm font-medium">
-        Address
+        Detailed Address
         <Textarea
           className="min-h-28"
           aria-describedby={errors.address ? errorIds.address : undefined}
@@ -202,10 +252,39 @@ export function CheckoutForm({
               onBlur={field.onBlur}
               onChange={(zone) => {
                 field.onChange(zone);
-                setRetryToken(null);
+                if (supportsPaymentChoice) {
+                  form.setValue("payment_method", undefined);
+                  form.clearErrors("payment_method");
+                  onPaymentMethodChange(undefined);
+                }
+                setRetryContext(null);
                 onShippingZoneChange(zone);
               }}
               options={shippingOptions}
+              value={field.value}
+            />
+          )}
+        />
+      ) : null}
+      {supportsPaymentChoice && payableDeliveryFee !== undefined ? (
+        <Controller
+          control={form.control}
+          name="payment_method"
+          render={({ field }) => (
+            <PaymentMethodSelector
+              ref={field.ref}
+              deliveryFee={payableDeliveryFee}
+              disabled={disabled || form.formState.isSubmitting || retrying}
+              errorId={errorIds.payment_method}
+              errorMessage={errors.payment_method?.message}
+              merchandiseTotal={merchandiseTotal}
+              name={field.name}
+              onBlur={field.onBlur}
+              onChange={(method) => {
+                field.onChange(method);
+                setRetryContext(null);
+                onPaymentMethodChange(method);
+              }}
               value={field.value}
             />
           )}
@@ -224,20 +303,29 @@ export function CheckoutForm({
       <Button
         className="mt-2 h-11 w-full"
         type="submit"
-        disabled={disabled}
+        disabled={disabled || retrying}
         loading={form.formState.isSubmitting}
         loadingText="Opening bKash..."
         leftIcon={<CircleCheck className="size-4" aria-hidden="true" />}
       >
-        {payableDeliveryFee
-          ? `Pay Tk ${payableDeliveryFee.toLocaleString("en-BD")} delivery fee with bKash`
-          : "Continue to bKash"}
+        {supportsPaymentChoice
+          ? selectedPaymentMethod
+            ? `Pay Tk ${getPaymentSplit(
+              selectedPaymentMethod,
+              merchandiseTotal,
+              payableDeliveryFee ?? deliveryFee,
+            ).payNow.toLocaleString("en-BD")} with bKash`
+            : "Select a payment method"
+          : payableDeliveryFee
+            ? `Pay Tk ${payableDeliveryFee.toLocaleString("en-BD")} delivery fee with bKash`
+            : "Continue to bKash"}
       </Button>
       <p className="text-sm font-medium text-foreground/70">
-        The delivery fee is non-refundable. Merchandise is payable by cash on
-        delivery.
+        {supportsPaymentChoice
+          ? "The delivery fee is non-refundable. Full bKash payments cover total order value. If you selected cash on delivery, you need to pay delivery fee in advance."
+          : "The delivery fee is non-refundable. Merchandise is payable by cash on delivery."}
       </p>
-      {retryToken ? (
+      {retryContext ? (
         <div className="grid gap-3" role="status">
           <Button
             type="button"
@@ -246,7 +334,7 @@ export function CheckoutForm({
             loadingText="Retrying..."
             onClick={() => void onRetry()}
           >
-            Retry delivery-fee payment
+            Retry {retryContext.method === "bkash_full" ? "full" : "delivery-fee"} payment
           </Button>
         </div>
       ) : null}

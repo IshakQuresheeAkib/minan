@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ProductDetail } from "@/features/products/schemas/product.schema";
-import { ProductDetails } from "./ProductDetails";
+import { createProductShareData, ProductDetails } from "./ProductDetails";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -134,5 +134,15 @@ describe("ProductDetails", () => {
     expect(markup).toMatch(
       /<p class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*"[^>]*>.*Save Tk 200 · 20% off<\/p>/s,
     );
+  });
+
+  it("shares the product link instead of the product description", () => {
+    const productUrl = "https://www.minanclothing.com/products/linen-shirt";
+
+    expect(createProductShareData(discountedProduct, productUrl)).toEqual({
+      title: "Linen Shirt",
+      text: productUrl,
+      url: productUrl,
+    });
   });
 });
