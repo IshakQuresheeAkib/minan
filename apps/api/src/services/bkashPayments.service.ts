@@ -287,6 +287,13 @@ async function updateOrderPaymentMethod(
       }
       return order;
     }
+    if (
+      order.payment_method === paymentMethod &&
+      order.full_payment_locked_revision !== undefined &&
+      !order.settled_payment_attempt_id
+    ) {
+      return order;
+    }
     const lockedRevision = order.revision + 1;
     const locked = await Order.findOneAndUpdate(
       {

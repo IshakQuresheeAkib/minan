@@ -235,6 +235,45 @@ describe("bKash Order lifecycle", () => {
     }));
   });
 
+  it("recovers a full-payment Order lock when the first attempt was not recorded", async () => {
+    const checkoutOrder = {
+      ...order(),
+      payment_method: "bkash_full" as const,
+      full_payment_locked_revision: 2,
+      revision: 2,
+    };
+    mocks.createOrLoadOrder.mockResolvedValue(checkoutOrder);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(null) as never);
+    vi.mocked(Order.findOneAndUpdate).mockResolvedValue(null);
+    vi.spyOn(Order, "findById").mockReturnValue({
+      select: vi.fn().mockResolvedValue({ revision: 2 }),
+    } as never);
+    const created = attempt("creating", "1260.00", "order_total");
+    vi.spyOn(PaymentAttempt, "create").mockResolvedValue(created as never);
+    mocks.createPayment.mockResolvedValue({
+      statusCode: "0000",
+      paymentID: "TR001",
+      bkashURL: "https://sandbox.bka.sh/full",
+    });
+
+    const result = await startBkashPayment(
+      { ...input, payment_method: "bkash_full" },
+      "idempotency-key-with-safe-length",
+    );
+
+    expect(result).toMatchObject({
+      state: "redirect",
+      payment_method: "bkash_full",
+      pay_now_amount: 1260,
+    });
+    expect(PaymentAttempt.create).toHaveBeenCalledWith(expect.objectContaining({
+      payment_purpose: "order_total",
+      expected_amount: "1260.00",
+      order_revision: 2,
+    }));
+    expect(Order.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it("switches methods on the same Order only after the prior attempt is terminal", async () => {
     const checkoutOrder = order();
     const failed = attempt("cancelled");
