@@ -33,7 +33,6 @@ type ProductDetailsProps = {
 
 type ProductShareData = {
   title: string;
-  text: string;
   url: string;
 };
 
@@ -43,7 +42,6 @@ export function createProductShareData(
 ): ProductShareData {
   return {
     title: product.name,
-    text: productUrl,
     url: productUrl,
   };
 }

@@ -136,12 +136,11 @@ describe("ProductDetails", () => {
     );
   });
 
-  it("shares the product link instead of the product description", () => {
+  it("shares the product link once instead of duplicating it in text", () => {
     const productUrl = "https://www.minanclothing.com/products/linen-shirt";
 
     expect(createProductShareData(discountedProduct, productUrl)).toEqual({
       title: "Linen Shirt",
-      text: productUrl,
       url: productUrl,
     });
   });
