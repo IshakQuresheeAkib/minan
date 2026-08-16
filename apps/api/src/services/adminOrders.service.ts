@@ -392,10 +392,15 @@ export async function recordOrderCod(id: string, input: OrderCodInput, admin: Au
   const amount = input.amount ?? outstanding;
   if (amount <= 0 || amount > outstanding) throw new AppError("COD collection exceeds the outstanding amount", 400);
   const collected = current.financials.cod_collected + amount;
-  const order = await casUpdate(id, input.expected_revision, {
-    $set: { "financials.cod_collected": collected, cod_status: collected === current.financials.cod_due ? "collected" : "due" },
-    $push: { activity: activity(admin, "cod_collected", input.reason, { amount }) },
-  });
+  const order = await casUpdate(
+    id,
+    input.expected_revision,
+    {
+      $set: { "financials.cod_collected": collected, cod_status: collected === current.financials.cod_due ? "collected" : "due" },
+      $push: { activity: activity(admin, "cod_collected", input.reason, { amount }) },
+    },
+    { "financials.merchandise_paid_online": 0 },
+  );
   return serializeOrder(order, [], true);
 }
 

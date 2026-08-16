@@ -142,7 +142,10 @@ describe("Order workflow integrity", () => {
       ),
     ).rejects.toBe(persistenceReached);
     expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ revision: 1 }),
+      expect.objectContaining({
+        revision: 1,
+        "financials.merchandise_paid_online": 0,
+      }),
       expect.objectContaining({
         $set: { "financials.cod_collected": 1200, cod_status: "collected" },
         $push: expect.objectContaining({

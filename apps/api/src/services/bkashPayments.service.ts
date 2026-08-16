@@ -683,6 +683,7 @@ async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void
           ? {
               full_payment_locked_revision: attempt.order_revision,
               "financials.overall_order_value": paid,
+              "financials.cod_collected": 0,
             }
           : {}),
       },
