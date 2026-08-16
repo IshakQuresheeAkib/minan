@@ -45,7 +45,6 @@ const workflowStatuses: { value: OrderStatus | ""; label: string }[] = [
   { value: "new", label: "New" },
   { value: "confirmed", label: "Confirmed" },
   { value: "processing", label: "Processing" },
-  { value: "packing", label: "Packing" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "on_hold", label: "On hold" },
@@ -67,7 +66,6 @@ const codStatuses: { value: CodStatus | ""; label: string }[] = [
   { value: "", label: "All COD states" },
   { value: "due", label: "COD due" },
   { value: "collected", label: "COD collected" },
-  { value: "waived", label: "COD waived" },
   { value: "partially_refunded", label: "Partially refunded" },
   { value: "refunded", label: "Refunded" },
   { value: "not_required", label: "COD not required" },
@@ -338,15 +336,7 @@ function OrdersDesktopTable({ orders }: { orders: AdminOrder[] }) {
               </TableCell>
               <TableCell>
                 <p className="font-medium">
-                  {money(
-                    order.cod_status === "waived"
-                      ? 0
-                      : Math.max(
-                          order.financials.cod_due -
-                            order.financials.cod_collected,
-                          0,
-                        ),
-                  )}
+                  {money(getOutstandingCod(order.financials))}
                 </p>
                 <StatusBadge value={order.cod_status} kind="cod" />
               </TableCell>
@@ -423,7 +413,7 @@ function OrdersMobileCards({ orders }: { orders: AdminOrder[] }) {
             </span>
             <strong>
               {money(
-                getOutstandingCod(order.financials, order.cod_status),
+                getOutstandingCod(order.financials),
               )}{" "}
               COD
             </strong>

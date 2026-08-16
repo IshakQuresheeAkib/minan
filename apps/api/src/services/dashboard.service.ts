@@ -10,7 +10,7 @@ export type DashboardMetrics = {
   ordersThisMonth: number;
   newOrders: number;
   awaitingFee: number;
-  processingPacking: number;
+  processing: number;
   shipped: number;
   returnsExceptions: number;
   topProduct: string | null;
@@ -58,7 +58,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     ordersThisMonth,
     newOrders,
     awaitingFee,
-    processingPacking,
+    processing,
     shipped,
     returnsExceptions,
     topProductResults,
@@ -69,7 +69,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     Order.countDocuments({ createdAt: { $gte: month.start, $lt: month.end } }),
     Order.countDocuments({ status: "new" }),
     Order.countDocuments({ delivery_fee_status: { $in: ["awaiting", "failed", "verification_pending", "expired"] } }),
-    Order.countDocuments({ status: { $in: ["processing", "packing"] } }),
+    Order.countDocuments({ status: "processing" }),
     Order.countDocuments({ status: "shipped" }),
     Order.countDocuments({ $or: [{ status: { $in: ["returned", "exchanged", "on_hold"] } }, { financial_review_required: true }] }),
     AnalyticsEvent.aggregate<CountResult<unknown>>([
@@ -106,7 +106,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     ordersThisMonth,
     newOrders,
     awaitingFee,
-    processingPacking,
+    processing,
     shipped,
     returnsExceptions,
     topProduct: topProduct?.name ?? null,

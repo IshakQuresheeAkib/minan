@@ -168,7 +168,7 @@ export function OrderPrintView({
               </div>
               <div className="flex justify-between font-semibold">
                 <dt>Due on delivery</dt>
-                <dd>{money(getOutstandingCod(order.financials, order.cod_status))}</dd>
+                <dd>{money(getOutstandingCod(order.financials))}</dd>
               </div>
             </dl>
             <p className="mt-4 text-xs">

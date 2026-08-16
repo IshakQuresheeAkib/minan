@@ -12,7 +12,7 @@ const emptyMetrics: DashboardMetrics = {
   ordersThisMonth: 0,
   newOrders: 0,
   awaitingFee: 0,
-  processingPacking: 0,
+  processing: 0,
   shipped: 0,
   returnsExceptions: 0,
   topProduct: null,
