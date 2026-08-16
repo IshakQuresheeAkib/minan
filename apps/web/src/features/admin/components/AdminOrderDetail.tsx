@@ -120,7 +120,7 @@ function CustomerEditor({
     <section className="border-b pb-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Customer and delivery</h2>
-        {["new", "confirmed", "processing", "packing", "on_hold"].includes(
+        {["new", "confirmed", "processing", "on_hold"].includes(
           order.status,
         ) ? (
           <Button
@@ -239,7 +239,6 @@ function ItemsEditor({
     "new",
     "confirmed",
     "processing",
-    "packing",
     "on_hold",
   ].includes(order.status);
   const [editing, setEditing] = useState(false);
@@ -680,7 +679,7 @@ function OrderUtility({
   const [courier, setCourier] = useState(order.courier_name ?? "");
   const [tracking, setTracking] = useState(order.tracking_number ?? "");
   const [note, setNote] = useState("");
-  const outstanding = getOutstandingCod(order.financials, order.cod_status);
+  const outstanding = getOutstandingCod(order.financials);
   return (
     <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
       <section className="rounded-lg border bg-background p-5 shadow-sm">
@@ -747,7 +746,6 @@ function OrderUtility({
             "new",
             "confirmed",
             "processing",
-            "packing",
             "shipped",
             "delivered",
             "on_hold",
@@ -811,29 +809,17 @@ function OrderUtility({
           <p className="mt-2 text-sm text-foreground/60">
             {money(outstanding)} outstanding
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3">
             <Button
+              className="w-full"
               size="sm"
               onClick={() =>
                 void run("cod", "POST", {
-                  action: "collect",
                   amount: outstanding,
                 })
               }
             >
               Collect
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() =>
-                void run("cod", "POST", {
-                  action: "waive",
-                  reason: "COD waived by administrator",
-                })
-              }
-            >
-              Waive
             </Button>
           </div>
         </section>

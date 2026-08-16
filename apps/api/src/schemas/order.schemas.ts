@@ -6,7 +6,7 @@ const expectedRevision = z.number().int().min(1);
 const money = z.number().finite().int().nonnegative();
 const reason = z.string().trim().min(3).max(500);
 const transitionStatus = z.enum([
-  "new", "confirmed", "processing", "packing", "shipped", "delivered",
+  "new", "confirmed", "processing", "shipped", "delivered",
   "on_hold", "cancelled",
 ]);
 
@@ -66,15 +66,10 @@ export const orderCourierUpdateSchema = z.object({
 });
 
 export const orderCodSchema = z.object({
-  action: z.enum(["collect", "waive"]),
   amount: money.optional(),
   expected_revision: expectedRevision,
   reason: reason.optional(),
-}).superRefine((value, context) => {
-  if (value.action === "waive" && !value.reason) {
-    context.addIssue({ code: "custom", path: ["reason"], message: "A waiver reason is required" });
-  }
-});
+}).strict();
 
 export const orderNoteSchema = z.object({
   note: z.string().trim().min(1).max(500),

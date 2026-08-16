@@ -3,7 +3,7 @@ export type DashboardMetrics = {
   ordersThisMonth: number;
   newOrders: number;
   awaitingFee: number;
-  processingPacking: number;
+  processing: number;
   shipped: number;
   returnsExceptions: number;
   topProduct: string | null;
@@ -14,9 +14,9 @@ export type DashboardMetrics = {
   }[];
 };
 
-export type OrderStatus = "new" | "confirmed" | "processing" | "packing" | "shipped" | "delivered" | "on_hold" | "cancelled" | "returned" | "exchanged";
+export type OrderStatus = "new" | "confirmed" | "processing" | "shipped" | "delivered" | "on_hold" | "cancelled" | "returned" | "exchanged";
 export type DeliveryFeeStatus = "not_required" | "awaiting" | "processing" | "paid" | "failed" | "verification_pending" | "expired";
-export type CodStatus = "not_required" | "due" | "collected" | "partially_refunded" | "refunded" | "waived";
+export type CodStatus = "not_required" | "due" | "collected" | "partially_refunded" | "refunded";
 
 export type AdminOrderLine = {
   line_id: string;
@@ -47,7 +47,7 @@ export type AdminOrder = {
   payment_method: "bkash_full" | "cod" | null;
   settled_payment_attempt_id: string | null;
   status: OrderStatus;
-  held_from_status: "new" | "confirmed" | "processing" | "packing" | null;
+  held_from_status: "new" | "confirmed" | "processing" | null;
   financials: {
     merchandise_subtotal: number;
     order_discount: number;

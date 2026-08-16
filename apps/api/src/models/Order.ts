@@ -7,7 +7,6 @@ export type OrderStatus =
   | "new"
   | "confirmed"
   | "processing"
-  | "packing"
   | "shipped"
   | "delivered"
   | "on_hold"
@@ -15,7 +14,7 @@ export type OrderStatus =
   | "returned"
   | "exchanged";
 
-export type HoldableOrderStatus = "new" | "confirmed" | "processing" | "packing";
+export type HoldableOrderStatus = "new" | "confirmed" | "processing";
 export type CheckoutSource = "cart" | "buy_now" | "exchange";
 export type DeliveryFeeStatus =
   | "not_required"
@@ -30,8 +29,7 @@ export type CodStatus =
   | "due"
   | "collected"
   | "partially_refunded"
-  | "refunded"
-  | "waived";
+  | "refunded";
 
 export type OrderLine = {
   line_id: string;
@@ -184,11 +182,11 @@ const orderSchema = new Schema<OrderDocument>(
     checkout_idempotency_hash: { type: String, unique: true, sparse: true, select: false },
     status: {
       type: String,
-      enum: ["new", "confirmed", "processing", "packing", "shipped", "delivered", "on_hold", "cancelled", "returned", "exchanged"],
+      enum: ["new", "confirmed", "processing", "shipped", "delivered", "on_hold", "cancelled", "returned", "exchanged"],
       default: "new",
       index: true,
     },
-    held_from_status: { type: String, enum: ["new", "confirmed", "processing", "packing"] },
+    held_from_status: { type: String, enum: ["new", "confirmed", "processing"] },
     financials: {
       merchandise_subtotal: money,
       order_discount: money,
@@ -210,7 +208,7 @@ const orderSchema = new Schema<OrderDocument>(
     },
     cod_status: {
       type: String,
-      enum: ["not_required", "due", "collected", "partially_refunded", "refunded", "waived"],
+      enum: ["not_required", "due", "collected", "partially_refunded", "refunded"],
       required: true,
       index: true,
     },

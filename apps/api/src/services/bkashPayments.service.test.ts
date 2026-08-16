@@ -152,7 +152,7 @@ describe("bKash Order lifecycle", () => {
     vi.spyOn(PaymentAttempt, "updateMany").mockResolvedValue({ modifiedCount: 1 } as never);
     vi.spyOn(PaymentAttempt, "exists").mockResolvedValue(null);
     vi.spyOn(Order, "updateOne").mockResolvedValue({ modifiedCount: 1 } as never);
-    vi.spyOn(Order, "findOneAndUpdate").mockImplementation((async (_filter, update) => {
+    vi.spyOn(Order, "findOneAndUpdate").mockImplementation((async () => {
       const checkoutOrder = order();
       const lockedRevision = checkoutOrder.revision + 1;
       return {
@@ -160,7 +160,6 @@ describe("bKash Order lifecycle", () => {
         payment_method: "bkash_full",
         full_payment_locked_revision: lockedRevision,
         revision: lockedRevision,
-        ...(update && typeof update === "object" ? {} : {}),
       };
     }) as never);
   });
@@ -578,6 +577,7 @@ describe("bKash Order lifecycle", () => {
         _id: pending.order_id,
         full_payment_locked_revision: 2,
         "financials.overall_order_value": 1260,
+        "financials.cod_collected": 0,
       }),
       expect.objectContaining({
         $set: expect.objectContaining({
@@ -586,6 +586,62 @@ describe("bKash Order lifecycle", () => {
           "financials.merchandise_paid_online": 1200,
           "financials.cod_due": 0,
           cod_status: "not_required",
+        }),
+      }),
+    );
+  });
+
+  it("flags a COD-first/full-payment settlement interleaving instead of double collecting", async () => {
+    const pending = attempt("verification_pending", "1260.00", "order_total");
+    pending.order_revision = 2;
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(Order, "findById").mockResolvedValue({
+      ...order(),
+      full_payment_locked_revision: 2,
+      revision: 3,
+      financials: {
+        ...order().financials,
+        cod_collected: 1200,
+      },
+    } as never);
+    vi.spyOn(Order, "exists").mockResolvedValue(null);
+    const update = vi.spyOn(Order, "updateOne").mockImplementation((async (filter: Record<string, unknown>) => {
+      if ("financials.cod_collected" in filter) return { modifiedCount: 0 };
+      return { modifiedCount: 1 };
+    }) as never);
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Completed",
+      paymentID: "TR001",
+      trxID: "CODFIRST123",
+      amount: "1260.00",
+      currency: "BDT",
+      merchantInvoiceNumber: pending.merchant_invoice_number,
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "success" });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: pending.order_id,
+        "financials.cod_collected": 0,
+      }),
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          "financials.merchandise_paid_online": 1200,
+          "financials.cod_due": 0,
+        }),
+      }),
+    );
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: pending.order_id,
+        financial_review_required: { $ne: true },
+      }),
+      expect.objectContaining({
+        $set: { financial_review_required: true },
+        $push: expect.objectContaining({
+          activity: expect.objectContaining({ event: "payment_order_version_mismatch" }),
         }),
       }),
     );

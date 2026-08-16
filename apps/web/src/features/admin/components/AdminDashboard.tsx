@@ -48,7 +48,7 @@ export function AdminDashboard() {
         <MetricsCard label="Orders This Month" value={String(metrics.ordersThisMonth)} />
         <MetricsCard label="New Orders" value={String(metrics.newOrders)} />
         <MetricsCard label="Awaiting Fee" value={String(metrics.awaitingFee)} />
-        <MetricsCard label="Processing / Packing" value={String(metrics.processingPacking)} />
+        <MetricsCard label="Processing" value={String(metrics.processing)} />
         <MetricsCard label="Shipped" value={String(metrics.shipped)} />
         <MetricsCard label="Returns / Exceptions" value={String(metrics.returnsExceptions)} />
         <MetricsCard

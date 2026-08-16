@@ -16,6 +16,7 @@
     "migrate:home-banner-alt-text": "tsx src/scripts/migrate-home-banner-alt-text.ts",
     "migrate:orders": "tsx src/scripts/migrate-leads-to-orders.ts",
     "migrate:orders:expand": "tsx src/scripts/prepare-order-expansion.ts",
+    "migrate:orders:remove-packing": "tsx src/scripts/remove-packing-status.ts",
     "lint": "eslint src --ext .ts",
     "test": "vitest run"
   },

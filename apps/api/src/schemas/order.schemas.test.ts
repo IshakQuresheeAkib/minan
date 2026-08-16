@@ -9,9 +9,16 @@ import {
 } from "./order.schemas.js";
 
 describe("Order admin validation", () => {
-  it("requires an explicit reason to waive COD", () => {
-    expect(orderCodSchema.safeParse({ action: "waive", expected_revision: 1 }).success).toBe(false);
-    expect(orderCodSchema.safeParse({ action: "waive", reason: "Customer approved waiver", expected_revision: 1 }).success).toBe(true);
+  it("accepts COD collection without an action selector", () => {
+    expect(orderCodSchema.safeParse({ amount: 500, expected_revision: 1 }).success).toBe(true);
+  });
+
+  it("rejects the removed COD waiver action", () => {
+    expect(orderCodSchema.safeParse({
+      action: "waive",
+      reason: "Customer approved waiver",
+      expected_revision: 1,
+    }).success).toBe(false);
   });
 
   it("requires confirmed, whole-money item edits", () => {

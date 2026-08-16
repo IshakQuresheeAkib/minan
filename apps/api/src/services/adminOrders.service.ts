@@ -37,9 +37,9 @@ import {
 } from "./orders.service.js";
 
 const BANGLADESH_OFFSET_MS = 6 * 60 * 60 * 1000;
-const PRE_SHIPMENT = new Set<OrderStatus>(["new", "confirmed", "processing", "packing", "on_hold"]);
+const PRE_SHIPMENT = new Set<OrderStatus>(["new", "confirmed", "processing", "on_hold"]);
 const TERMINAL = new Set<OrderStatus>(["cancelled", "returned", "exchanged"]);
-const NORMAL_SEQUENCE: OrderStatus[] = ["new", "confirmed", "processing", "packing", "shipped", "delivered"];
+const NORMAL_SEQUENCE: OrderStatus[] = ["new", "confirmed", "processing", "shipped", "delivered"];
 
 type PageOptions = { page: number; limit: number; skip: number };
 
@@ -66,9 +66,9 @@ function bdBoundary(value: string, end: boolean): Date {
 
 function buildFilter(query: OrderListQuery): QueryFilter<OrderDocument> {
   const filter: QueryFilter<OrderDocument> = {};
-  const statuses = parseSet(query.status, ["new", "confirmed", "processing", "packing", "shipped", "delivered", "on_hold", "cancelled", "returned", "exchanged"] as const);
+  const statuses = parseSet(query.status, ["new", "confirmed", "processing", "shipped", "delivered", "on_hold", "cancelled", "returned", "exchanged"] as const);
   const paymentStatuses = parseSet(query.payment_status, ["not_required", "awaiting", "processing", "paid", "failed", "verification_pending", "expired"] as const);
-  const codStatuses = parseSet(query.cod_status, ["not_required", "due", "collected", "partially_refunded", "refunded", "waived"] as const);
+  const codStatuses = parseSet(query.cod_status, ["not_required", "due", "collected", "partially_refunded", "refunded"] as const);
   if (statuses.length) filter.status = { $in: statuses };
   if (paymentStatuses.length) filter.delivery_fee_status = { $in: paymentStatuses };
   if (codStatuses.length) filter.cod_status = { $in: codStatuses };
@@ -266,9 +266,6 @@ export async function updateOrderItems(id: string, input: OrderItemsUpdateInput,
   const current = await Order.findById(id);
   if (!current) throw new AppError("Order not found", 404);
   ensureEditable(current);
-  if (current.cod_status === "waived") {
-    throw new AppError("Order items lock after COD is waived", 409);
-  }
   const fullPaymentAttemptExists = await PaymentAttempt.exists({
     order_id: current._id,
     payment_purpose: "order_total",
@@ -334,7 +331,7 @@ function validateTransition(order: OrderDocument, input: OrderTransitionInput): 
     throw new AppError("Delivery fee must be paid before confirmation", 409);
   }
   if (input.status === "on_hold") {
-    if (!["new", "confirmed", "processing", "packing"].includes(order.status)) throw new AppError("This Order cannot be held", 409);
+    if (!["new", "confirmed", "processing"].includes(order.status)) throw new AppError("This Order cannot be held", 409);
     if (!input.reason) throw new AppError("A hold reason is required", 400);
     return { held_from_status: order.status };
   }
@@ -391,25 +388,19 @@ export async function updateOrderCourier(id: string, input: OrderCourierUpdateIn
 export async function recordOrderCod(id: string, input: OrderCodInput, admin: AuthenticatedAdmin) {
   const current = await Order.findById(id);
   if (!current) throw new AppError("Order not found", 404);
-  if (current.cod_status === "waived") {
-    throw new AppError("COD was waived and cannot be collected", 409);
-  }
   const outstanding = Math.max(current.financials.cod_due - current.financials.cod_collected, 0);
-  if (input.action === "collect") {
-    const amount = input.amount ?? outstanding;
-    if (amount <= 0 || amount > outstanding) throw new AppError("COD collection exceeds the outstanding amount", 400);
-    const collected = current.financials.cod_collected + amount;
-    const order = await casUpdate(id, input.expected_revision, {
+  const amount = input.amount ?? outstanding;
+  if (amount <= 0 || amount > outstanding) throw new AppError("COD collection exceeds the outstanding amount", 400);
+  const collected = current.financials.cod_collected + amount;
+  const order = await casUpdate(
+    id,
+    input.expected_revision,
+    {
       $set: { "financials.cod_collected": collected, cod_status: collected === current.financials.cod_due ? "collected" : "due" },
       $push: { activity: activity(admin, "cod_collected", input.reason, { amount }) },
-    });
-    return serializeOrder(order, [], true);
-  }
-  if (outstanding === 0) throw new AppError("There is no COD balance to waive", 409);
-  const order = await casUpdate(id, input.expected_revision, {
-    $set: { cod_status: "waived" },
-    $push: { activity: activity(admin, "cod_waived", input.reason, { amount: outstanding }) },
-  });
+    },
+    { "financials.merchandise_paid_online": 0 },
+  );
   return serializeOrder(order, [], true);
 }
 

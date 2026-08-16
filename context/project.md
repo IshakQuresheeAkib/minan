@@ -288,7 +288,7 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `customer_notes`          | String   | optional customer checkout note |
 | `order_number`            | String   | unique `MN-YYYYMMDD-####` allocated by an atomic daily counter |
 | `lines`                   | Array    | frozen product/variant/price/discount lines with return and credit accounting |
-| `status`                  | String   | `new | confirmed | processing | packing | shipped | delivered | on_hold | cancelled | returned | exchanged` |
+| `status`                  | String   | `new | confirmed | processing | shipped | delivered | on_hold | cancelled | returned | exchanged` |
 | `checkout_source`         | String   | `cart | buy_now | exchange` |
 | `shipping_zone`           | String   | optional `inside_sylhet` or `outside_sylhet`; historical/exchange Orders remain unspecified |
 | `payment_method`          | String   | optional `bkash_full | cod`; absent on historical/exchange Orders |
@@ -690,7 +690,7 @@ FRONTEND_URL=https://app.minan.com
 | Orders This Month   | `orders` count by current month |
 | New Orders          | `orders` with workflow `new` |
 | Awaiting Fee        | Orders awaiting/failed/pending/expired fee verification |
-| Processing / Packing | active fulfillment count |
+| Processing | active fulfillment count |
 | Shipped             | shipped Orders |
 | Returns / Exceptions | returned, exchanged, held, or financial-review Orders |
 | Most Viewed Product | `analytics_events` product_view aggregation by `product_id` |

@@ -11,6 +11,7 @@ vi.mock("./checkoutCart.service.js", () => ({
 
 import { Order } from "../models/Order.js";
 import { PaymentAttempt } from "../models/PaymentAttempt.js";
+import { orderTransitionSchema } from "../schemas/order.schemas.js";
 import {
   escapeCsvCell,
   exportAdminOrdersCsv,
@@ -120,20 +121,39 @@ describe("Order workflow integrity", () => {
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
-  it("does not collect COD after the balance was waived", async () => {
+  it("does not accept the retired packing status", () => {
+    expect(orderTransitionSchema.safeParse({ status: "packing", expected_revision: 1 }).success).toBe(false);
+    expect(orderTransitionSchema.safeParse({ status: "shipped", expected_revision: 1 }).success).toBe(true);
+  });
+
+  it("collects the outstanding COD without an action selector", async () => {
     vi.spyOn(Order, "findById").mockResolvedValue({
       financials: { cod_due: 1200, cod_collected: 0 },
-      cod_status: "waived",
+      cod_status: "due",
     } as never);
-    vi.spyOn(Order, "findOneAndUpdate").mockRejectedValue(new Error("COD mutation reached persistence"));
+    const persistenceReached = new Error("COD mutation reached persistence");
+    const update = vi.spyOn(Order, "findOneAndUpdate").mockRejectedValue(persistenceReached);
 
     await expect(
       recordOrderCod(
         new Types.ObjectId().toString(),
-        { action: "collect", amount: 1200, expected_revision: 1 },
+        { expected_revision: 1 },
         { id: new Types.ObjectId().toString(), email: "admin@example.com" },
       ),
-    ).rejects.toMatchObject({ statusCode: 409 });
+    ).rejects.toBe(persistenceReached);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        revision: 1,
+        "financials.merchandise_paid_online": 0,
+      }),
+      expect.objectContaining({
+        $set: { "financials.cod_collected": 1200, cod_status: "collected" },
+        $push: expect.objectContaining({
+          activity: expect.objectContaining({ event: "cod_collected", metadata: { amount: 1200 } }),
+        }),
+      }),
+      expect.objectContaining({ new: true, runValidators: true }),
+    );
   });
 
   it("does not let an item edit reduce the Order below collected COD", async () => {
