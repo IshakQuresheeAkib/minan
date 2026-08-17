@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -58,7 +59,7 @@ export function OrderStatusGuide() {
       <SheetContent side="bottom" className="max-h-[85dvh] rounded-t-xl p-0 md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[30rem] md:max-w-[90vw] md:rounded-none md:border-t-0 md:border-l md:data-[state=closed]:slide-out-to-right md:data-[state=open]:slide-in-from-right">
         <SheetHeader className="shrink-0 border-b pr-12">
           <SheetTitle>Order status guide</SheetTitle>
-          <p className="text-sm text-foreground/70">একটি Order-এর Workflow, Fee এবং COD status আলাদা। Decision নেওয়ার আগে তিনটি status দেখুন।</p>
+          <SheetDescription>একটি Order-এর Workflow, Fee এবং COD status আলাদা। Decision নেওয়ার আগে তিনটি status দেখুন।</SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8">
           <p className="py-5 text-sm text-foreground/70"><span className="font-medium text-foreground">All workflows</span>, <span className="font-medium text-foreground">All fee states</span>, এবং <span className="font-medium text-foreground">All COD states</span> শুধু সেই filter সরিয়ে সব Order দেখায়; এগুলো কোনো Order status নয়।</p>
