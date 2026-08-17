@@ -11,6 +11,7 @@
     "seed:admin": "tsx src/seed/seed-admin.ts",
     "seed:home-banners": "tsx src/seed/seed-home-banners.ts",
     "cleanup:admin-roles": "tsx src/scripts/cleanup-admin-roles.ts",
+    "cleanup:inactive-admin-sessions": "tsx src/scripts/cleanup-inactive-admin-sessions.ts",
     "migrate:product-discounts": "tsx src/scripts/backfill-product-discounts.ts",
     "migrate:lead-checkout": "tsx src/scripts/migrate-lead-checkout.ts",
     "migrate:home-banner-alt-text": "tsx src/scripts/migrate-home-banner-alt-text.ts",

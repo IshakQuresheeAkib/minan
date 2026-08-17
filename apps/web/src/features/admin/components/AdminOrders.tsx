@@ -27,49 +27,16 @@ import {
 import { adminRoutes } from "@/constants/routes";
 import { downloadAdminOrdersCsv } from "@/features/admin/actions/orders.actions";
 import { useOrdersNotifications } from "@/features/admin/components/OrdersNotificationProvider";
+import { OrderStatusGuide } from "@/features/admin/components/OrderStatusGuide";
 import { TablePagination } from "@/features/admin/components/TablePagination";
 import { getOutstandingCod } from "@/features/admin/lib/orderFinancials";
+import { codStatusFilters, feeStatusFilters, workflowStatusFilters } from "@/features/admin/lib/orderStatusGuide";
 import { useAdminOrders } from "@/features/admin/hooks/useAdminOrders";
-import type {
-  AdminOrder,
-  CodStatus,
-  DeliveryFeeStatus,
-  OrderStatus,
-} from "@/features/admin/types";
+import type { AdminOrder } from "@/features/admin/types";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth.store";
 
 const PAGE_LIMIT = 20;
-const workflowStatuses: { value: OrderStatus | ""; label: string }[] = [
-  { value: "", label: "All workflows" },
-  { value: "new", label: "New" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "processing", label: "Processing" },
-  { value: "shipped", label: "Shipped" },
-  { value: "delivered", label: "Delivered" },
-  { value: "on_hold", label: "On hold" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "returned", label: "Returned" },
-  { value: "exchanged", label: "Exchanged" },
-];
-const feeStatuses: { value: DeliveryFeeStatus | ""; label: string }[] = [
-  { value: "", label: "All fee states" },
-  { value: "awaiting", label: "Awaiting fee" },
-  { value: "processing", label: "Fee processing" },
-  { value: "paid", label: "Fee paid" },
-  { value: "failed", label: "Fee failed" },
-  { value: "verification_pending", label: "Verification pending" },
-  { value: "expired", label: "Fee expired" },
-  { value: "not_required", label: "Fee not required" },
-];
-const codStatuses: { value: CodStatus | ""; label: string }[] = [
-  { value: "", label: "All COD states" },
-  { value: "due", label: "COD due" },
-  { value: "collected", label: "COD collected" },
-  { value: "partially_refunded", label: "Partially refunded" },
-  { value: "refunded", label: "Refunded" },
-  { value: "not_required", label: "COD not required" },
-];
 
 function money(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
@@ -156,7 +123,7 @@ function OrdersFilterFields({
         onChange={(event) => onChange("status", event.target.value)}
         aria-label="Workflow status"
       >
-        {workflowStatuses.map((option) => (
+        {workflowStatusFilters.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
@@ -168,7 +135,7 @@ function OrdersFilterFields({
         onChange={(event) => onChange("payment_status", event.target.value)}
         aria-label="Delivery fee status"
       >
-        {feeStatuses.map((option) => (
+        {feeStatusFilters.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
@@ -180,7 +147,7 @@ function OrdersFilterFields({
         onChange={(event) => onChange("cod_status", event.target.value)}
         aria-label="COD status"
       >
-        {codStatuses.map((option) => (
+        {codStatusFilters.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
@@ -271,6 +238,7 @@ function OrdersToolbar({ params }: { params: URLSearchParams }) {
             Enable notifications
           </Button>
         ) : null}
+        <OrderStatusGuide />
         <Button
           variant="secondary"
           leftIcon={<Download className="size-4" aria-hidden="true" />}
