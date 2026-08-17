@@ -24,6 +24,7 @@ import type {
   OrderStatus,
 } from "@/features/admin/types";
 import { getOutstandingCod } from "@/features/admin/lib/orderFinancials";
+import { OrderStatusGuide } from "@/features/admin/components/OrderStatusGuide";
 import { ApiError } from "@/lib/api/client";
 
 function money(value: number): string {
@@ -71,6 +72,7 @@ function OrderHeader({ order }: { order: AdminOrder }) {
           </p>
         </div>
         <div className="flex gap-2">
+          <OrderStatusGuide />
           <Button
             href={`${adminRoutes.orders}/${order._id}/invoice`}
             variant="secondary"

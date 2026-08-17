@@ -10,6 +10,22 @@ import type {
 import type { AdminUserListResponse } from "../types/admin.types.js";
 import { serializeAdmin } from "../utils/serializeAdmin.js";
 
+function deactivateAndRevokeSessions(admin: {
+  is_active: boolean;
+  session_version: number;
+  refresh_token_hash: string | null;
+  previous_refresh_token_hash: string | null;
+}): void {
+  if (!admin.is_active) {
+    return;
+  }
+
+  admin.is_active = false;
+  admin.session_version += 1;
+  admin.refresh_token_hash = null;
+  admin.previous_refresh_token_hash = null;
+}
+
 function assertSelfDeactivationAllowed(
   actorId: string,
   targetId: string,
@@ -68,7 +84,11 @@ export async function updateAdminUser(
   }
 
   if (input.is_active !== undefined) {
-    admin.is_active = input.is_active;
+    if (input.is_active) {
+      admin.is_active = true;
+    } else {
+      deactivateAndRevokeSessions(admin);
+    }
   }
 
   try {
@@ -93,7 +113,7 @@ export async function deactivateAdminUser(actorId: string, id: string) {
     throw new AppError("Admin not found", 404);
   }
 
-  admin.is_active = false;
+  deactivateAndRevokeSessions(admin);
   await admin.save();
   return serializeAdmin(admin);
 }

@@ -21,10 +21,12 @@ export class AuthError extends Error {
 function toJwtPayload(admin: {
   _id: { toString(): string };
   email: string;
+  session_version: number;
 }): AdminJwtPayload {
   return {
     id: admin._id.toString(),
     email: admin.email,
+    session_version: admin.session_version,
   };
 }
 

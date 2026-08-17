@@ -25,12 +25,19 @@ function getRefreshSecret(): string {
 function parsePayload(decoded: jwt.JwtPayload): AdminJwtPayload {
   const id = decoded.id;
   const email = decoded.email;
+  const sessionVersion =
+    decoded.session_version === undefined ? 0 : decoded.session_version;
 
-  if (typeof id !== "string" || typeof email !== "string") {
+  if (
+    typeof id !== "string" ||
+    typeof email !== "string" ||
+    !Number.isSafeInteger(sessionVersion) ||
+    sessionVersion < 0
+  ) {
     throw new Error("Invalid token payload");
   }
 
-  return { id, email };
+  return { id, email, session_version: sessionVersion };
 }
 
 export function signAccessToken(payload: AdminJwtPayload): string {

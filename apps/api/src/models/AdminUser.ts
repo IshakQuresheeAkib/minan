@@ -5,6 +5,7 @@ export interface AdminUserDocument extends Document {
   email: string;
   password: string;
   is_active: boolean;
+  session_version: number;
   refresh_token_hash: string | null;
   previous_refresh_token_hash: string | null;
   createdAt: Date;
@@ -22,6 +23,7 @@ const adminUserSchema = new Schema<AdminUserDocument>(
     },
     password: { type: String, required: true },
     is_active: { type: Boolean, default: true },
+    session_version: { type: Number, default: 0 },
     refresh_token_hash: { type: String, default: null, select: false },
     previous_refresh_token_hash: {
       type: String,

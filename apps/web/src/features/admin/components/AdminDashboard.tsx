@@ -6,7 +6,6 @@ import { useDashboard } from "@/features/admin/hooks/useDashboard";
 
 export function AdminDashboard() {
   const { metrics, loading, error } = useDashboard();
-
   if (loading) {
     return (
       <section className="space-y-6">
