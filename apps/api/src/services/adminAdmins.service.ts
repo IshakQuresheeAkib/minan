@@ -10,20 +10,15 @@ import type {
 import type { AdminUserListResponse } from "../types/admin.types.js";
 import { serializeAdmin } from "../utils/serializeAdmin.js";
 
-function deactivateAndRevokeSessions(admin: {
-  is_active: boolean;
-  session_version: number;
-  refresh_token_hash: string | null;
-  previous_refresh_token_hash: string | null;
-}): void {
-  if (!admin.is_active) {
-    return;
-  }
-
-  admin.is_active = false;
-  admin.session_version += 1;
-  admin.refresh_token_hash = null;
-  admin.previous_refresh_token_hash = null;
+function sessionVersionFilter(sessionVersion: number) {
+  return sessionVersion === 0
+    ? {
+        $or: [
+          { session_version: 0 },
+          { session_version: { $exists: false } },
+        ],
+      }
+    : { session_version: sessionVersion };
 }
 
 function assertSelfDeactivationAllowed(
@@ -79,16 +74,78 @@ export async function updateAdminUser(
 
   assertSelfDeactivationAllowed(actorId, id, input);
 
+  if (input.is_active === false && admin.is_active) {
+    try {
+      const deactivated = await AdminUser.findOneAndUpdate(
+        {
+          _id: admin._id,
+          is_active: true,
+          ...sessionVersionFilter(admin.session_version),
+        },
+        {
+          $set: {
+            ...(input.email !== undefined
+              ? { email: input.email.toLowerCase().trim() }
+              : {}),
+            is_active: false,
+            refresh_token_hash: null,
+            previous_refresh_token_hash: null,
+          },
+          $inc: { session_version: 1 },
+        },
+        { returnDocument: "after", runValidators: true },
+      );
+
+      if (!deactivated) {
+        throw new AppError(
+          "Admin status changed while updating; try again",
+          409,
+        );
+      }
+
+      return serializeAdmin(deactivated);
+    } catch (error) {
+      throwIfDuplicateKey(error, "Admin email already exists");
+    }
+  }
+
+  if (input.is_active === true && !admin.is_active) {
+    try {
+      const reactivated = await AdminUser.findOneAndUpdate(
+        { _id: admin._id, is_active: false },
+        {
+          $set: {
+            ...(input.email !== undefined
+              ? { email: input.email.toLowerCase().trim() }
+              : {}),
+            is_active: true,
+            refresh_token_hash: null,
+            previous_refresh_token_hash: null,
+          },
+          $inc: { session_version: 1 },
+        },
+        { returnDocument: "after", runValidators: true },
+      );
+
+      if (!reactivated) {
+        throw new AppError(
+          "Admin status changed while updating; try again",
+          409,
+        );
+      }
+
+      return serializeAdmin(reactivated);
+    } catch (error) {
+      throwIfDuplicateKey(error, "Admin email already exists");
+    }
+  }
+
   if (input.email !== undefined) {
     admin.email = input.email.toLowerCase().trim();
   }
 
   if (input.is_active !== undefined) {
-    if (input.is_active) {
-      admin.is_active = true;
-    } else {
-      deactivateAndRevokeSessions(admin);
-    }
+    admin.is_active = input.is_active;
   }
 
   try {
@@ -108,12 +165,27 @@ export async function deactivateAdminUser(actorId: string, id: string) {
     throw new AppError("You cannot deactivate your own account", 400);
   }
 
+  const deactivated = await AdminUser.findOneAndUpdate(
+    { _id: id, is_active: true },
+    {
+      $set: {
+        is_active: false,
+        refresh_token_hash: null,
+        previous_refresh_token_hash: null,
+      },
+      $inc: { session_version: 1 },
+    },
+    { returnDocument: "after" },
+  );
+
+  if (deactivated) {
+    return serializeAdmin(deactivated);
+  }
+
   const admin = await AdminUser.findById(id);
   if (!admin) {
     throw new AppError("Admin not found", 404);
   }
 
-  deactivateAndRevokeSessions(admin);
-  await admin.save();
   return serializeAdmin(admin);
 }

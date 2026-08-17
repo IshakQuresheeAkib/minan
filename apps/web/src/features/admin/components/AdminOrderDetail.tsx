@@ -71,7 +71,7 @@ function OrderHeader({ order }: { order: AdminOrder }) {
             Created {localDate(order.createdAt)} · Revision {order.revision}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end max-sm:[&_[data-slot=button]]:px-4 max-sm:[&_[data-slot=button]]:py-2">
           <OrderStatusGuide />
           <Button
             href={`${adminRoutes.orders}/${order._id}/invoice`}

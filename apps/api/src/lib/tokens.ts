@@ -22,11 +22,16 @@ function getRefreshSecret(): string {
   return secret;
 }
 
-function parsePayload(decoded: jwt.JwtPayload): AdminJwtPayload {
+function parsePayload(
+  decoded: jwt.JwtPayload,
+  allowMissingSessionVersion: boolean,
+): AdminJwtPayload {
   const id = decoded.id;
   const email = decoded.email;
   const sessionVersion =
-    decoded.session_version === undefined ? 0 : decoded.session_version;
+    decoded.session_version === undefined && allowMissingSessionVersion
+      ? 0
+      : decoded.session_version;
 
   if (
     typeof id !== "string" ||
@@ -57,7 +62,7 @@ export function verifyAccessToken(token: string): AdminJwtPayload {
   if (typeof decoded === "string") {
     throw new Error("Invalid access token");
   }
-  return parsePayload(decoded);
+  return parsePayload(decoded, true);
 }
 
 export function verifyRefreshToken(token: string): AdminJwtPayload {
@@ -65,5 +70,5 @@ export function verifyRefreshToken(token: string): AdminJwtPayload {
   if (typeof decoded === "string") {
     throw new Error("Invalid refresh token");
   }
-  return parsePayload(decoded);
+  return parsePayload(decoded, false);
 }

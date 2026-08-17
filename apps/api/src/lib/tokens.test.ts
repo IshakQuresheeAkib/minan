@@ -35,17 +35,15 @@ describe("access token payloads", () => {
     });
   });
 
-  it("treats a legacy refresh token as session version zero", () => {
+  it("rejects a legacy refresh token without a session version", () => {
     process.env.JWT_REFRESH_SECRET = "test-refresh-secret";
     const legacyToken = jwt.sign(
       { id: "66f000000000000000000001", email: "admin@example.com" },
       process.env.JWT_REFRESH_SECRET,
     );
 
-    expect(verifyRefreshToken(legacyToken)).toEqual({
-      id: "66f000000000000000000001",
-      email: "admin@example.com",
-      session_version: 0,
-    });
+    expect(() => verifyRefreshToken(legacyToken)).toThrow(
+      "Invalid token payload",
+    );
   });
 });
