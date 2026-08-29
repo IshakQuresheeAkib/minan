@@ -604,17 +604,13 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 
 Custom domains are required for production admin cookie auth.
 
-### bKash checkout rollout
+### Database maintenance and migration retirement
 
-The Render API and Vercel web app must be rolled out as compatible releases:
+The Order/payment expansion and the product, banner, admin-role, lead-checkout, and packing-status backfills are complete; their one-time scripts and npm aliases are retired.
 
-1. Preview and apply `npm --workspace @minan/api run migrate:orders:expand -- --apply` to replace the required Lead sequence index with partial Lead/Order relationship indexes. Deploy the expansion API with Order/counter collections, nullable attempt relationships, compatibility routes, and `CHECKOUT_MAINTENANCE_MODE=false`.
-2. Take a database backup. Run `npm --workspace @minan/api run migrate:orders` and resolve missing snapshots, duplicate transactions, orphan links, or financial anomalies.
-3. Enable checkout maintenance for payment creation/retry only. Callbacks, results, and admin rechecks remain live.
-4. Run `npm --workspace @minan/api run migrate:orders -- --apply`, then re-run it to prove idempotency. Verify source/destination counts, Order numbers/counter maxima, financial totals, attempt links, transaction IDs, callback resolution, and dashboard metrics.
-5. Deploy `/admin/orders` plus payment contract v2 checkout, complete full-Order and fee-only COD sandbox matrices, and disable maintenance.
+Retain `npm --workspace @minan/api run migrate:orders` until every legacy payment attempt has `order_id` and no longer depends on `lead_id`. It reports a dry run by default. Before any `-- --apply` run, take a database backup, resolve all reported anomalies, enable checkout maintenance for payment creation/retry, and keep callbacks, results, and admin rechecks available. Re-run the dry run afterward to verify counts, financial totals, attempt links, transaction IDs, and dashboard metrics.
 
-Migration preserves Lead `_id` values, timestamps, checkout snapshots and idempotency hashes; assigns deterministic Bangladesh-date Order numbers; classifies every pre-cutover attempt `legacy_full_order`; backfills `order_id` while retaining `lead_id`; and leaves `leads` untouched. Legacy Leads are not a rollback path for Orders created after cutover.
+The migration preserves Lead `_id` values, timestamps, checkout snapshots and idempotency hashes; assigns deterministic Bangladesh-date Order numbers; classifies pre-cutover attempts `legacy_full_order`; backfills `order_id` while retaining `lead_id`; and leaves `leads` untouched. Keep the legacy collection until the compatibility and rollback window is explicitly closed. Legacy Leads are not a rollback path for Orders created after cutover.
 
 Admin role removal changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window; old web against new API or new web against old API can break admin refresh/admin-user forms. Existing legacy JWTs that still include `role` are tolerated by the new parser as long as they contain valid `id` and `email` claims.
 
@@ -668,7 +664,7 @@ FRONTEND_URL=https://app.minan.com
 
 - `AUTH_COOKIE_DOMAIN` should be `.minan.com` in production when frontend and backend share the parent domain.
 - `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password and `is_active: true`.
-- `cleanup:admin-roles` is an optional post-deploy hygiene script that removes legacy `role` fields from `admin_users`; stale role fields are ignored by current code.
+- `cleanup:inactive-admin-sessions` is a guarded legacy-maintenance command. Run it without `--apply` before reactivating an inactive legacy admin; after reviewing the count, rerun with `-- --apply` to clear stale refresh-token hashes and advance `session_version`. Normal admin deactivation performs this revocation automatically.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 - `API_PUBLIC_URL` must be the directly reachable Render API origin used for the bKash callback. `FRONTEND_URL` is the Vercel storefront origin used after callback verification.
 - `DELIVERY_FEE_INSIDE_SYLHET_BDT=60`, `DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120`, and compatibility fallback `DELIVERY_FEE_BDT=100` are required positive integers for this release; do not add frontend public fee variables. Remove the fallback only in a later cleanup release after the previous storefront can no longer send traffic.
@@ -676,7 +672,6 @@ FRONTEND_URL=https://app.minan.com
 - The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL; it does not depend on the browser rewrite.
 - Use bKash sandbox credentials until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Replace the base URL and credentials together for production.
 - `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
-- Before deploying the required banner `alt_text` schema, back up MongoDB and run `npm --workspace @minan/api run migrate:home-banner-alt-text`; supply explicit descriptions for any reported custom banners, review the dry run, apply with `-- --apply`, and rerun the dry run to prove idempotency. The migration refuses unresolved images rather than assigning generic text. If the singleton is absent, run `npm --workspace @minan/api run seed:home-banners` after the API deploy and before the banner-backed web release.
 
 ---
 

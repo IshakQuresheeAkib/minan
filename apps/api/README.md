@@ -26,11 +26,6 @@ The API is the only data layer for the app. Next.js route handlers are intention
 }
 ```
 
-Before deploying the required home-banner `alt_text` schema, run
-`npm --workspace @minan/api run migrate:home-banner-alt-text`. The dry run
-automatically describes only the two known seeded images. If it reports custom
-legacy banners, create a JSON object mapping each reported banner ID to a
-meaningful image description and pass it with
-`-- --descriptions <path>`. Review the output, take a database backup, apply
-with `-- --apply --descriptions <path>`, then rerun the dry run to verify
-idempotency. The apply step refuses unresolved banners instead of guessing.
+The home-banner `alt_text` migration is complete and its one-time command is retired. If the banner singleton is absent, use `npm --workspace @minan/api run seed:home-banners`; the seed preserves an existing set.
+
+Two dry-run-by-default maintenance commands remain: `migrate:orders` for the legacy Lead/PaymentAttempt compatibility window and `cleanup:inactive-admin-sessions` before reactivating a legacy inactive admin. Supply `-- --apply` only after reviewing the dry run and taking any required MongoDB backup.

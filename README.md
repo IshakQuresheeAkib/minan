@@ -39,14 +39,11 @@ minan/
 - Animations use GSAP only.
 - Product images are Cloudinary URLs rendered with `next/image`.
 
-## Order and payment rollout
+## Database maintenance
 
-The API and web app deploy independently. For payment-model releases, deploy in this order:
+The product, banner, admin-role, lead-checkout, Order-index expansion, and packing-status migrations are complete. Their one-time scripts have been retired, but two guarded maintenance commands remain:
 
-1. Configure bKash plus `DELIVERY_FEE_BDT=100`, preview/apply `npm --workspace @minan/api run migrate:orders:expand -- --apply`, deploy the expansion API, and take a MongoDB backup.
-2. Run `npm --workspace @minan/api run migrate:orders` and resolve every dry-run anomaly.
-3. Enable `CHECKOUT_MAINTENANCE_MODE=true` for payment creation/retry while keeping callbacks, results, and admin rechecks available.
-4. Apply with `npm --workspace @minan/api run migrate:orders -- --apply`, run it again to prove idempotency, and verify counts, finances, counters, attempt links, transaction IDs, and dashboard metrics.
-5. Deploy the Orders frontend, confirm both sandbox amounts (full Order and fee-only COD) plus result/admin reconciliation, then disable maintenance.
+- `npm --workspace @minan/api run migrate:orders` is dry-run-only unless `-- --apply` is supplied. Retain it until every legacy payment attempt has `order_id` and no longer depends on `lead_id`; take a MongoDB backup and enable checkout maintenance before any apply run.
+- `npm --workspace @minan/api run cleanup:inactive-admin-sessions` is dry-run-only unless `-- --apply` is supplied. Use it before reactivating a legacy inactive admin to clear stale refresh-token hashes and advance `session_version`.
 
-Legacy Leads remain untouched as a migration rollback source for one compatibility release. New Orders are not dual-written to Leads. Merchandise refunds are executed manually and recorded against the Order; delivery fees are never refundable. Exchange replacement Orders always waive delivery in v1 and do not create a payment link.
+Keep the legacy `leads` collection until the Order/payment compatibility and rollback window is explicitly closed. New Orders are not dual-written to Leads. Merchandise refunds are executed manually and recorded against the Order; delivery fees are never refundable. Exchange replacement Orders always waive delivery in v1 and do not create a payment link.
