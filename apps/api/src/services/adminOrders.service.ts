@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 
 import { shippingAreaLabel } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
+import { normalizeEmail } from "../lib/normalizeEmail.js";
 import {
   Order,
   type OrderDocument,
@@ -253,7 +254,10 @@ export async function updateOrderCustomer(id: string, input: OrderCustomerUpdate
     fields.phone_number = input.phone_number;
     fields.normalized_phone = normalizeBangladeshPhone(input.phone_number);
   }
-  if (input.email !== undefined) fields.email = input.email;
+  if (input.email !== undefined) {
+    fields.email = input.email;
+    fields.normalized_email = normalizeEmail(input.email);
+  }
   if (input.address !== undefined) fields.address = input.address;
   const order = await casUpdate(id, input.expected_revision, {
     $set: fields,
@@ -285,6 +289,7 @@ export async function updateOrderItems(id: string, input: OrderItemsUpdateInput,
       line_id: preserve ? previous.line_id : randomUUID(),
       product_id: item.product_id,
       name: preserve ? previous.name : item.name,
+      image_url: preserve ? previous.image_url : item.image_url,
       unit_price: preserve ? previous.unit_price : item.price,
       original_price: preserve ? previous.original_price : item.original_price ?? item.price,
       product_discount: preserve ? previous.product_discount : item.discount ?? 0,
@@ -481,6 +486,7 @@ export async function createOrderExchange(id: string, input: OrderExchangeInput,
   });
   const lines: OrderLine[] = verified.items.map((item) => ({
     line_id: randomUUID(), product_id: item.product_id, name: item.name, unit_price: item.price,
+    image_url: item.image_url,
     original_price: item.original_price ?? item.price, product_discount: item.discount ?? 0,
     size: item.size, color: item.color, quantity: item.quantity, allocated_order_discount: 0,
     returned_quantity: 0, credited_amount: 0,
@@ -489,11 +495,12 @@ export async function createOrderExchange(id: string, input: OrderExchangeInput,
   const appliedCredit = Math.min(returned.credit, replacementTotal);
   const financials = calculateFinancials({ lines, deliveryFee: 0, exchangeCreditApplied: appliedCredit });
   const replacement = await Order.create({
-    order_number: await allocateOrderNumber(), name: source.name, phone_number: source.phone_number,
-    normalized_phone: source.normalized_phone, email: source.email, address: source.address,
+    order_number: await allocateOrderNumber(), customer_id: source.customer_id ?? null, name: source.name,
+    phone_number: source.phone_number, normalized_phone: source.normalized_phone, email: source.email,
+    normalized_email: source.normalized_email || normalizeEmail(source.email), address: source.address,
     lines, item_signature: buildItemSignature(lines), checkout_source: "exchange", status: "confirmed",
     financials, delivery_fee_status: "not_required", cod_status: financials.cod_due ? "due" : "not_required",
-    exchange_source_order_id: source._id, revision: 1,
+    exchange_source_order_id: source._id, revision: 1, guest_access_version: 1,
     activity: [{ actor_type: "admin", admin_id: admin.id, admin_email: admin.email, event: "exchange_order_created", reason: input.reason, metadata: { source_order_number: source.order_number, exchange_credit: appliedCredit }, created_at: new Date() }],
     financial_review_required: returned.credit > appliedCredit,
   });

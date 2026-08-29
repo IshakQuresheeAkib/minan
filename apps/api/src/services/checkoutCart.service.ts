@@ -20,6 +20,7 @@ export type VerifiedCartSnapshot = {
   items: {
     product_id: string;
     name: string;
+    image_url?: string;
     price: number;
     original_price?: number;
     discount?: number;
@@ -52,7 +53,7 @@ export async function buildVerifiedCartSnapshot(
   const products = await Product.find({
     _id: { $in: uniqueProductIds.map((id) => new Types.ObjectId(id)) },
     is_active: true,
-  }).select("_id name price discount sizes colors");
+  }).select("_id name price discount sizes colors images");
   const productById = new Map(
     products.map((product) => [product._id.toString(), product]),
   );
@@ -71,6 +72,7 @@ export async function buildVerifiedCartSnapshot(
     return {
       product_id: product._id.toString(),
       name: product.name,
+      image_url: product.images[0],
       price: calculateDiscountedPrice(product.price, discount),
       original_price: product.price,
       discount,

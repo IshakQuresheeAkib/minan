@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import type { Types } from "mongoose";
 
 import { connectDB, disconnectDB } from "../config/db.js";
+import { normalizeEmail } from "../lib/normalizeEmail.js";
 import { Order, type OrderLine, type OrderStatus } from "../models/Order.js";
 import { OrderCounter } from "../models/OrderCounter.js";
 import { PaymentAttempt } from "../models/PaymentAttempt.js";
@@ -183,10 +184,12 @@ async function migrate(): Promise<void> {
     await Order.collection.insertOne({
       _id: lead._id,
       order_number: takeReservedOrderNumber(key, reservation),
+      customer_id: null,
       name: lead.name,
       phone_number: lead.phone_number,
       normalized_phone: normalizeBangladeshPhone(lead.phone_number),
       email: lead.email,
+      normalized_email: normalizeEmail(lead.email),
       address: lead.address,
       customer_notes: lead.notes,
       lines,
@@ -200,6 +203,7 @@ async function migrate(): Promise<void> {
       duplicate_order_ids: [],
       duplicate_review_state: "none",
       revision: 1,
+      guest_access_version: 1,
       activity: [{ actor_type: "migration", event: "lead_migrated", reason: mapped.review ? "Legacy delivery_failed requires review" : undefined, created_at: new Date() }],
       refunds: [],
       financial_review_required: mapped.review || (completed !== null && !Number.isSafeInteger(parsedPaid)),

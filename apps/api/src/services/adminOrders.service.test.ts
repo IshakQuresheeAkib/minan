@@ -10,13 +10,16 @@ vi.mock("./checkoutCart.service.js", () => ({
 }));
 
 import { Order } from "../models/Order.js";
+import { OrderCounter } from "../models/OrderCounter.js";
 import { PaymentAttempt } from "../models/PaymentAttempt.js";
 import { orderTransitionSchema } from "../schemas/order.schemas.js";
 import {
+  createOrderExchange,
   escapeCsvCell,
   exportAdminOrdersCsv,
   recordOrderCod,
   transitionOrder,
+  updateOrderCustomer,
   updateOrderItems,
 } from "./adminOrders.service.js";
 
@@ -319,5 +322,108 @@ describe("Order workflow integrity", () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  it("updates normalized email with an admin customer email correction", async () => {
+    const orderId = new Types.ObjectId();
+    vi.spyOn(Order, "findById").mockResolvedValue({ status: "new" } as never);
+    const persistenceReached = new Error("customer update reached persistence");
+    const update = vi.spyOn(Order, "findOneAndUpdate").mockRejectedValue(persistenceReached);
+
+    await expect(updateOrderCustomer(
+      orderId.toString(),
+      {
+        email: "Corrected@Example.COM",
+        expected_revision: 2,
+        reason: "Customer corrected their email address",
+      },
+      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+    )).rejects.toBe(persistenceReached);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: orderId.toString(), revision: 2 }),
+      expect.objectContaining({
+        $set: {
+          email: "Corrected@Example.COM",
+          normalized_email: "corrected@example.com",
+        },
+      }),
+      expect.objectContaining({ new: true, runValidators: true }),
+    );
+  });
+
+  it("inherits customer ownership and normalized email for exchange replacements", async () => {
+    const sourceId = new Types.ObjectId();
+    const customerId = new Types.ObjectId();
+    const lineId = "d8322e7a-5585-4b84-9a8a-152b1bcf25e8";
+    vi.spyOn(Order, "findById").mockResolvedValue({
+      _id: sourceId,
+      order_number: "MN-20260830-0001",
+      customer_id: customerId,
+      name: "Test Customer",
+      phone_number: "01700000000",
+      normalized_phone: "01700000000",
+      email: "Customer@Example.com",
+      normalized_email: "customer@example.com",
+      address: "Sylhet, Bangladesh",
+      status: "delivered",
+      lines: [{
+        line_id: lineId,
+        product_id: new Types.ObjectId().toString(),
+        name: "Original Shirt",
+        unit_price: 1200,
+        original_price: 1200,
+        product_discount: 0,
+        size: "M",
+        color: "Black",
+        quantity: 1,
+        allocated_order_discount: 0,
+        returned_quantity: 0,
+        credited_amount: 0,
+      }],
+      financials: { exchange_credit_issued: 0 },
+    } as never);
+    mocks.buildVerifiedCartSnapshot.mockResolvedValue({
+      items: [{
+        product_id: new Types.ObjectId().toString(),
+        name: "Replacement Shirt",
+        image_url: "https://res.cloudinary.com/minan/image/upload/replacement.webp",
+        price: 1300,
+        original_price: 1300,
+        discount: 0,
+        size: "L",
+        color: "Blue",
+        quantity: 1,
+      }],
+      total: 1300,
+    });
+    vi.spyOn(OrderCounter, "findOneAndUpdate").mockResolvedValue({ sequence: 2 } as never);
+    const persistenceReached = new Error("replacement reached persistence");
+    const create = vi.spyOn(Order, "create").mockRejectedValue(persistenceReached);
+
+    await expect(createOrderExchange(
+      sourceId.toString(),
+      {
+        returned_lines: [{ line_id: lineId, quantity: 1 }],
+        replacement_items: [{
+          product_id: new Types.ObjectId().toString(),
+          size: "L",
+          color: "Blue",
+          quantity: 1,
+        }],
+        expected_revision: 1,
+        reason: "Customer requested a replacement",
+      },
+      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+    )).rejects.toBe(persistenceReached);
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      customer_id: customerId,
+      normalized_email: "customer@example.com",
+      guest_access_version: 1,
+      lines: [expect.objectContaining({
+        image_url: "https://res.cloudinary.com/minan/image/upload/replacement.webp",
+      })],
+    }));
   });
 });

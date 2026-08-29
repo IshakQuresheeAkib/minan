@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 
 import { getDeliveryFeeForCheckout } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
+import { normalizeEmail } from "../lib/normalizeEmail.js";
 import {
   Order,
   type OrderDocument,
@@ -129,7 +130,7 @@ export function checkoutRequestMatchesOrder(
   if (
     input.name !== order.name ||
     normalizeBangladeshPhone(input.phone_number) !== order.normalized_phone ||
-    input.email !== order.email ||
+    normalizeEmail(input.email) !== (order.normalized_email || normalizeEmail(order.email)) ||
     input.address !== order.address ||
     (input.notes ?? "") !== (order.customer_notes ?? "") ||
     input.checkout_source !== order.checkout_source ||
@@ -188,6 +189,7 @@ export async function createOrLoadCheckoutOrder(
     line_id: randomUUID(),
     product_id: item.product_id,
     name: item.name,
+    image_url: item.image_url,
     unit_price: item.price,
     original_price: item.original_price ?? item.price,
     product_discount: item.discount ?? 0,
@@ -205,10 +207,12 @@ export async function createOrLoadCheckoutOrder(
   try {
     order = await Order.create({
       order_number: orderNumber,
+      customer_id: null,
       name: input.name,
       phone_number: input.phone_number,
       normalized_phone: normalizedPhone,
       email: input.email,
+      normalized_email: normalizeEmail(input.email),
       address: input.address,
       customer_notes: input.notes,
       lines,
@@ -222,6 +226,7 @@ export async function createOrLoadCheckoutOrder(
       delivery_fee_status: "awaiting",
       cod_status: cart.total > 0 ? "due" : "not_required",
       revision: 1,
+      guest_access_version: 1,
       activity: [{
         actor_type: "customer",
         event: "order_created",
