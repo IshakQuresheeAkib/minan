@@ -35,6 +35,7 @@ export type OrderLine = {
   line_id: string;
   product_id: string;
   name: string;
+  image_url?: string;
   unit_price: number;
   original_price: number;
   product_discount: number;
@@ -66,6 +67,7 @@ export type OrderActivity = {
   admin_email?: string;
   event: string;
   reason?: string;
+  customer_note?: string;
   metadata?: Record<string, string | number | boolean | null>;
   created_at: Date;
 };
@@ -82,10 +84,12 @@ export type OrderRefund = {
 
 export interface OrderDocument extends Document {
   order_number: string;
+  customer_id: Types.ObjectId | null;
   name: string;
   phone_number: string;
   normalized_phone: string;
   email: string;
+  normalized_email: string;
   address: string;
   customer_notes?: string;
   lines: OrderLine[];
@@ -105,6 +109,8 @@ export interface OrderDocument extends Document {
   tracking_number?: string;
   shipped_at?: Date;
   delivered_at?: Date;
+  expected_delivery_date?: Date;
+  guest_access_version: number;
   duplicate_order_ids: Types.ObjectId[];
   duplicate_review_state: "none" | "pending" | "reviewed_unique" | "confirmed_duplicate";
   exchange_source_order_id?: Types.ObjectId;
@@ -119,11 +125,20 @@ export interface OrderDocument extends Document {
 
 const money = { type: Number, required: true, min: 0, validate: Number.isSafeInteger };
 
+function isUtcCalendarDate(value: Date): boolean {
+  return !Number.isNaN(value.getTime()) &&
+    value.getUTCHours() === 0 &&
+    value.getUTCMinutes() === 0 &&
+    value.getUTCSeconds() === 0 &&
+    value.getUTCMilliseconds() === 0;
+}
+
 const orderLineSchema = new Schema<OrderLine>(
   {
     line_id: { type: String, required: true },
     product_id: { type: String, required: true },
     name: { type: String, required: true, trim: true },
+    image_url: { type: String, trim: true, maxlength: 2048 },
     unit_price: money,
     original_price: money,
     product_discount: { type: Number, required: true, min: 0, max: 100 },
@@ -144,6 +159,7 @@ const activitySchema = new Schema<OrderActivity>(
     admin_email: { type: String },
     event: { type: String, required: true, maxlength: 100 },
     reason: { type: String, maxlength: 500 },
+    customer_note: { type: String, trim: true, maxlength: 500 },
     metadata: { type: Schema.Types.Mixed },
     created_at: { type: Date, required: true },
   },
@@ -166,10 +182,12 @@ const refundSchema = new Schema<OrderRefund>(
 const orderSchema = new Schema<OrderDocument>(
   {
     order_number: { type: String, required: true, unique: true, index: true },
+    customer_id: { type: Schema.Types.ObjectId, ref: "Customer", default: null },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     phone_number: { type: String, required: true, trim: true, maxlength: 30 },
     normalized_phone: { type: String, required: true, index: true },
     email: { type: String, required: true, trim: true, maxlength: 254 },
+    normalized_email: { type: String, required: true, trim: true, maxlength: 254 },
     address: { type: String, required: true, trim: true, maxlength: 1000 },
     customer_notes: { type: String, trim: true, maxlength: 500 },
     lines: { type: [orderLineSchema], required: true },
@@ -216,6 +234,20 @@ const orderSchema = new Schema<OrderDocument>(
     tracking_number: { type: String, trim: true, maxlength: 120 },
     shipped_at: { type: Date },
     delivered_at: { type: Date },
+    expected_delivery_date: {
+      type: Date,
+      validate: {
+        validator: isUtcCalendarDate,
+        message: "Expected delivery date must be a calendar date at UTC midnight",
+      },
+    },
+    guest_access_version: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+      validate: Number.isSafeInteger,
+    },
     duplicate_order_ids: [{ type: Schema.Types.ObjectId, ref: "Order" }],
     duplicate_review_state: {
       type: String,
@@ -236,6 +268,8 @@ orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ delivery_fee_status: 1, createdAt: -1 });
 orderSchema.index({ cod_status: 1, createdAt: -1 });
 orderSchema.index({ normalized_phone: 1, item_signature: 1, createdAt: -1 });
+orderSchema.index({ customer_id: 1, createdAt: -1 });
+orderSchema.index({ normalized_email: 1, createdAt: -1 });
 orderSchema.index({ createdAt: 1, _id: 1 });
 
 export const Order = mongoose.model<OrderDocument>("Order", orderSchema);
