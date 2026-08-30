@@ -20,6 +20,7 @@ import {
 import { authRouter } from "./routes/auth.routes.js";
 import { bkashRouter } from "./routes/bkash.routes.js";
 import { checkoutRouter } from "./routes/checkout.routes.js";
+import { customerAuthRouter } from "./routes/customerAuth.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
@@ -29,7 +30,7 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-  
+
 app.use(helmet());
 app.use(
   cors({
@@ -64,6 +65,7 @@ app.use("/api/checkout", checkoutRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/customer-auth", customerAuthRouter);
 app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 

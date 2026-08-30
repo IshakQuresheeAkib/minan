@@ -6,6 +6,9 @@ import {
 } from "../config/auth.js";
 import type { AdminJwtPayload } from "../types/auth.types.js";
 
+export const ADMIN_TOKEN_AUDIENCE = "minan-admin";
+const ADMIN_TOKEN_ACTOR = "admin";
+
 function getAccessSecret(): string {
   const secret = process.env.JWT_ACCESS_SECRET;
   if (!secret) {
@@ -22,6 +25,12 @@ function getRefreshSecret(): string {
   return secret;
 }
 
+function hasAdminAudience(audience: string | string[]): boolean {
+  return Array.isArray(audience)
+    ? audience.includes(ADMIN_TOKEN_AUDIENCE)
+    : audience === ADMIN_TOKEN_AUDIENCE;
+}
+
 function parsePayload(
   decoded: jwt.JwtPayload,
   allowMissingSessionVersion: boolean,
@@ -34,6 +43,8 @@ function parsePayload(
       : decoded.session_version;
 
   if (
+    (decoded.actor !== undefined && decoded.actor !== ADMIN_TOKEN_ACTOR) ||
+    (decoded.aud !== undefined && !hasAdminAudience(decoded.aud)) ||
     typeof id !== "string" ||
     typeof email !== "string" ||
     !Number.isSafeInteger(sessionVersion) ||
@@ -46,13 +57,15 @@ function parsePayload(
 }
 
 export function signAccessToken(payload: AdminJwtPayload): string {
-  return jwt.sign(payload, getAccessSecret(), {
+  return jwt.sign({ ...payload, actor: ADMIN_TOKEN_ACTOR }, getAccessSecret(), {
+    audience: ADMIN_TOKEN_AUDIENCE,
     expiresIn: ACCESS_TOKEN_TTL_SECONDS,
   });
 }
 
 export function signRefreshToken(payload: AdminJwtPayload): string {
-  return jwt.sign(payload, getRefreshSecret(), {
+  return jwt.sign({ ...payload, actor: ADMIN_TOKEN_ACTOR }, getRefreshSecret(), {
+    audience: ADMIN_TOKEN_AUDIENCE,
     expiresIn: REFRESH_TOKEN_TTL_SECONDS,
   });
 }
