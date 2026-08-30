@@ -47,6 +47,7 @@ Thumbs.db
 # Vercel
 .vercel/
 .cursor/
+.codex/config.toml
 .worktrees/
 
 # Logs
