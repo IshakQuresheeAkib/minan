@@ -14,6 +14,7 @@ import {
   orderNoteSchema,
   orderRefundSchema,
   orderReturnSchema,
+  orderTrackingUpdateSchema,
   orderTransitionSchema,
 } from "../../schemas/order.schemas.js";
 import {
@@ -27,10 +28,11 @@ import {
   recordOrderRefund,
   recordOrderReturn,
   reviewOrderDuplicate,
-  transitionOrder,
+  transitionOrderAndQueueNotification,
   updateOrderCourier,
   updateOrderCustomer,
   updateOrderItems,
+  updateOrderTracking,
 } from "../../services/adminOrders.service.js";
 import { recheckPendingPayment } from "../../services/bkashPayments.service.js";
 
@@ -88,7 +90,7 @@ export async function updateOrderItemsHandler(req: Request, res: Response, next:
   try { res.json({ data: await updateOrderItems(id(req), parseBody(orderItemsUpdateSchema, req.body), admin(req)) }); } catch (error) { next(error); }
 }
 export async function transitionOrderHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try { res.json({ data: await transitionOrder(id(req), parseBody(orderTransitionSchema, req.body), admin(req)) }); } catch (error) { next(error); }
+  try { res.json({ data: await transitionOrderAndQueueNotification(id(req), parseBody(orderTransitionSchema, req.body), admin(req)) }); } catch (error) { next(error); }
 }
 export async function updateOrderCourierHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try { res.json({ data: await updateOrderCourier(id(req), parseBody(orderCourierUpdateSchema, req.body), admin(req)) }); } catch (error) { next(error); }
@@ -98,6 +100,9 @@ export async function recordOrderCodHandler(req: Request, res: Response, next: N
 }
 export async function appendOrderNoteHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try { res.json({ data: await appendOrderNote(id(req), parseBody(orderNoteSchema, req.body), admin(req)) }); } catch (error) { next(error); }
+}
+export async function updateOrderTrackingHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try { res.json({ data: await updateOrderTracking(id(req), parseBody(orderTrackingUpdateSchema, req.body), admin(req)) }); } catch (error) { next(error); }
 }
 export async function reviewOrderDuplicateHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try { res.json({ data: await reviewOrderDuplicate(id(req), parseBody(orderDuplicateReviewSchema, req.body), admin(req)) }); } catch (error) { next(error); }

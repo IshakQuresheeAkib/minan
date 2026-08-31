@@ -175,6 +175,30 @@ describe("serializeCustomerOrder", () => {
     }]);
   });
 
+  it("exposes an admin public tracking note but never its internal reason", () => {
+    const order = makeTrackingOrder({
+      status: "shipped",
+      activity: [{
+        actor_type: "admin",
+        admin_id: new Types.ObjectId().toString(),
+        admin_email: "admin@example.com",
+        event: "tracking_updated",
+        reason: "Internal courier escalation reference 8472",
+        customer_note: "Your parcel is with the courier.",
+        created_at: new Date("2026-09-01T06:00:00.000Z"),
+      }],
+    });
+
+    const result = serializeCustomerOrder(order);
+
+    expect(result.timeline).toEqual([expect.objectContaining({
+      stage: "shipped",
+      customer_note: "Your parcel is with the courier.",
+    })]);
+    expect(JSON.stringify(result)).not.toContain("Internal courier escalation");
+    expect(JSON.stringify(result)).not.toContain("admin@example.com");
+  });
+
   it("returns only the customer tracking allowlist and drops internal data", () => {
     const createdAt = new Date("2026-08-30T06:00:00.000Z");
     const customerId = new Types.ObjectId();

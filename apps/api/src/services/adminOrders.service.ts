@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { QueryFilter, UpdateQuery } from "mongoose";
-import { Types } from "mongoose";
+import mongoose, { type ClientSession, type QueryFilter, UpdateQuery, Types } from "mongoose";
 
 import { shippingAreaLabel } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
@@ -24,11 +23,13 @@ import type {
   OrderNoteInput,
   OrderRefundInput,
   OrderReturnInput,
+  OrderTrackingUpdateInput,
   OrderTransitionInput,
 } from "../schemas/order.schemas.js";
 import type { AuthenticatedAdmin } from "../types/auth.types.js";
 import { serializeOrder } from "../utils/serializeOrder.js";
 import { buildVerifiedCartSnapshot } from "./checkoutCart.service.js";
+import { enqueueCustomerOrderNotification } from "./notificationOutbox.service.js";
 import {
   allocateOrderDiscount,
   allocateOrderNumber,
@@ -212,8 +213,23 @@ export async function exportAdminOrdersCsv(query: OrderListQuery): Promise<strin
   return `\uFEFF${rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n")}`;
 }
 
-function activity(admin: AuthenticatedAdmin, event: string, reason?: string, metadata?: Record<string, string | number | boolean | null>) {
-  return { actor_type: "admin" as const, admin_id: admin.id, admin_email: admin.email, event, reason, metadata, created_at: new Date() };
+function activity(
+  admin: AuthenticatedAdmin,
+  event: string,
+  reason?: string,
+  metadata?: Record<string, string | number | boolean | null>,
+  customerNote?: string,
+) {
+  return {
+    actor_type: "admin" as const,
+    admin_id: admin.id,
+    admin_email: admin.email,
+    event,
+    reason,
+    metadata,
+    ...(customerNote ? { customer_note: customerNote } : {}),
+    created_at: new Date(),
+  };
 }
 
 async function casUpdate(
@@ -221,13 +237,14 @@ async function casUpdate(
   expectedRevision: number,
   update: UpdateQuery<OrderDocument>,
   guard: QueryFilter<OrderDocument> = {},
+  session?: ClientSession,
 ): Promise<OrderDocument> {
   if (!Types.ObjectId.isValid(id)) throw new AppError("Invalid order id", 400);
   const next: UpdateQuery<OrderDocument> = { ...update, $inc: { ...(update.$inc ?? {}), revision: 1 } };
   const order = await Order.findOneAndUpdate(
     { _id: id, revision: expectedRevision, ...guard },
     next,
-    { new: true, runValidators: true },
+    { new: true, runValidators: true, ...(session ? { session } : {}) },
   );
   if (order) return order;
   const latest = await Order.findById(id).select("revision");
@@ -361,8 +378,15 @@ function validateTransition(order: OrderDocument, input: OrderTransitionInput): 
   return {};
 }
 
-export async function transitionOrder(id: string, input: OrderTransitionInput, admin: AuthenticatedAdmin) {
-  const current = await Order.findById(id);
+export async function transitionOrder(
+  id: string,
+  input: OrderTransitionInput,
+  admin: AuthenticatedAdmin,
+  session?: ClientSession,
+) {
+  const current = session
+    ? await Order.findById(id).session(session)
+    : await Order.findById(id);
   if (!current) throw new AppError("Order not found", 404);
   const state = validateTransition(current, input);
   const set: Record<string, unknown> = { status: input.status };
@@ -375,7 +399,7 @@ export async function transitionOrder(id: string, input: OrderTransitionInput, a
     $set: set,
     ...(Object.keys(unset).length ? { $unset: unset } : {}),
     $push: { activity: activity(admin, `status_${input.status}`, input.reason ?? input.override_reason, { from: current.status }) },
-  });
+  }, {}, session);
   return serializeOrder(order, [], true);
 }
 
@@ -412,6 +436,59 @@ export async function recordOrderCod(id: string, input: OrderCodInput, admin: Au
 export async function appendOrderNote(id: string, input: OrderNoteInput, admin: AuthenticatedAdmin) {
   const order = await casUpdate(id, input.expected_revision, { $push: { activity: activity(admin, "note_added", input.note) } });
   return serializeOrder(order, [], true);
+}
+
+export async function updateOrderTracking(
+  id: string,
+  input: OrderTrackingUpdateInput,
+  admin: AuthenticatedAdmin,
+) {
+  const expectedDeliveryDate = input.expected_delivery_date
+    ? new Date(`${input.expected_delivery_date}T00:00:00.000Z`)
+    : undefined;
+  const order = await casUpdate(id, input.expected_revision, {
+    ...(expectedDeliveryDate ? { $set: { expected_delivery_date: expectedDeliveryDate } } : {}),
+    $push: {
+      activity: activity(
+        admin,
+        "tracking_updated",
+        undefined,
+        undefined,
+        input.public_note,
+      ),
+    },
+  });
+  return serializeOrder(order, [], true);
+}
+
+const customerNotificationEvents = {
+  confirmed: "status_confirmed",
+  shipped: "status_shipped",
+  delivered: "status_delivered",
+  cancelled: "status_cancelled",
+} as const;
+
+export async function transitionOrderAndQueueNotification(
+  id: string,
+  input: OrderTransitionInput,
+  admin: AuthenticatedAdmin,
+) {
+  const session = await mongoose.startSession();
+  try {
+    let result: ReturnType<typeof serializeOrder> | undefined;
+    await session.withTransaction(async () => {
+      result = await transitionOrder(id, input, admin, session);
+      const eventType = customerNotificationEvents[input.status as keyof typeof customerNotificationEvents];
+      if (!eventType) return;
+      const order = await Order.findById(id).session(session);
+      if (!order) throw new AppError("Order not found", 404);
+      await enqueueCustomerOrderNotification(order, eventType, session);
+    });
+    if (!result) throw new AppError("Order transition did not complete", 500);
+    return result;
+  } finally {
+    await session.endSession();
+  }
 }
 
 export async function reviewOrderDuplicate(id: string, input: OrderDuplicateReviewInput, admin: AuthenticatedAdmin) {

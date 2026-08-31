@@ -139,7 +139,9 @@ export function serializeCustomerOrder(order: OrderDocument): CustomerOrderTrack
       ...currentCopy,
     },
     timeline: order.activity.flatMap((entry) => {
-      const stage = activityStage[entry.event];
+      const stage = entry.event === "tracking_updated"
+        ? order.status
+        : activityStage[entry.event];
       if (!stage) return [];
       return [{
         stage,
