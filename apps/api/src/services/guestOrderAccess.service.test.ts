@@ -149,7 +149,9 @@ describe("guest Order OTP request", () => {
 
   it("revokes a newly created challenge when the injected email delivery fails", async () => {
     mocks.orderFindOne.mockReturnValue(selectable(order));
-    const email = { send: vi.fn().mockRejectedValue(new Error("transport unavailable")) };
+    const deliveryError = new Error("transport unavailable");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const email = { send: vi.fn().mockRejectedValue(deliveryError) };
 
     await expect(requestGuestOrderOtp(
       { order_number: order.order_number, email: order.normalized_email },
@@ -161,6 +163,12 @@ describe("guest Order OTP request", () => {
       { _id: "66f000000000000000000002", consumed_at: null, revoked_at: null },
       { $set: { revoked_at: NOW } },
     );
+    expect(errorSpy).toHaveBeenCalledWith("Guest OTP email delivery failed", {
+      order_id: order._id,
+      challenge_id: "66f000000000000000000002",
+      error: deliveryError,
+    });
+    errorSpy.mockRestore();
   });
 
   it("keeps the OTP request generic when revocation after delivery failure also fails", async () => {

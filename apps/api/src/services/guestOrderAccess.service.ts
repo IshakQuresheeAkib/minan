@@ -119,7 +119,12 @@ export async function requestGuestOrderOtp(
       html: `<p>Your MINAN order access code is <strong>${otp}</strong>.</p>`,
       text: `Your MINAN order access code is ${otp}.`,
     });
-  } catch {
+  } catch (error) {
+    console.error("Guest OTP email delivery failed", {
+      order_id: String(order._id),
+      challenge_id: String(challenge._id),
+      error,
+    });
     try {
       await VerificationChallenge.updateOne(
         { _id: challenge._id, consumed_at: null, revoked_at: null },
