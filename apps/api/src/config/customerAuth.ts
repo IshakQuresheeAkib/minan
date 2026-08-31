@@ -22,9 +22,18 @@ function requiredSecret(name: string): string {
 }
 
 export function getCustomerAuthSecrets(): CustomerAuthSecrets {
+  const accessTokenSecret = getCustomerAccessTokenSecret();
+  const refreshTokenSecret = getCustomerRefreshTokenSecret();
+
+  if (accessTokenSecret === refreshTokenSecret) {
+    throw new Error(
+      "CUSTOMER_JWT_ACCESS_SECRET and CUSTOMER_JWT_REFRESH_SECRET must differ",
+    );
+  }
+
   return {
-    accessTokenSecret: getCustomerAccessTokenSecret(),
-    refreshTokenSecret: getCustomerRefreshTokenSecret(),
+    accessTokenSecret,
+    refreshTokenSecret,
   };
 }
 

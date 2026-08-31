@@ -14,9 +14,9 @@ export async function requireGuestOrderAccess(
   const bearerToken = authHeader?.startsWith("Bearer ")
     ? authHeader.slice("Bearer ".length)
     : null;
-  const cookieToken = req.cookies[GUEST_ORDER_ACCESS_TOKEN_COOKIE];
-  const token = bearerToken ||
-    (typeof cookieToken === "string" ? cookieToken : null);
+  const cookieToken = req.cookies?.[GUEST_ORDER_ACCESS_TOKEN_COOKIE];
+  const token =
+    bearerToken || (typeof cookieToken === "string" ? cookieToken : null);
 
   if (!token) {
     res.status(401).json({ error: "Unauthorized" });
