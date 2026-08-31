@@ -9,6 +9,11 @@ export type OrderTrackingMigrationSource<Id = unknown> = {
 
 export type OrderTrackingMigrationChange<Id = unknown> = {
   _id: Id;
+  match: {
+    email: string;
+    normalized_email?: unknown;
+    guest_access_version?: unknown;
+  };
   set: {
     normalized_email?: string;
     guest_access_version?: number;
@@ -38,14 +43,23 @@ export function planOrderTrackingMigration<Id>(
 
     const normalizedEmail = normalizeEmail(order.email);
     const set: OrderTrackingMigrationChange<Id>["set"] = {};
+    const match: OrderTrackingMigrationChange<Id>["match"] = {
+      email: order.email,
+    };
     if (order.normalized_email !== normalizedEmail) {
       set.normalized_email = normalizedEmail;
+      match.normalized_email = order.normalized_email === undefined
+        ? { $exists: false }
+        : order.normalized_email;
     }
     if (!hasGuestAccessVersion(order.guest_access_version)) {
       set.guest_access_version = 1;
+      match.guest_access_version = order.guest_access_version === undefined
+        ? { $exists: false }
+        : order.guest_access_version;
     }
     if (Object.keys(set).length > 0) {
-      changes.push({ _id: order._id, set });
+      changes.push({ _id: order._id, match, set });
     }
   }
 

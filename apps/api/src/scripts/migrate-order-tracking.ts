@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../config/env.js";
 
 import { pathToFileURL } from "node:url";
 
@@ -12,8 +12,11 @@ export type OrderTrackingMigrationSummary = {
   modified: number;
 };
 
+export type OrderTrackingMigrationLogger = Pick<Console, "log" | "error">;
+
 export async function migrateOrderTracking(
   applyChanges = false,
+  logger: OrderTrackingMigrationLogger = console,
 ): Promise<OrderTrackingMigrationSummary> {
   await connectDB();
   const orders = await Order.collection.find(
@@ -29,12 +32,12 @@ export async function migrateOrderTracking(
   ).toArray();
   const plan = planOrderTrackingMigration(orders);
 
-  console.log(
+  logger.log(
     `${applyChanges ? "APPLY" : "DRY RUN"}: ${plan.changes.length} Orders to backfill, ${plan.unresolved.length} unresolved.`,
   );
 
   for (const unresolved of plan.unresolved) {
-    console.error(`Unresolved Order ${String(unresolved._id)}: ${unresolved.reason}`);
+    logger.error(`Unresolved Order ${String(unresolved._id)}: ${unresolved.reason}`);
   }
 
   if (plan.unresolved.length > 0 && applyChanges) {
@@ -43,7 +46,7 @@ export async function migrateOrderTracking(
 
   if (!applyChanges || plan.changes.length === 0) {
     if (!applyChanges) {
-      console.log("No records changed. Re-run with --apply after reviewing the dry run.");
+      logger.log("No records changed. Re-run with --apply after reviewing the dry run.");
     }
     return {
       planned: plan.changes.length,
@@ -55,14 +58,21 @@ export async function migrateOrderTracking(
   const result = await Order.collection.bulkWrite(
     plan.changes.map((change) => ({
       updateOne: {
-        filter: { _id: change._id },
+        filter: { _id: change._id, ...change.match },
         update: { $set: change.set },
       },
     })),
     { ordered: false },
   );
 
-  console.log(`Order tracking migration complete: ${result.modifiedCount} Orders updated.`);
+  const concurrentChanges = plan.changes.length - result.matchedCount;
+  if (concurrentChanges > 0) {
+    throw new Error(
+      `Order tracking migration detected ${concurrentChanges} concurrent ${concurrentChanges === 1 ? "change" : "changes"}; re-run the dry run`,
+    );
+  }
+
+  logger.log(`Order tracking migration complete: ${result.modifiedCount} Orders updated.`);
   return {
     planned: plan.changes.length,
     unresolved: plan.unresolved.length,

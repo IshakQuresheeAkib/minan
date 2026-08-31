@@ -1,10 +1,14 @@
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   REFRESH_TOKEN_TTL_SECONDS,
 } from "../config/auth.js";
 import type { AdminJwtPayload } from "../types/auth.types.js";
+
+export const ADMIN_TOKEN_AUDIENCE = "minan-admin";
+const ADMIN_TOKEN_ACTOR = "admin";
 
 function getAccessSecret(): string {
   const secret = process.env.JWT_ACCESS_SECRET;
@@ -22,37 +26,62 @@ function getRefreshSecret(): string {
   return secret;
 }
 
+function hasAdminAudience(audience: string | string[]): boolean {
+  return Array.isArray(audience)
+    ? audience.includes(ADMIN_TOKEN_AUDIENCE)
+    : audience === ADMIN_TOKEN_AUDIENCE;
+}
+
+const adminJwtPayloadSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  session_version: z.number().int().nonnegative(),
+  actor: z.literal(ADMIN_TOKEN_ACTOR).optional(),
+  aud: z.union([z.string(), z.array(z.string())]).optional(),
+}).superRefine((payload, context) => {
+  if (payload.aud !== undefined && !hasAdminAudience(payload.aud)) {
+    context.addIssue({
+      code: "custom",
+      message: "Invalid admin token audience",
+      path: ["aud"],
+    });
+  }
+});
+
 function parsePayload(
   decoded: jwt.JwtPayload,
   allowMissingSessionVersion: boolean,
 ): AdminJwtPayload {
-  const id = decoded.id;
-  const email = decoded.email;
   const sessionVersion =
     decoded.session_version === undefined && allowMissingSessionVersion
       ? 0
       : decoded.session_version;
 
-  if (
-    typeof id !== "string" ||
-    typeof email !== "string" ||
-    !Number.isSafeInteger(sessionVersion) ||
-    sessionVersion < 0
-  ) {
+  const result = adminJwtPayloadSchema.safeParse({
+    ...decoded,
+    session_version: sessionVersion,
+  });
+  if (!result.success) {
     throw new Error("Invalid token payload");
   }
 
-  return { id, email, session_version: sessionVersion };
+  return {
+    id: result.data.id,
+    email: result.data.email,
+    session_version: result.data.session_version,
+  };
 }
 
 export function signAccessToken(payload: AdminJwtPayload): string {
-  return jwt.sign(payload, getAccessSecret(), {
+  return jwt.sign({ ...payload, actor: ADMIN_TOKEN_ACTOR }, getAccessSecret(), {
+    audience: ADMIN_TOKEN_AUDIENCE,
     expiresIn: ACCESS_TOKEN_TTL_SECONDS,
   });
 }
 
 export function signRefreshToken(payload: AdminJwtPayload): string {
-  return jwt.sign(payload, getRefreshSecret(), {
+  return jwt.sign({ ...payload, actor: ADMIN_TOKEN_ACTOR }, getRefreshSecret(), {
+    audience: ADMIN_TOKEN_AUDIENCE,
     expiresIn: REFRESH_TOKEN_TTL_SECONDS,
   });
 }

@@ -46,4 +46,20 @@ describe("access token payloads", () => {
       "Invalid token payload",
     );
   });
+
+  it("rejects a validly signed token with a non-admin audience", () => {
+    process.env.JWT_ACCESS_SECRET = "test-access-secret";
+    const token = jwt.sign(
+      {
+        id: "66f000000000000000000001",
+        email: "admin@example.com",
+        session_version: 0,
+        actor: "admin",
+      },
+      process.env.JWT_ACCESS_SECRET,
+      { audience: "minan-customer" },
+    );
+
+    expect(() => verifyAccessToken(token)).toThrow("Invalid token payload");
+  });
 });

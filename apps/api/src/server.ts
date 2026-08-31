@@ -4,6 +4,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import { getBkashConfig } from "./config/bkash.js";
+import { getCustomerAuthSecrets } from "./config/customerAuth.js";
 import {
   connectDB,
   disconnectDB,
@@ -11,6 +12,7 @@ import {
   isDBConnected,
 } from "./config/db.js";
 import { getShippingConfig } from "./config/shipping.js";
+import { configureTrustedProxy } from "./config/trustedProxy.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import {
@@ -20,16 +22,18 @@ import {
 import { authRouter } from "./routes/auth.routes.js";
 import { bkashRouter } from "./routes/bkash.routes.js";
 import { checkoutRouter } from "./routes/checkout.routes.js";
+import { customerAuthRouter } from "./routes/customerAuth.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
 const app = express();
+configureTrustedProxy(app);
 const port = Number(process.env.PORT ?? 3001);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-  
+
 app.use(helmet());
 app.use(
   cors({
@@ -64,13 +68,15 @@ app.use("/api/checkout", checkoutRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/customer-auth", customerAuthRouter);
 app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
-  // Fail during startup instead of creating checkout attempts that cannot be paid.
+  // Fail during startup instead of accepting traffic with incomplete configuration.
   getBkashConfig();
   getShippingConfig();
+  getCustomerAuthSecrets();
   await connectDB();
 
   const server = app.listen(port, () => {

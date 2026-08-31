@@ -18,6 +18,7 @@ import {
   escapeCsvCell,
   exportAdminOrdersCsv,
   recordOrderCod,
+  recordOrderReturn,
   transitionOrder,
   updateOrderCustomer,
   updateOrderItems,
@@ -33,6 +34,23 @@ function chainResult<T>(value: T) {
     then: promise.then.bind(promise),
   };
   return chain;
+}
+
+function returnableLine(quantity: number) {
+  return {
+    line_id: "d8322e7a-5585-4b84-9a8a-152b1bcf25e8",
+    product_id: new Types.ObjectId().toString(),
+    name: "Oxford Shirt",
+    unit_price: 1200,
+    original_price: 1200,
+    product_discount: 0,
+    size: "M",
+    color: "Black",
+    quantity,
+    allocated_order_discount: 0,
+    returned_quantity: 0,
+    credited_amount: 0,
+  };
 }
 
 describe("Order CSV security", () => {
@@ -154,6 +172,80 @@ describe("Order workflow integrity", () => {
         $push: expect.objectContaining({
           activity: expect.objectContaining({ event: "cod_collected", metadata: { amount: 1200 } }),
         }),
+      }),
+      expect.objectContaining({ new: true, runValidators: true }),
+    );
+  });
+
+  it("keeps a partial return as a non-stage merchandise audit event", async () => {
+    const orderId = new Types.ObjectId();
+    const line = returnableLine(2);
+    vi.spyOn(Order, "findById").mockResolvedValue({
+      _id: orderId,
+      status: "delivered",
+      lines: [line],
+    } as never);
+    const persistenceReached = new Error("partial return reached persistence");
+    const update = vi.spyOn(Order, "findOneAndUpdate").mockRejectedValue(persistenceReached);
+
+    await expect(recordOrderReturn(
+      orderId.toString(),
+      {
+        lines: [{ line_id: line.line_id, quantity: 1 }],
+        expected_revision: 2,
+        reason: "One item was returned",
+      },
+      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+    )).rejects.toBe(persistenceReached);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: orderId.toString(), revision: 2 }),
+      expect.objectContaining({
+        $set: expect.not.objectContaining({ status: "returned" }),
+        $push: {
+          activity: expect.objectContaining({ event: "merchandise_returned" }),
+        },
+      }),
+      expect.objectContaining({ new: true, runValidators: true }),
+    );
+  });
+
+  it("emits a distinct returned stage event only when every item is returned", async () => {
+    const orderId = new Types.ObjectId();
+    const line = returnableLine(1);
+    vi.spyOn(Order, "findById").mockResolvedValue({
+      _id: orderId,
+      status: "delivered",
+      lines: [line],
+    } as never);
+    const persistenceReached = new Error("full return reached persistence");
+    const update = vi.spyOn(Order, "findOneAndUpdate").mockRejectedValue(persistenceReached);
+
+    await expect(recordOrderReturn(
+      orderId.toString(),
+      {
+        lines: [{ line_id: line.line_id, quantity: 1 }],
+        expected_revision: 2,
+        reason: "The complete order was returned",
+      },
+      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+    )).rejects.toBe(persistenceReached);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: orderId.toString(), revision: 2 }),
+      expect.objectContaining({
+        $set: expect.objectContaining({ status: "returned" }),
+        $push: {
+          activity: {
+            $each: [
+              expect.objectContaining({ event: "merchandise_returned" }),
+              expect.objectContaining({
+                event: "status_returned",
+                metadata: { from: "delivered" },
+              }),
+            ],
+          },
+        },
       }),
       expect.objectContaining({ new: true, runValidators: true }),
     );

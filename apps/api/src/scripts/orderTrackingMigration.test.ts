@@ -12,6 +12,11 @@ describe("Order tracking migration plan", () => {
     expect(plan).toEqual({
       changes: [{
         _id: "order-1",
+        match: {
+          email: "  Customer@Example.COM ",
+          normalized_email: { $exists: false },
+          guest_access_version: { $exists: false },
+        },
         set: {
           normalized_email: "customer@example.com",
           guest_access_version: 1,
@@ -34,5 +39,20 @@ describe("Order tracking migration plan", () => {
     }]);
 
     expect(plan).toEqual({ changes: [], unresolved: [] });
+  });
+
+  it("matches the exact source values that a write would replace", () => {
+    const plan = planOrderTrackingMigration([{
+      _id: "order-1",
+      email: "Customer@Example.COM",
+      normalized_email: "stale@example.com",
+      guest_access_version: 0,
+    }]);
+
+    expect(plan.changes[0]?.match).toEqual({
+      email: "Customer@Example.COM",
+      normalized_email: "stale@example.com",
+      guest_access_version: 0,
+    });
   });
 });
