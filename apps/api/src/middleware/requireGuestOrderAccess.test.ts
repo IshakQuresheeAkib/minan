@@ -96,6 +96,26 @@ describe("requireGuestOrderAccess", () => {
     await pending;
   });
 
+  it("uses the guest proof cookie when customer authentication already consumed the bearer header", async () => {
+    const req = {
+      customer: {
+        id: "66f000000000000000000003",
+        email: "customer@example.com",
+        session_id: "66f000000000000000000004",
+        session_version: 1,
+      },
+      get: vi.fn(() => "Bearer customer-access-token"),
+      cookies: { guest_order_access_token: "guest-order-token" },
+    } as unknown as Request;
+    const next = vi.fn();
+
+    await requireGuestOrderAccess(req, response(), next as NextFunction);
+
+    expect(mocks.verifyGuestToken).toHaveBeenCalledWith("guest-order-token");
+    expect(req.guestOrder).toEqual(payload);
+    expect(next).toHaveBeenCalledOnce();
+  });
+
   it("rejects a revoked challenge or invalidated guest access version", async () => {
     mocks.challengeExists.mockResolvedValue(null);
     const req = {

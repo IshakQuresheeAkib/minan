@@ -443,6 +443,9 @@ export async function updateOrderTracking(
   input: OrderTrackingUpdateInput,
   admin: AuthenticatedAdmin,
 ) {
+  if (!Types.ObjectId.isValid(id)) throw new AppError("Invalid order id", 400);
+  const current = await Order.findById(id);
+  if (!current) throw new AppError("Order not found", 404);
   const expectedDeliveryDate = input.expected_delivery_date
     ? new Date(`${input.expected_delivery_date}T00:00:00.000Z`)
     : undefined;
@@ -453,7 +456,7 @@ export async function updateOrderTracking(
         admin,
         "tracking_updated",
         undefined,
-        undefined,
+        { tracking_stage: current.status },
         input.public_note,
       ),
     },

@@ -199,6 +199,21 @@ describe("serializeCustomerOrder", () => {
     expect(JSON.stringify(result)).not.toContain("admin@example.com");
   });
 
+  it("keeps a public tracking note at the stage where staff published it", () => {
+    const order = makeTrackingOrder({
+      status: "shipped",
+      activity: [{
+        actor_type: "admin",
+        event: "tracking_updated",
+        customer_note: "We expect to dispatch tomorrow.",
+        metadata: { tracking_stage: "confirmed" },
+        created_at: new Date("2026-09-01T06:00:00.000Z"),
+      }],
+    });
+
+    expect(serializeCustomerOrder(order).timeline[0]?.stage).toBe("confirmed");
+  });
+
   it("returns only the customer tracking allowlist and drops internal data", () => {
     const createdAt = new Date("2026-08-30T06:00:00.000Z");
     const customerId = new Types.ObjectId();

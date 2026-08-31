@@ -20,6 +20,7 @@ describe("Resend transactional email adapter", () => {
       subject: "Your MINAN update",
       html: "<p>Your order is confirmed.</p>",
       text: "Your order is confirmed.",
+      idempotency_key: "order-1:status_confirmed:7",
     })).resolves.toEqual({ id: "email_123" });
     expect(send).toHaveBeenCalledWith({
       from: "MINAN <orders@minan.com>",
@@ -27,7 +28,7 @@ describe("Resend transactional email adapter", () => {
       subject: "Your MINAN update",
       html: "<p>Your order is confirmed.</p>",
       text: "Your order is confirmed.",
-    });
+    }, { idempotencyKey: "order-1:status_confirmed:7" });
   });
 
   it("converts provider failures to a stable delivery error", async () => {

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { Types } from "mongoose";
+import mongoose, { type ClientSession, Types } from "mongoose";
 
 import { getDeliveryFeeForCheckout } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
@@ -14,6 +14,7 @@ import {
 import { OrderCounter } from "../models/OrderCounter.js";
 import type { PaymentCreateInput } from "../schemas/bkash.schemas.js";
 import { buildVerifiedCartSnapshot } from "./checkoutCart.service.js";
+import { enqueueCustomerOrderNotification } from "./notificationOutbox.service.js";
 
 const BANGLADESH_OFFSET_MS = 6 * 60 * 60 * 1000;
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -102,21 +103,24 @@ function bangladeshDateKey(date = new Date()): string {
   ].join("");
 }
 
-export async function allocateOrderNumber(date = new Date()): Promise<string> {
+export async function allocateOrderNumber(
+  date = new Date(),
+  session?: ClientSession,
+): Promise<string> {
   const dateKey = bangladeshDateKey(date);
   let counter;
   try {
     counter = await OrderCounter.findOneAndUpdate(
       { _id: dateKey },
       { $inc: { sequence: 1 } },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
+      { upsert: true, new: true, setDefaultsOnInsert: true, ...(session ? { session } : {}) },
     );
   } catch (error) {
     if (!isDuplicateKey(error)) throw error;
     counter = await OrderCounter.findOneAndUpdate(
       { _id: dateKey },
       { $inc: { sequence: 1 } },
-      { new: true },
+      { new: true, ...(session ? { session } : {}) },
     );
   }
   if (!counter) throw new AppError("Could not allocate an order number", 503);
@@ -202,41 +206,46 @@ export async function createOrLoadCheckoutOrder(
   }));
   const deliveryFee = getDeliveryFeeForCheckout(input.shipping_zone);
   const now = new Date();
-  const orderNumber = await allocateOrderNumber(now);
   const normalizedPhone = normalizeBangladeshPhone(input.phone_number);
   try {
-    order = await Order.create({
-      order_number: orderNumber,
-      customer_id: null,
-      name: input.name,
-      phone_number: input.phone_number,
-      normalized_phone: normalizedPhone,
-      email: input.email,
-      normalized_email: normalizeEmail(input.email),
-      address: input.address,
-      customer_notes: input.notes,
-      lines,
-      item_signature: buildItemSignature(lines),
-      checkout_source: input.checkout_source,
-      shipping_zone: input.shipping_zone,
-      payment_method: input.payment_method,
-      checkout_idempotency_hash: idempotencyHash,
-      status: "new",
-      financials: calculateFinancials({ lines, deliveryFee }),
-      delivery_fee_status: "awaiting",
-      cod_status: cart.total > 0 ? "due" : "not_required",
-      revision: 1,
-      guest_access_version: 1,
-      activity: [{
-        actor_type: "customer",
-        event: "order_created",
-        metadata: {
-          checkout_source: input.checkout_source,
-          shipping_zone: input.shipping_zone,
-          payment_method: input.payment_method,
-        },
-        created_at: now,
-      }],
+    order = await mongoose.connection.transaction(async (session) => {
+      const orders = await Order.create([{
+        order_number: await allocateOrderNumber(now, session),
+        customer_id: null,
+        name: input.name,
+        phone_number: input.phone_number,
+        normalized_phone: normalizedPhone,
+        email: input.email,
+        normalized_email: normalizeEmail(input.email),
+        address: input.address,
+        customer_notes: input.notes,
+        lines,
+        item_signature: buildItemSignature(lines),
+        checkout_source: input.checkout_source,
+        shipping_zone: input.shipping_zone,
+        payment_method: input.payment_method,
+        checkout_idempotency_hash: idempotencyHash,
+        status: "new",
+        financials: calculateFinancials({ lines, deliveryFee }),
+        delivery_fee_status: "awaiting",
+        cod_status: cart.total > 0 ? "due" : "not_required",
+        revision: 1,
+        guest_access_version: 1,
+        activity: [{
+          actor_type: "customer",
+          event: "order_created",
+          metadata: {
+            checkout_source: input.checkout_source,
+            shipping_zone: input.shipping_zone,
+            payment_method: input.payment_method,
+          },
+          created_at: now,
+        }],
+      }], { session });
+      const created = orders[0];
+      if (!created) throw new AppError("Order creation did not return an Order", 500);
+      await enqueueCustomerOrderNotification(created, "order_created", session);
+      return created;
     });
   } catch (error) {
     if (!isDuplicateKey(error)) throw error;

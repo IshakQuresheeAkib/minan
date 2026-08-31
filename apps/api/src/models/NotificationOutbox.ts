@@ -21,6 +21,7 @@ export interface NotificationOutboxDocument extends Document<Types.ObjectId> {
   attempt_count: number;
   available_at: Date;
   locked_at?: Date;
+  lease_token?: string;
   sent_at?: Date;
   provider_message_id?: string;
   last_error?: string;
@@ -43,6 +44,7 @@ const notificationOutboxSchema = new Schema<NotificationOutboxDocument>(
     attempt_count: { type: Number, required: true, min: 0, default: 0 },
     available_at: { type: Date, required: true, index: true },
     locked_at: { type: Date },
+    lease_token: { type: String, maxlength: 64 },
     sent_at: { type: Date },
     provider_message_id: { type: String, maxlength: 255 },
     last_error: { type: String, maxlength: 500 },

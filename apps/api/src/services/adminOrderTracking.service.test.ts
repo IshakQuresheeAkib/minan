@@ -9,9 +9,20 @@ describe("admin Order tracking writes", () => {
     vi.restoreAllMocks();
   });
 
+  it("rejects malformed Order IDs before reading the Order", async () => {
+    await expect(updateOrderTracking("not-an-object-id", {
+      expected_revision: 1,
+    }, { id: new Types.ObjectId().toString(), email: "admin@example.com" })).rejects.toMatchObject({
+      name: "AppError",
+      message: "Invalid order id",
+      statusCode: 400,
+    });
+  });
+
   it("stores the date at UTC midnight and attaches the public note only to the customer timeline event", async () => {
     const id = new Types.ObjectId();
     const now = new Date("2026-09-01T08:00:00.000Z");
+    vi.spyOn(Order, "findById").mockResolvedValue({ status: "confirmed" } as never);
     vi.spyOn(Order, "findOneAndUpdate").mockResolvedValue({
       _id: id,
       order_number: "MN-20260901-0001",
@@ -45,6 +56,7 @@ describe("admin Order tracking writes", () => {
           activity: expect.objectContaining({
             event: "tracking_updated",
             customer_note: "Your order is expected this Friday.",
+            metadata: { tracking_stage: "confirmed" },
           }),
         },
       }),
