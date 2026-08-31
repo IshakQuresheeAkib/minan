@@ -3,15 +3,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import { getBkashConfig } from "./config/bkash.js";
-import { getCustomerAuthSecrets } from "./config/customerAuth.js";
 import {
   connectDB,
   disconnectDB,
   getDBStatus,
   isDBConnected,
 } from "./config/db.js";
-import { getShippingConfig } from "./config/shipping.js";
+import { validateStartupConfiguration } from "./config/startupValidation.js";
 import { configureTrustedProxy } from "./config/trustedProxy.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { adminRouter } from "./routes/admin.routes.js";
@@ -23,6 +21,10 @@ import { authRouter } from "./routes/auth.routes.js";
 import { bkashRouter } from "./routes/bkash.routes.js";
 import { checkoutRouter } from "./routes/checkout.routes.js";
 import { customerAuthRouter } from "./routes/customerAuth.routes.js";
+import {
+  customerOrdersRouter,
+  guestOrderAccessRouter,
+} from "./routes/guestOrderAccess.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
@@ -69,14 +71,14 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/customer-auth", customerAuthRouter);
+app.use("/api/guest-order-access", guestOrderAccessRouter);
+app.use("/api/customer-orders", customerOrdersRouter);
 app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
   // Fail during startup instead of accepting traffic with incomplete configuration.
-  getBkashConfig();
-  getShippingConfig();
-  getCustomerAuthSecrets();
+  validateStartupConfiguration();
   await connectDB();
 
   const server = app.listen(port, () => {

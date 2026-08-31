@@ -1,10 +1,12 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-
+Read context/project.md for full architecture before starting any task.
 MINAN is an npm workspace commerce platform. The frontend lives in `apps/web`, a Next.js 16 App Router app with source under `apps/web/src`. Routes are in `src/app`, reusable UI in `src/components`, feature code in `src/features`, shared client state in `src/store`, and API helpers in `src/lib`.
 
 The backend lives in `apps/api`, an Express 5 API with `src/controllers`, `src/routes`, `src/services`, `src/models`, `src/middleware`, and seed scripts under `src/seed`. Repository context and architecture notes are in `context/`; Stitch-generated reference artifacts are in `stitch/`.
+
+Detailed architecture is in context/project.md — read it before working.
 
 ## Build, Test, and Development Commands
 

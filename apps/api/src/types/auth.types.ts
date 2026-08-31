@@ -14,3 +14,13 @@ export type CustomerJwtPayload = {
 };
 
 export type AuthenticatedCustomer = CustomerJwtPayload;
+
+export type GuestOrderJwtPayload = {
+  order_id: string;
+  order_number: string;
+  normalized_email: string;
+  guest_access_version: number;
+  challenge_id: string;
+};
+
+export type AuthenticatedGuestOrder = GuestOrderJwtPayload;
