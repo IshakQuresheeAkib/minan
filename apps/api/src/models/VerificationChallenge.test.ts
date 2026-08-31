@@ -21,7 +21,7 @@ describe("VerificationChallenge", () => {
     expect(challenge.consumed_at).toBeNull();
     expect(challenge.revoked_at).toBeNull();
     expect(challenge.toJSON()).not.toHaveProperty("otp_hash");
-    expect(challenge.toObject()).not.toHaveProperty("otp");
+    expect(challenge.toObject()).not.toHaveProperty("otp_hash");
   });
 
   it("indexes expiry and active guest Order lookup paths", () => {

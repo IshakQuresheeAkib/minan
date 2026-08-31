@@ -17,6 +17,11 @@ export interface VerificationChallengeDocument extends Document<Types.ObjectId> 
   updatedAt: Date;
 }
 
+function withoutOtpHash(ret: Record<string, unknown>): Record<string, unknown> {
+  const { otp_hash: _otpHash, ...safe } = ret;
+  return safe;
+}
+
 const verificationChallengeSchema = new Schema<VerificationChallengeDocument>(
   {
     order_id: {
@@ -38,8 +43,12 @@ const verificationChallengeSchema = new Schema<VerificationChallengeDocument>(
     timestamps: true,
     toJSON: {
       transform(_doc, ret) {
-        const { otp_hash: _otpHash, ...safe } = ret;
-        return safe;
+        return withoutOtpHash(ret);
+      },
+    },
+    toObject: {
+      transform(_doc, ret) {
+        return withoutOtpHash(ret);
       },
     },
   },

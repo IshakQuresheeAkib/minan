@@ -73,6 +73,29 @@ describe("requireGuestOrderAccess", () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
+  it("checks the redeemed challenge and proof-bound Order concurrently", async () => {
+    let releaseChallenge: (value: { _id: string }) => void = () => undefined;
+    const challenge = new Promise<{ _id: string }>((resolve) => {
+      releaseChallenge = resolve;
+    });
+    mocks.challengeExists.mockReturnValue(challenge);
+    const req = {
+      get: vi.fn(() => "Bearer guest-order-token"),
+      cookies: {},
+    } as unknown as Request;
+    const next = vi.fn();
+
+    const pending = requireGuestOrderAccess(req, response(), next as NextFunction);
+
+    await Promise.resolve();
+    try {
+      expect(mocks.orderExists).toHaveBeenCalledOnce();
+    } finally {
+      releaseChallenge({ _id: payload.challenge_id });
+    }
+    await pending;
+  });
+
   it("rejects a revoked challenge or invalidated guest access version", async () => {
     mocks.challengeExists.mockResolvedValue(null);
     const req = {
@@ -85,7 +108,7 @@ describe("requireGuestOrderAccess", () => {
     await requireGuestOrderAccess(req, res, next as NextFunction);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(mocks.orderExists).not.toHaveBeenCalled();
+    expect(mocks.orderExists).toHaveBeenCalledOnce();
     expect(next).not.toHaveBeenCalled();
   });
 });

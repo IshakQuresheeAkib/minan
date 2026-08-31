@@ -26,27 +26,24 @@ export async function requireGuestOrderAccess(
   try {
     const payload = verifyGuestOrderAccessToken(token);
     const now = new Date();
-    const challenge = await VerificationChallenge.exists({
-      _id: payload.challenge_id,
-      order_id: payload.order_id,
-      normalized_email: payload.normalized_email,
-      purpose: "guest_order_access",
-      consumed_at: { $ne: null },
-      revoked_at: null,
-      expires_at: { $gt: now },
-    });
-    if (!challenge) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
-    const order = await Order.exists({
-      _id: payload.order_id,
-      order_number: payload.order_number,
-      normalized_email: payload.normalized_email,
-      guest_access_version: payload.guest_access_version,
-    });
-    if (!order) {
+    const [challenge, order] = await Promise.all([
+      VerificationChallenge.exists({
+        _id: payload.challenge_id,
+        order_id: payload.order_id,
+        normalized_email: payload.normalized_email,
+        purpose: "guest_order_access",
+        consumed_at: { $ne: null },
+        revoked_at: null,
+        expires_at: { $gt: now },
+      }),
+      Order.exists({
+        _id: payload.order_id,
+        order_number: payload.order_number,
+        normalized_email: payload.normalized_email,
+        guest_access_version: payload.guest_access_version,
+      }),
+    ]);
+    if (!challenge || !order) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }

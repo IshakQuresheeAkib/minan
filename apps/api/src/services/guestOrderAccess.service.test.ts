@@ -163,6 +163,18 @@ describe("guest Order OTP request", () => {
     );
   });
 
+  it("keeps the OTP request generic when revocation after delivery failure also fails", async () => {
+    mocks.orderFindOne.mockReturnValue(selectable(order));
+    mocks.challengeUpdateOne.mockRejectedValueOnce(new Error("database unavailable"));
+    const email = { send: vi.fn().mockRejectedValue(new Error("transport unavailable")) };
+
+    await expect(requestGuestOrderOtp(
+      { order_number: order.order_number, email: order.normalized_email },
+      email,
+      NOW,
+    )).resolves.toEqual({ accepted: true });
+  });
+
   it("atomically consumes a valid OTP before issuing its one-Order proof", async () => {
     mocks.orderFindOne.mockReturnValue(selectable(order));
     mocks.challengeFindOneAndUpdate

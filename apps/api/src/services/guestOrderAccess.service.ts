@@ -120,10 +120,14 @@ export async function requestGuestOrderOtp(
       text: `Your MINAN order access code is ${otp}.`,
     });
   } catch {
-    await VerificationChallenge.updateOne(
-      { _id: challenge._id, consumed_at: null, revoked_at: null },
-      { $set: { revoked_at: now } },
-    );
+    try {
+      await VerificationChallenge.updateOne(
+        { _id: challenge._id, consumed_at: null, revoked_at: null },
+        { $set: { revoked_at: now } },
+      );
+    } catch (error) {
+      console.error("Guest OTP challenge revocation failed after email delivery failure:", error);
+    }
   }
 
   return genericRequestResult();
@@ -223,7 +227,7 @@ export async function getGuestOrder(
     order_number: proof.order_number,
     normalized_email: proof.normalized_email,
     guest_access_version: proof.guest_access_version,
-  }).select("+customer_id");
+  });
   if (!order) {
     throw unauthorizedOrderAccess();
   }

@@ -66,7 +66,3 @@ export function getGuestOrderAccessTokenSecret(): string {
 export function getGuestOrderAccessCookieOptions(): CookieOptions {
   return getAuthCookieOptions(GUEST_ORDER_ACCESS_TOKEN_TTL_SECONDS * 1000);
 }
-
-export function getClearGuestOrderAccessCookieOptions(): CookieOptions {
-  return { ...getAuthCookieOptions(0), maxAge: 0 };
-}
