@@ -12,6 +12,7 @@
     "seed:home-banners": "tsx src/seed/seed-home-banners.ts",
     "cleanup:inactive-admin-sessions": "tsx src/scripts/cleanup-inactive-admin-sessions.ts",
     "migrate:orders": "tsx src/scripts/migrate-leads-to-orders.ts",
+    "migrate:order-tracking": "tsx src/scripts/migrate-order-tracking.ts",
     "lint": "eslint src --ext .ts",
     "test": "vitest run"
   },

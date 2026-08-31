@@ -450,9 +450,14 @@ export async function recordOrderReturn(id: string, input: OrderReturnInput, adm
   if (current.status !== "delivered" && current.status !== "returned") throw new AppError("Only delivered Orders can record returns", 409);
   const returned = applyReturnedLines(current, input.lines);
   const allReturned = returned.lines.every((line) => line.returned_quantity === line.quantity);
+  const merchandiseReturn = activity(admin, "merchandise_returned", input.reason, { credit: returned.credit });
   const order = await casUpdate(id, input.expected_revision, {
     $set: { lines: returned.lines, ...(allReturned ? { status: "returned" } : {}) },
-    $push: { activity: activity(admin, "merchandise_returned", input.reason, { credit: returned.credit }) },
+    $push: {
+      activity: allReturned
+        ? { $each: [merchandiseReturn, activity(admin, "status_returned", input.reason, { from: current.status })] }
+        : merchandiseReturn,
+    },
   });
   return serializeOrder(order, [], true);
 }

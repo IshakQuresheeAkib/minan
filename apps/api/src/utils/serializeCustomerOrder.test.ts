@@ -1,10 +1,180 @@
 import { Types } from "mongoose";
 import { describe, expect, it } from "vitest";
 
-import { Order } from "../models/Order.js";
+import {
+  Order,
+  type DeliveryFeeStatus,
+  type OrderActivity,
+  type OrderStatus,
+} from "../models/Order.js";
 import { serializeCustomerOrder } from "./serializeCustomerOrder.js";
 
+type TrackingOrderOptions = {
+  activity?: OrderActivity[];
+  deliveryFeeStatus?: DeliveryFeeStatus;
+  financialReviewRequired?: boolean;
+  paymentMethod?: "bkash_full" | "cod";
+  settledPaymentAttemptId?: Types.ObjectId;
+  status?: OrderStatus;
+};
+
+function makeTrackingOrder({
+  activity = [],
+  deliveryFeeStatus = "awaiting",
+  financialReviewRequired = false,
+  paymentMethod = "cod",
+  settledPaymentAttemptId,
+  status = "new",
+}: TrackingOrderOptions = {}) {
+  const createdAt = new Date("2026-08-30T06:00:00.000Z");
+  return new Order({
+    order_number: "MN-20260830-0002",
+    customer_id: new Types.ObjectId(),
+    name: "Tracking Customer",
+    phone_number: "01700000000",
+    normalized_phone: "01700000000",
+    email: "tracking@example.com",
+    normalized_email: "tracking@example.com",
+    address: "Sylhet",
+    lines: [{
+      line_id: "line-1",
+      product_id: new Types.ObjectId().toString(),
+      name: "Oxford Shirt",
+      unit_price: 1200,
+      original_price: 1200,
+      product_discount: 0,
+      size: "M",
+      color: "Black",
+      quantity: 1,
+      allocated_order_discount: 0,
+      returned_quantity: 0,
+      credited_amount: 0,
+    }],
+    item_signature: "tracking-signature",
+    checkout_source: "cart",
+    shipping_zone: "inside_sylhet",
+    payment_method: paymentMethod,
+    settled_payment_attempt_id: settledPaymentAttemptId,
+    status,
+    financials: {
+      merchandise_subtotal: 1200,
+      order_discount: 0,
+      merchandise_total: 1200,
+      delivery_fee: 60,
+      overall_order_value: 1260,
+      merchandise_paid_online: settledPaymentAttemptId ? 1200 : 0,
+      exchange_credit_applied: 0,
+      cod_due: settledPaymentAttemptId ? 0 : 1200,
+      cod_collected: 0,
+      merchandise_refunded: 0,
+      exchange_credit_issued: 0,
+    },
+    delivery_fee_status: deliveryFeeStatus,
+    cod_status: settledPaymentAttemptId ? "not_required" : "due",
+    revision: 1,
+    guest_access_version: 1,
+    activity,
+    refunds: [],
+    financial_review_required: financialReviewRequired,
+    createdAt,
+    updatedAt: createdAt,
+  });
+}
+
 describe("serializeCustomerOrder", () => {
+  it.each([
+    "new",
+    "confirmed",
+    "processing",
+    "shipped",
+    "delivered",
+    "on_hold",
+    "cancelled",
+    "returned",
+    "exchanged",
+  ] satisfies OrderStatus[])("maps the status_%s activity event to its customer stage", (status) => {
+    const order = makeTrackingOrder({
+      status,
+      activity: [{
+        actor_type: "admin",
+        event: `status_${status}`,
+        created_at: new Date("2026-08-31T06:00:00.000Z"),
+      }],
+    });
+
+    expect(serializeCustomerOrder(order).timeline[0]?.stage).toBe(status);
+  });
+
+  it.each([
+    { shippingZone: "outside_sylhet" as const, area: "Outside Sylhet" },
+    { shippingZone: undefined, area: "Legacy / unspecified" },
+  ])("does not invent a city for $area shipping", ({ shippingZone, area }) => {
+    const order = makeTrackingOrder();
+    order.shipping_zone = shippingZone;
+
+    expect(serializeCustomerOrder(order).shipping).toEqual({
+      city: null,
+      area,
+    });
+  });
+
+  it.each([
+    { state: "awaiting", deliveryFeeStatus: "awaiting" as const },
+    { state: "failed", deliveryFeeStatus: "failed" as const },
+    { state: "verification pending", deliveryFeeStatus: "verification_pending" as const },
+    {
+      state: "financial review",
+      deliveryFeeStatus: "verification_pending" as const,
+      financialReviewRequired: true,
+    },
+    {
+      state: "settled",
+      deliveryFeeStatus: "paid" as const,
+      settledPaymentAttemptId: new Types.ObjectId(),
+    },
+  ])("uses a neutral bKash method label when payment is $state", (state) => {
+    const order = makeTrackingOrder({
+      paymentMethod: "bkash_full",
+      deliveryFeeStatus: state.deliveryFeeStatus,
+      financialReviewRequired: state.financialReviewRequired,
+      settledPaymentAttemptId: state.settledPaymentAttemptId,
+    });
+
+    expect(serializeCustomerOrder(order).payment_method_label).toBe("bKash full payment");
+  });
+
+  it("does not promote a partial merchandise return audit event to a customer stage", () => {
+    const order = makeTrackingOrder({
+      status: "delivered",
+      activity: [{
+        actor_type: "admin",
+        event: "merchandise_returned",
+        created_at: new Date("2026-08-31T06:00:00.000Z"),
+      }],
+    });
+
+    expect(serializeCustomerOrder(order).timeline).toEqual([]);
+  });
+
+  it("uses only status_returned as the full-return customer stage", () => {
+    const returnTime = new Date("2026-08-31T06:00:00.000Z");
+    const order = makeTrackingOrder({
+      status: "returned",
+      activity: [
+        { actor_type: "admin", event: "merchandise_returned", created_at: returnTime },
+        { actor_type: "admin", event: "status_returned", created_at: returnTime },
+      ],
+    });
+
+    expect(serializeCustomerOrder(order).timeline).toEqual([{
+      stage: "returned",
+      label: "Returned",
+      helper_text_bn: "আপনার অর্ডারের রিটার্ন আপডেট করা হয়েছে।",
+      created_at: "2026-08-31T06:00:00.000Z",
+      customer_note: null,
+    }]);
+  });
+
   it("returns only the customer tracking allowlist and drops internal data", () => {
     const createdAt = new Date("2026-08-30T06:00:00.000Z");
     const customerId = new Types.ObjectId();

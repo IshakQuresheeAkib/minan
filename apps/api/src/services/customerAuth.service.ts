@@ -284,22 +284,33 @@ export async function logoutCustomer(
   const session = await CustomerSession.findOne({
     _id: payload.session_id,
     customer_id: payload.id,
+    session_version: payload.session_version,
     revoked_at: null,
     expires_at: { $gt: now },
-  }).select("+refresh_token_hash");
+  }).select("+refresh_token_hash +previous_refresh_token_hash");
 
-  if (
-    !session?.refresh_token_hash ||
-    !await argon2.verify(session.refresh_token_hash, refreshToken)
-  ) {
+  if (!session?.refresh_token_hash) {
+    return;
+  }
+
+  const matchesCurrent = await argon2.verify(
+    session.refresh_token_hash,
+    refreshToken,
+  );
+  const matchesPrevious = !matchesCurrent &&
+    !!session.previous_refresh_token_hash &&
+    await argon2.verify(session.previous_refresh_token_hash, refreshToken);
+  if (!matchesCurrent && !matchesPrevious) {
     return;
   }
 
   await CustomerSession.updateOne(
     {
-      _id: session._id,
-      refresh_token_hash: session.refresh_token_hash,
+      _id: payload.session_id,
+      customer_id: payload.id,
+      session_version: payload.session_version,
       revoked_at: null,
+      expires_at: { $gt: now },
     },
     { $set: { revoked_at: now } },
   );

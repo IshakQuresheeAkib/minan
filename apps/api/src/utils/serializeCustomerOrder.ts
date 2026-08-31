@@ -1,4 +1,8 @@
-import { shippingAreaLabel } from "../config/shipping.js";
+import type { PaymentMethod } from "../config/checkoutPayment.js";
+import {
+  shippingAreaLabel,
+  type ShippingZone,
+} from "../config/shipping.js";
 import type {
   OrderDocument,
   OrderStatus,
@@ -7,6 +11,44 @@ import type {
 type CustomerStageCopy = {
   label: string;
   helper_text_bn: string;
+};
+
+export type CustomerOrderTrackingDTO = {
+  order_id: string;
+  created_at: string;
+  current_stage: CustomerStageCopy & {
+    code: OrderStatus;
+  };
+  timeline: Array<CustomerStageCopy & {
+    stage: OrderStatus;
+    created_at: string;
+    customer_note: string | null;
+  }>;
+  expected_delivery_date: string | null;
+  courier: {
+    name: string | null;
+    tracking_code: string | null;
+  };
+  items: Array<{
+    name: string;
+    image_url: string | null;
+    size: string;
+    color: string;
+    quantity: number;
+  }>;
+  shipping: {
+    city: string | null;
+    area: string;
+  };
+  payment_method_label: string | null;
+  totals: {
+    currency: "BDT";
+    merchandise_subtotal: number;
+    order_discount: number;
+    merchandise_total: number;
+    delivery_fee: number;
+    overall_order_value: number;
+  };
 };
 
 const stageCopy: Record<OrderStatus, CustomerStageCopy> = {
@@ -48,8 +90,9 @@ const stageCopy: Record<OrderStatus, CustomerStageCopy> = {
   },
 };
 
-const activityStage: Readonly<Record<string, OrderStatus>> = {
-  order_created: "new",
+type StatusActivityEvent = `status_${OrderStatus}`;
+
+const statusActivityStage: Record<StatusActivityEvent, OrderStatus> = {
   status_new: "new",
   status_confirmed: "confirmed",
   status_processing: "processing",
@@ -59,18 +102,34 @@ const activityStage: Readonly<Record<string, OrderStatus>> = {
   status_cancelled: "cancelled",
   status_returned: "returned",
   status_exchanged: "exchanged",
-  merchandise_returned: "returned",
+};
+
+const activityStage: Readonly<Record<string, OrderStatus>> = {
+  order_created: "new",
+  ...statusActivityStage,
   order_exchanged: "exchanged",
   exchange_order_created: "confirmed",
 };
 
-function paymentMethodLabel(order: OrderDocument): string | null {
-  if (order.payment_method === "bkash_full") return "bKash — Paid in full";
-  if (order.payment_method === "cod") return "Cash on Delivery (COD)";
-  return null;
+const paymentMethodLabels: Record<PaymentMethod, string> = {
+  bkash_full: "bKash full payment",
+  cod: "Cash on Delivery (COD)",
+};
+
+const shippingCities: Record<ShippingZone, string | null> = {
+  inside_sylhet: "Sylhet",
+  outside_sylhet: null,
+};
+
+function paymentMethodLabel(paymentMethod?: PaymentMethod): string | null {
+  return paymentMethod ? paymentMethodLabels[paymentMethod] : null;
 }
 
-export function serializeCustomerOrder(order: OrderDocument) {
+function shippingCity(shippingZone?: ShippingZone): string | null {
+  return shippingZone ? shippingCities[shippingZone] : null;
+}
+
+export function serializeCustomerOrder(order: OrderDocument): CustomerOrderTrackingDTO {
   const currentCopy = stageCopy[order.status];
   return {
     order_id: order.order_number,
@@ -104,10 +163,10 @@ export function serializeCustomerOrder(order: OrderDocument) {
       quantity: line.quantity,
     })),
     shipping: {
-      city: order.shipping_zone === "inside_sylhet" ? "Sylhet" : null,
+      city: shippingCity(order.shipping_zone),
       area: shippingAreaLabel(order.shipping_zone),
     },
-    payment_method_label: paymentMethodLabel(order),
+    payment_method_label: paymentMethodLabel(order.payment_method),
     totals: {
       currency: "BDT" as const,
       merchandise_subtotal: order.financials.merchandise_subtotal,

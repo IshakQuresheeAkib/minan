@@ -85,6 +85,21 @@ function selectable(value: unknown) {
   return { select: vi.fn().mockResolvedValue(value) };
 }
 
+function matchesStableLogoutIdentity(filter: unknown): boolean {
+  if (!filter || typeof filter !== "object") {
+    return false;
+  }
+  const candidate = filter as Record<string, unknown>;
+  const expiresAt = candidate.expires_at;
+  return candidate._id === SESSION_ID &&
+    candidate.customer_id === CUSTOMER_ID &&
+    candidate.session_version === 4 &&
+    candidate.revoked_at === null &&
+    !!expiresAt &&
+    typeof expiresAt === "object" &&
+    (expiresAt as Record<string, unknown>).$gt === NOW;
+}
+
 describe("customer auth service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -308,19 +323,96 @@ describe("customer auth service", () => {
     ).rejects.toMatchObject({ message: "Invalid session", status: 401 });
   });
 
-  it("revokes only the matching live session on logout", async () => {
-    const session = { _id: SESSION_ID, refresh_token_hash: "current-hash" };
+  it("revokes only the matching live session identity on logout", async () => {
     mocks.verifyRefresh.mockReturnValue(tokenPayload);
-    mocks.sessionFindOne.mockReturnValue(selectable(session));
+    mocks.sessionFindOne.mockReturnValue(selectable({
+      _id: SESSION_ID,
+      refresh_token_hash: "current-hash",
+      previous_refresh_token_hash: "previous-hash",
+    }));
     mocks.argonVerify.mockResolvedValue(true);
     mocks.sessionUpdateOne.mockResolvedValue({ modifiedCount: 1 });
 
     await logoutCustomer("refresh-token", NOW);
 
     expect(mocks.sessionUpdateOne).toHaveBeenCalledWith(
-      { _id: SESSION_ID, refresh_token_hash: "current-hash", revoked_at: null },
+      {
+        _id: SESSION_ID,
+        customer_id: CUSTOMER_ID,
+        session_version: 4,
+        revoked_at: null,
+        expires_at: { $gt: NOW },
+      },
       { $set: { revoked_at: NOW } },
     );
+  });
+
+  it("revokes the winning refresh generation when rotation wins after logout reads", async () => {
+    const state = { currentHash: "current-hash", revoked: false };
+    mocks.verifyRefresh.mockReturnValue(tokenPayload);
+    mocks.sessionFindOne.mockReturnValue(selectable({
+      _id: SESSION_ID,
+      refresh_token_hash: state.currentHash,
+    }));
+    mocks.argonVerify.mockImplementation(async () => {
+      state.currentHash = "next-hash";
+      return true;
+    });
+    mocks.sessionUpdateOne.mockImplementation(async (filter: unknown) => {
+      const candidate = filter as Record<string, unknown>;
+      const hashStillMatches = candidate.refresh_token_hash === state.currentHash;
+      if (matchesStableLogoutIdentity(filter) || hashStillMatches) {
+        state.revoked = true;
+        return { modifiedCount: 1 };
+      }
+      return { modifiedCount: 0 };
+    });
+
+    await logoutCustomer("current-refresh-token", NOW);
+
+    expect(state.revoked).toBe(true);
+  });
+
+  it("revokes the session when rotation wins before logout reads", async () => {
+    const state = { currentHash: "next-hash", revoked: false };
+    mocks.verifyRefresh.mockReturnValue(tokenPayload);
+    mocks.sessionFindOne.mockReturnValue(selectable({
+      _id: SESSION_ID,
+      refresh_token_hash: state.currentHash,
+      previous_refresh_token_hash: "current-hash",
+    }));
+    mocks.argonVerify.mockImplementation(async (hash: string) =>
+      hash === "current-hash");
+    mocks.sessionUpdateOne.mockImplementation(async (filter: unknown) => {
+      if (matchesStableLogoutIdentity(filter)) {
+        state.revoked = true;
+        return { modifiedCount: 1 };
+      }
+      return { modifiedCount: 0 };
+    });
+
+    await logoutCustomer("current-refresh-token", NOW);
+
+    expect(state.revoked).toBe(true);
+  });
+
+  it("does not revoke with a token older than the previous generation", async () => {
+    let revoked = false;
+    mocks.verifyRefresh.mockReturnValue(tokenPayload);
+    mocks.sessionFindOne.mockReturnValue(selectable({
+      _id: SESSION_ID,
+      refresh_token_hash: "current-hash",
+      previous_refresh_token_hash: "previous-hash",
+    }));
+    mocks.argonVerify.mockResolvedValue(false);
+    mocks.sessionUpdateOne.mockImplementation(async () => {
+      revoked = true;
+      return { modifiedCount: 1 };
+    });
+
+    await logoutCustomer("older-refresh-token", NOW);
+
+    expect(revoked).toBe(false);
   });
 
   it("returns an allowlisted current customer and rejects inactive accounts", async () => {

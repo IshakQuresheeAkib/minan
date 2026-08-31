@@ -38,4 +38,16 @@ The transactional-email foundation uses the official Resend Node SDK behind an i
 
 The home-banner `alt_text` migration is complete and its one-time command is retired. If the banner singleton is absent, use `npm --workspace @minan/api run seed:home-banners`; the seed preserves an existing set.
 
-Two dry-run-by-default maintenance commands remain: `migrate:orders` for the legacy Lead/PaymentAttempt compatibility window and `cleanup:inactive-admin-sessions` before reactivating a legacy inactive admin. Supply `-- --apply` only after reviewing the dry run and taking any required MongoDB backup.
+Three dry-run-by-default maintenance commands remain: `migrate:orders` for the legacy Lead/PaymentAttempt compatibility window, `migrate:order-tracking` for historical Order tracking fields, and `cleanup:inactive-admin-sessions` before reactivating a legacy inactive admin. Supply `-- --apply` only after reviewing the dry run and taking any required MongoDB backup.
+
+## Order tracking backfill deployment
+
+Historical Orders must have a usable `normalized_email` and a positive integer `guest_access_version` before customer Order access may rely on those fields. Existing reads do not run Mongoose validation, but do not remove the checkout email compatibility fallback or deploy customer tracking consumers that assume a completed backfill until this sequence finishes:
+
+1. Run the cwd-independent dry run from the repository root: `npm --workspace @minan/api run migrate:order-tracking`.
+2. Resolve every reported Order with no usable email snapshot. Apply mode refuses to write while any unresolved Order remains.
+3. Take the required database backup, then apply with `npm --workspace @minan/api run migrate:order-tracking -- --apply`.
+4. If an Order changes between planning and writing, compare-and-set filters leave that concurrent edit untouched and the command exits with an error. Re-run the dry run, review the new plan, and apply again.
+5. Run the dry run once more. The deployment gate is `0 Orders to backfill, 0 unresolved`.
+
+The migration never assigns `customer_id`, adds activity, or changes timestamps. Do not infer ownership by matching historical email addresses.
