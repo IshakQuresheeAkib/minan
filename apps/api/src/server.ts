@@ -6,6 +6,10 @@ import helmet from "helmet";
 import { getBkashConfig } from "./config/bkash.js";
 import { getCustomerAuthSecrets } from "./config/customerAuth.js";
 import {
+  getGuestOrderAccessTokenSecret,
+  getGuestOrderOtpSettings,
+} from "./config/guestOrderAccess.js";
+import {
   connectDB,
   disconnectDB,
   getDBStatus,
@@ -23,6 +27,10 @@ import { authRouter } from "./routes/auth.routes.js";
 import { bkashRouter } from "./routes/bkash.routes.js";
 import { checkoutRouter } from "./routes/checkout.routes.js";
 import { customerAuthRouter } from "./routes/customerAuth.routes.js";
+import {
+  customerOrdersRouter,
+  guestOrderAccessRouter,
+} from "./routes/guestOrderAccess.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
@@ -69,6 +77,8 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/customer-auth", customerAuthRouter);
+app.use("/api/guest-order-access", guestOrderAccessRouter);
+app.use("/api/customer-orders", customerOrdersRouter);
 app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 
@@ -77,6 +87,8 @@ async function bootstrap(): Promise<void> {
   getBkashConfig();
   getShippingConfig();
   getCustomerAuthSecrets();
+  getGuestOrderAccessTokenSecret();
+  getGuestOrderOtpSettings();
   await connectDB();
 
   const server = app.listen(port, () => {
