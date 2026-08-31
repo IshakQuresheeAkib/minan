@@ -1,5 +1,5 @@
 import argon2 from "argon2";
-import { Types } from "mongoose";
+import mongoose, { type ClientSession, Types } from "mongoose";
 
 import { CUSTOMER_REFRESH_TOKEN_TTL_SECONDS } from "../config/customerAuth.js";
 import {
@@ -74,6 +74,7 @@ function sessionExpiry(now: Date): Date {
 async function issueCustomerSession(
   customer: CustomerIdentity,
   now: Date,
+  dbSession?: ClientSession,
 ): Promise<CustomerAuthSession> {
   const sessionId = new Types.ObjectId();
   const payload = tokenPayload(customer, sessionId.toString());
@@ -81,7 +82,7 @@ async function issueCustomerSession(
   const refreshToken = signCustomerRefreshToken(payload);
   const refreshTokenHash = await argon2.hash(refreshToken);
 
-  await CustomerSession.create({
+  const sessionData = {
     _id: sessionId,
     customer_id: customer._id,
     session_version: customer.session_version,
@@ -90,7 +91,13 @@ async function issueCustomerSession(
     expires_at: sessionExpiry(now),
     last_rotated_at: now,
     revoked_at: null,
-  });
+  };
+
+  if (dbSession) {
+    await CustomerSession.create([sessionData], { session: dbSession });
+  } else {
+    await CustomerSession.create(sessionData);
+  }
 
   return {
     customer: safeCustomer(customer),
@@ -109,12 +116,18 @@ export async function signupCustomer(
   const passwordHash = await hashCustomerPassword(password);
 
   try {
-    const customer = await Customer.create({
-      email: trimmedEmail,
-      normalized_email: normalizedEmail,
-      password_hash: passwordHash,
+    return await mongoose.connection.transaction(async (dbSession) => {
+      const customers = await Customer.create([{
+        email: trimmedEmail,
+        normalized_email: normalizedEmail,
+        password_hash: passwordHash,
+      }], { session: dbSession });
+      const customer = customers[0];
+      if (!customer) {
+        throw new Error("Customer creation returned no document");
+      }
+      return issueCustomerSession(customer, now, dbSession);
     });
-    return await issueCustomerSession(customer, now);
   } catch (error) {
     if (isDuplicateKeyError(error)) {
       throw new CustomerAuthError("Unable to create account", 409);
@@ -224,6 +237,7 @@ export async function rotateCustomerTokens(
       $set: {
         refresh_token_hash: nextRefreshTokenHash,
         previous_refresh_token_hash: session.refresh_token_hash,
+        expires_at: sessionExpiry(now),
         last_rotated_at: now,
       },
     },

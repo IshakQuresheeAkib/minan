@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import {
   CUSTOMER_ACCESS_TOKEN_TTL_SECONDS,
   CUSTOMER_REFRESH_TOKEN_TTL_SECONDS,
+  getCustomerAccessTokenSecret,
+  getCustomerRefreshTokenSecret,
 } from "../config/customerAuth.js";
 import type { CustomerJwtPayload } from "../types/auth.types.js";
 
@@ -11,19 +13,11 @@ export const CUSTOMER_TOKEN_AUDIENCE = "minan-customer";
 const CUSTOMER_TOKEN_ACTOR = "customer";
 
 function getCustomerAccessSecret(): string {
-  const secret = process.env.CUSTOMER_JWT_ACCESS_SECRET;
-  if (!secret) {
-    throw new Error("CUSTOMER_JWT_ACCESS_SECRET is not defined");
-  }
-  return secret;
+  return getCustomerAccessTokenSecret();
 }
 
 function getCustomerRefreshSecret(): string {
-  const secret = process.env.CUSTOMER_JWT_REFRESH_SECRET;
-  if (!secret) {
-    throw new Error("CUSTOMER_JWT_REFRESH_SECRET is not defined");
-  }
-  return secret;
+  return getCustomerRefreshTokenSecret();
 }
 
 function parseCustomerPayload(decoded: jwt.JwtPayload): CustomerJwtPayload {

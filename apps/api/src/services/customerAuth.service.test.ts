@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import mongoose, { type ClientSession } from "mongoose";
 
 const mocks = vi.hoisted(() => ({
   argonHash: vi.fn(),
@@ -61,6 +62,8 @@ import {
 const CUSTOMER_ID = "66f000000000000000000002";
 const SESSION_ID = "66f000000000000000000003";
 const NOW = new Date("2026-08-30T00:00:00.000Z");
+const DB_SESSION = {} as ClientSession;
+const transactionSpy = vi.spyOn(mongoose.connection, "transaction");
 
 const customer = {
   _id: { toString: () => CUSTOMER_ID },
@@ -91,8 +94,9 @@ describe("customer auth service", () => {
     mocks.argonHash.mockResolvedValue("refresh-token-hash");
     mocks.signAccess.mockReturnValue("customer-access-token");
     mocks.signRefresh.mockReturnValue("customer-refresh-token");
-    mocks.customerCreate.mockResolvedValue(customer);
+    mocks.customerCreate.mockResolvedValue([customer]);
     mocks.sessionCreate.mockResolvedValue({});
+    transactionSpy.mockImplementation(async (work) => work(DB_SESSION));
   });
 
   it("signs up one customer without querying or claiming Orders", async () => {
@@ -102,20 +106,23 @@ describe("customer auth service", () => {
       NOW,
     );
 
-    expect(mocks.customerCreate).toHaveBeenCalledWith({
+    expect(mocks.customerCreate).toHaveBeenCalledWith([{
       email: "Customer@Example.com",
       normalized_email: "customer@example.com",
       password_hash: "password-hash",
-    });
-    expect(mocks.sessionCreate).toHaveBeenCalledWith(expect.objectContaining({
-      customer_id: customer._id,
-      session_version: 4,
-      refresh_token_hash: "refresh-token-hash",
-      previous_refresh_token_hash: null,
-      expires_at: new Date("2026-09-06T00:00:00.000Z"),
-      last_rotated_at: NOW,
-      revoked_at: null,
-    }));
+    }], { session: DB_SESSION });
+    expect(mocks.sessionCreate).toHaveBeenCalledWith(
+      [expect.objectContaining({
+        customer_id: customer._id,
+        session_version: 4,
+        refresh_token_hash: "refresh-token-hash",
+        previous_refresh_token_hash: null,
+        expires_at: new Date("2026-09-06T00:00:00.000Z"),
+        last_rotated_at: NOW,
+        revoked_at: null,
+      })],
+      { session: DB_SESSION },
+    );
     expect(result).toEqual({
       customer: {
         id: CUSTOMER_ID,
@@ -137,6 +144,34 @@ describe("customer auth service", () => {
       message: "Unable to create account",
       status: 409,
     });
+  });
+
+  it("uses one database transaction for customer and initial session writes", async () => {
+    const sessionWriteError = new Error("session write failed");
+    mocks.customerCreate.mockImplementation(async (input: unknown) =>
+      Array.isArray(input) ? [customer] : customer);
+    mocks.sessionCreate.mockRejectedValueOnce(sessionWriteError);
+
+    await expect(
+      signupCustomer("customer@example.com", "password123", NOW),
+    ).rejects.toBe(sessionWriteError);
+
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
+    expect(mocks.customerCreate).toHaveBeenCalledWith(
+      [{
+        email: "customer@example.com",
+        normalized_email: "customer@example.com",
+        password_hash: "password-hash",
+      }],
+      { session: DB_SESSION },
+    );
+    expect(mocks.sessionCreate).toHaveBeenCalledWith(
+      [expect.objectContaining({
+        customer_id: customer._id,
+        refresh_token_hash: "refresh-token-hash",
+      })],
+      { session: DB_SESSION },
+    );
   });
 
   it("returns the same generic login failure for missing and wrong passwords", async () => {
@@ -200,6 +235,7 @@ describe("customer auth service", () => {
         $set: {
           refresh_token_hash: "next-hash",
           previous_refresh_token_hash: "current-hash",
+          expires_at: new Date("2026-09-06T00:00:00.000Z"),
           last_rotated_at: NOW,
         },
       },

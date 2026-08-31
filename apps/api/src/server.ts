@@ -4,6 +4,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import { getBkashConfig } from "./config/bkash.js";
+import { getCustomerAuthSecrets } from "./config/customerAuth.js";
 import {
   connectDB,
   disconnectDB,
@@ -72,9 +73,10 @@ app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
-  // Fail during startup instead of creating checkout attempts that cannot be paid.
+  // Fail during startup instead of accepting traffic with incomplete configuration.
   getBkashConfig();
   getShippingConfig();
+  getCustomerAuthSecrets();
   await connectDB();
 
   const server = app.listen(port, () => {
