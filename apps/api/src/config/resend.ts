@@ -6,7 +6,7 @@ export type ResendConfig = {
 };
 
 function isValidSender(value: string): boolean {
-  const friendlyMatch = value.match(/^.+<([^<>]+)>$/);
+  const friendlyMatch = value.match(/^[^<>]+<([^<>]+)>$/);
   const address = friendlyMatch?.[1]?.trim() ?? value;
   return z.string().email().safeParse(address).success;
 }

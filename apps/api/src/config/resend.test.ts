@@ -13,6 +13,13 @@ describe("Resend configuration", () => {
     });
   });
 
+  it("rejects a sender value containing multiple email addresses", () => {
+    expect(() => getResendConfig({
+      RESEND_API_KEY: "re_test_123",
+      RESEND_FROM: "MINAN <orders@minan.com> <billing@minan.com>",
+    })).toThrow("RESEND_FROM");
+  });
+
   it.each([
     [{ RESEND_FROM: "MINAN <orders@minan.com>" }, "RESEND_API_KEY"],
     [{ RESEND_API_KEY: "re_test_123" }, "RESEND_FROM"],

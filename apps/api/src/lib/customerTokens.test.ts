@@ -73,4 +73,17 @@ describe("customer token actor and audience separation", () => {
 
     expect(() => verifyCustomerAccessToken(token)).toThrow();
   });
+
+  it("rejects a signed customer token without a session identifier", () => {
+    const { session_id: _sessionId, ...payloadWithoutSessionId } = customerPayload;
+    const token = jwt.sign(
+      { ...payloadWithoutSessionId, actor: "customer" },
+      "shared-test-secret",
+      { audience: CUSTOMER_TOKEN_AUDIENCE },
+    );
+
+    expect(() => verifyCustomerAccessToken(token)).toThrow(
+      "Invalid customer token payload",
+    );
+  });
 });

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 
 import {
   CUSTOMER_ACCESS_TOKEN_TTL_SECONDS,
@@ -12,6 +13,14 @@ import type { CustomerJwtPayload } from "../types/auth.types.js";
 export const CUSTOMER_TOKEN_AUDIENCE = "minan-customer";
 const CUSTOMER_TOKEN_ACTOR = "customer";
 
+const customerJwtPayloadSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  session_version: z.number().int().nonnegative(),
+  session_id: z.string(),
+  actor: z.literal(CUSTOMER_TOKEN_ACTOR),
+});
+
 function getCustomerAccessSecret(): string {
   return getCustomerAccessTokenSecret();
 }
@@ -21,27 +30,16 @@ function getCustomerRefreshSecret(): string {
 }
 
 function parseCustomerPayload(decoded: jwt.JwtPayload): CustomerJwtPayload {
-  const id = decoded.id;
-  const email = decoded.email;
-  const sessionVersion = decoded.session_version;
-  const sessionId = decoded.session_id;
-
-  if (
-    decoded.actor !== CUSTOMER_TOKEN_ACTOR ||
-    typeof id !== "string" ||
-    typeof email !== "string" ||
-    !Number.isSafeInteger(sessionVersion) ||
-    sessionVersion < 0 ||
-    typeof sessionId !== "string"
-  ) {
+  const result = customerJwtPayloadSchema.safeParse(decoded);
+  if (!result.success) {
     throw new Error("Invalid customer token payload");
   }
 
   return {
-    id,
-    email,
-    session_version: sessionVersion,
-    session_id: sessionId,
+    id: result.data.id,
+    email: result.data.email,
+    session_version: result.data.session_version,
+    session_id: result.data.session_id,
   };
 }
 

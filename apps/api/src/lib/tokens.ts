@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 
 import {
   ACCESS_TOKEN_TTL_SECONDS,
@@ -31,29 +32,44 @@ function hasAdminAudience(audience: string | string[]): boolean {
     : audience === ADMIN_TOKEN_AUDIENCE;
 }
 
+const adminJwtPayloadSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  session_version: z.number().int().nonnegative(),
+  actor: z.literal(ADMIN_TOKEN_ACTOR).optional(),
+  aud: z.union([z.string(), z.array(z.string())]).optional(),
+}).superRefine((payload, context) => {
+  if (payload.aud !== undefined && !hasAdminAudience(payload.aud)) {
+    context.addIssue({
+      code: "custom",
+      message: "Invalid admin token audience",
+      path: ["aud"],
+    });
+  }
+});
+
 function parsePayload(
   decoded: jwt.JwtPayload,
   allowMissingSessionVersion: boolean,
 ): AdminJwtPayload {
-  const id = decoded.id;
-  const email = decoded.email;
   const sessionVersion =
     decoded.session_version === undefined && allowMissingSessionVersion
       ? 0
       : decoded.session_version;
 
-  if (
-    (decoded.actor !== undefined && decoded.actor !== ADMIN_TOKEN_ACTOR) ||
-    (decoded.aud !== undefined && !hasAdminAudience(decoded.aud)) ||
-    typeof id !== "string" ||
-    typeof email !== "string" ||
-    !Number.isSafeInteger(sessionVersion) ||
-    sessionVersion < 0
-  ) {
+  const result = adminJwtPayloadSchema.safeParse({
+    ...decoded,
+    session_version: sessionVersion,
+  });
+  if (!result.success) {
     throw new Error("Invalid token payload");
   }
 
-  return { id, email, session_version: sessionVersion };
+  return {
+    id: result.data.id,
+    email: result.data.email,
+    session_version: result.data.session_version,
+  };
 }
 
 export function signAccessToken(payload: AdminJwtPayload): string {
