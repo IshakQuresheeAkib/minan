@@ -4,9 +4,13 @@ Express 5 backend for authentication, admin CRUD, public catalog/checkout APIs, 
 
 The API is the only data layer for the app. Next.js route handlers are intentionally not used for data operations; the frontend may expose `/api/revalidate` only for cache invalidation.
 
+In production, Express trusts only Render's loopback, link-local, and private ingress ranges when resolving forwarded client addresses. Keep this policy narrow; do not replace it with blanket `trust proxy: true`.
+
 ## Customer authentication and transactional email
 
 Customer account endpoints are isolated under `/api/customer-auth` and use separate customer access/refresh cookies, JWT secrets, middleware, Customer records, and CustomerSession records. They do not reuse admin identities or sessions. Configure `CUSTOMER_JWT_ACCESS_SECRET` and `CUSTOMER_JWT_REFRESH_SECRET` independently from the admin secrets. Production cookies also use the existing `AUTH_COOKIE_DOMAIN` setting.
+
+Public signup is intentionally not routed until email ownership verification is implemented. The existing signup service is foundation code only and must not be exposed as an active-account endpoint.
 
 The transactional-email foundation uses the official Resend Node SDK behind an injected adapter. Configure `RESEND_API_KEY` server-side and set `RESEND_FROM` to a sender on a domain verified in Resend, for example `MINAN <orders@example.com>`. No signup, login, or Order mutation sends email; OTP and Order-event delivery remain later steps.
 

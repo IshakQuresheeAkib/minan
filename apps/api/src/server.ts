@@ -11,6 +11,7 @@ import {
   isDBConnected,
 } from "./config/db.js";
 import { getShippingConfig } from "./config/shipping.js";
+import { configureTrustedProxy } from "./config/trustedProxy.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import {
@@ -25,6 +26,7 @@ import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 
 const app = express();
+configureTrustedProxy(app);
 const port = Number(process.env.PORT ?? 3001);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
   .split(",")

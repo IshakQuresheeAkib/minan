@@ -207,6 +207,35 @@ describe("customer auth service", () => {
     expect(result.refreshToken).toBe("next-refresh-token");
   });
 
+  it("returns a conflict without revoking when a concurrent rotation wins", async () => {
+    const observedSession = {
+      _id: SESSION_ID,
+      refresh_token_hash: "current-hash",
+      previous_refresh_token_hash: "older-hash",
+    };
+    const winningSession = {
+      _id: SESSION_ID,
+      previous_refresh_token_hash: "current-hash",
+    };
+    mocks.verifyRefresh.mockReturnValue(tokenPayload);
+    mocks.customerFindOne.mockReturnValue(selectable(customer));
+    mocks.sessionFindOne
+      .mockReturnValueOnce(selectable(observedSession))
+      .mockReturnValueOnce(selectable(winningSession));
+    mocks.argonVerify.mockResolvedValue(true);
+    mocks.argonHash.mockResolvedValue("losing-hash");
+    mocks.sessionFindOneAndUpdate.mockResolvedValue(null);
+
+    await expect(
+      rotateCustomerTokens("current-refresh-token", NOW),
+    ).rejects.toMatchObject({
+      name: "CustomerAuthError",
+      message: "Concurrent token rotation",
+      status: 409,
+    });
+    expect(mocks.sessionUpdateOne).not.toHaveBeenCalled();
+  });
+
   it("revokes the session when the immediately previous token is replayed", async () => {
     const session = {
       _id: SESSION_ID,

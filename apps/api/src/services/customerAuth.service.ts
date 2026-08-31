@@ -240,7 +240,7 @@ export async function rotateCustomerTokens(
       fresh?.previous_refresh_token_hash &&
       await argon2.verify(fresh.previous_refresh_token_hash, refreshToken)
     ) {
-      await revokeReplay(fresh._id, now);
+      throw new CustomerAuthError("Concurrent token rotation", 409);
     }
     throw invalidSession();
   }

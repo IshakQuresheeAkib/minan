@@ -12,7 +12,6 @@ vi.mock("../controllers/customerAuth.controller.js", () => {
     customerLogoutHandler: ok,
     customerMeHandler: ok,
     customerRefreshHandler: ok,
-    customerSignupHandler: ok,
   };
 });
 
@@ -44,10 +43,27 @@ async function startApp(): Promise<string> {
 }
 
 describe("customer auth route protections", () => {
+  it("keeps public signup unavailable until email ownership verification exists", async () => {
+    const baseUrl = await startApp();
+    const response = await fetch(`${baseUrl}/api/customer-auth/signup`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-requested-with": "XMLHttpRequest",
+      },
+      body: JSON.stringify({
+        email: "customer@example.com",
+        password: "password123",
+      }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+
   it("requires the CSRF header on every state-changing endpoint", async () => {
     const baseUrl = await startApp();
 
-    for (const path of ["signup", "login", "refresh", "logout"]) {
+    for (const path of ["login", "refresh", "logout"]) {
       const response = await fetch(`${baseUrl}/api/customer-auth/${path}`, {
         method: "POST",
         headers: { "content-type": "application/json" },

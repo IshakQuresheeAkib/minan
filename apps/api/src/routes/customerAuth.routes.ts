@@ -6,7 +6,6 @@ import {
   customerLogoutHandler,
   customerMeHandler,
   customerRefreshHandler,
-  customerSignupHandler,
 } from "../controllers/customerAuth.controller.js";
 import { requireCsrfHeader } from "../middleware/csrf.js";
 import { requireCustomerAuth } from "../middleware/requireCustomerAuth.js";
@@ -23,10 +22,6 @@ function customerAuthRateLimiter(max: number, message: string) {
 
 export function createCustomerAuthRouter(): Router {
   const router = Router();
-  const signupRateLimiter = customerAuthRateLimiter(
-    5,
-    "Too many signup attempts. Try again later.",
-  );
   const loginRateLimiter = customerAuthRateLimiter(
     10,
     "Too many login attempts. Try again later.",
@@ -36,12 +31,6 @@ export function createCustomerAuthRouter(): Router {
     "Too many session requests. Try again later.",
   );
 
-  router.post(
-    "/signup",
-    requireCsrfHeader,
-    signupRateLimiter,
-    customerSignupHandler,
-  );
   router.post(
     "/login",
     requireCsrfHeader,
