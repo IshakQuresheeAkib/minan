@@ -3,19 +3,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import { getBkashConfig } from "./config/bkash.js";
-import { getCustomerAuthSecrets } from "./config/customerAuth.js";
-import {
-  getGuestOrderAccessTokenSecret,
-  getGuestOrderOtpSettings,
-} from "./config/guestOrderAccess.js";
 import {
   connectDB,
   disconnectDB,
   getDBStatus,
   isDBConnected,
 } from "./config/db.js";
-import { getShippingConfig } from "./config/shipping.js";
+import { validateStartupConfiguration } from "./config/startupValidation.js";
 import { configureTrustedProxy } from "./config/trustedProxy.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { adminRouter } from "./routes/admin.routes.js";
@@ -84,11 +78,7 @@ app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
   // Fail during startup instead of accepting traffic with incomplete configuration.
-  getBkashConfig();
-  getShippingConfig();
-  getCustomerAuthSecrets();
-  getGuestOrderAccessTokenSecret();
-  getGuestOrderOtpSettings();
+  validateStartupConfiguration();
   await connectDB();
 
   const server = app.listen(port, () => {

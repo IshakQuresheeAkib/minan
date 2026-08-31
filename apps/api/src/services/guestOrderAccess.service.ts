@@ -271,7 +271,7 @@ export async function claimGuestOrder(
     _id: proof.order_id,
     order_number: proof.order_number,
     normalized_email: proof.normalized_email,
-  }).select("customer_id");
+  });
   if (!existing) {
     throw unauthorizedOrderAccess();
   }

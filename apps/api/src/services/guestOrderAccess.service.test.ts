@@ -63,7 +63,10 @@ const order = {
 };
 
 function selectable(value: unknown) {
-  return { select: vi.fn().mockResolvedValue(value) };
+  return {
+    select: vi.fn().mockResolvedValue(value),
+    then: <T>(resolve: (resolved: unknown) => T) => resolve(value),
+  };
 }
 
 describe("guest Order OTP request", () => {
