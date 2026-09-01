@@ -17,6 +17,7 @@ import {
   getGuestOrder,
   OrderTrackingApiError,
 } from "@/features/order-tracking/lib/orderTrackingApi";
+import { getOrderTrackingLoginHref } from "@/features/order-tracking/lib/trackingPresentation";
 import type { CustomerOrderTracking } from "@/features/order-tracking/lib/types";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
@@ -39,7 +40,7 @@ function errorMessage(error: unknown, access: OrderAccess): string {
 }
 
 function TrackingDetail({ access, orderNumber }: { access: OrderAccess; orderNumber: string }) {
-  const { session, status } = useCustomerAuthStore();
+  const { clearSession, session, status } = useCustomerAuthStore();
   const [order, setOrder] = useState<CustomerOrderTracking | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,9 @@ function TrackingDetail({ access, orderNumber }: { access: OrderAccess; orderNum
         if (active) setOrder(nextOrder);
       })
       .catch((loadError: unknown) => {
+        if (access === "account" && loadError instanceof OrderTrackingApiError && loadError.status === 401) {
+          clearSession();
+        }
         if (active) setError(errorMessage(loadError, access));
       })
       .finally(() => {
@@ -67,7 +71,7 @@ function TrackingDetail({ access, orderNumber }: { access: OrderAccess; orderNum
     return () => {
       active = false;
     };
-  }, [access, orderNumber, session, status]);
+  }, [access, clearSession, orderNumber, session, status]);
 
   async function claimThisOrder() {
     if (!session) return;
@@ -82,7 +86,7 @@ function TrackingDetail({ access, orderNumber }: { access: OrderAccess; orderNum
     }
   }
 
-  const loginHref = `${publicRoutes.customerLogin}?next=${encodeURIComponent(`/orders?order=${encodeURIComponent(orderNumber)}&access=guest`)}`;
+  const loginHref = getOrderTrackingLoginHref(access, orderNumber);
   const signInRequired = access === "account" && status !== "unknown" && !session;
 
   return (

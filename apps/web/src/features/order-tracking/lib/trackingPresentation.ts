@@ -108,3 +108,11 @@ export function formatTrackingDate(value: string): string {
 export function formatBdt(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
+
+export function getOrderTrackingLoginHref(
+  access: "guest" | "account",
+  orderNumber: string,
+): string {
+  const next = `/orders?order=${encodeURIComponent(orderNumber)}&access=${access}`;
+  return `/account/login?next=${encodeURIComponent(next)}`;
+}
