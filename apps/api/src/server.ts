@@ -28,6 +28,7 @@ import {
 } from "./routes/guestOrderAccess.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
+import { publicOrderTrackingRouter } from "./routes/publicOrderTracking.routes.js";
 import {
   processPendingNotifications,
   startNotificationOutboxProcessor,
@@ -77,6 +78,7 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/whatsapp-click", whatsappClickRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/customer-auth", customerAuthRouter);
+app.use("/api/order-tracking", publicOrderTrackingRouter);
 app.use("/api/guest-order-access", guestOrderAccessRouter);
 app.use("/api/customer-orders", customerOrdersRouter);
 app.use("/api/admin", adminRouter);
