@@ -22,10 +22,8 @@ import { authRouter } from "./routes/auth.routes.js";
 import { bkashRouter } from "./routes/bkash.routes.js";
 import { checkoutRouter } from "./routes/checkout.routes.js";
 import { customerAuthRouter } from "./routes/customerAuth.routes.js";
-import {
-  customerOrdersRouter,
-  guestOrderAccessRouter,
-} from "./routes/guestOrderAccess.routes.js";
+import { guestOrderAccessRouter } from "./routes/guestOrderAccess.routes.js";
+import { customerOrderHistoryRouter } from "./routes/customerOrderHistory.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
 import { publicOrderTrackingRouter } from "./routes/publicOrderTracking.routes.js";
@@ -80,7 +78,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/customer-auth", customerAuthRouter);
 app.use("/api/order-tracking", publicOrderTrackingRouter);
 app.use("/api/guest-order-access", guestOrderAccessRouter);
-app.use("/api/customer-orders", customerOrdersRouter);
+app.use("/api/customer-orders", customerOrderHistoryRouter);
 app.use("/api/admin", adminRouter);
 app.use(errorHandler);
 
