@@ -51,6 +51,25 @@ export type CustomerOrderTracking = {
   };
 };
 
+export type CustomerOrderSummary = {
+  order_id: string;
+  created_at: string;
+  current_stage: CustomerOrderTracking["current_stage"];
+  expected_delivery_date: string | null;
+  first_item: { name: string; image_url: string | null } | null;
+  total_item_quantity: number;
+  overall_order_value: number;
+};
+
+export type PublicOrderSearchResult =
+  | { kind: "order"; order: CustomerOrderTracking }
+  | { kind: "phone"; orders: CustomerOrderSummary[]; next_cursor: string | null };
+
+export type CustomerOrderHistoryPage = {
+  orders: CustomerOrderSummary[];
+  next_cursor: string | null;
+};
+
 export type CustomerSession = {
   customer: {
     id: string;
