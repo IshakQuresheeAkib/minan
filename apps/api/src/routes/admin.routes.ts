@@ -58,6 +58,7 @@ import {
   updateOrderCourierHandler,
   updateOrderCustomerHandler,
   updateOrderItemsHandler,
+  updateOrderTrackingHandler,
 } from "../controllers/admin/orders.controller.js";
 
 export const adminRouter = Router();
@@ -74,6 +75,7 @@ adminRouter.post("/orders/:id/transitions", requireAuth, requireCsrfHeader, tran
 adminRouter.patch("/orders/:id/courier", requireAuth, requireCsrfHeader, updateOrderCourierHandler);
 adminRouter.post("/orders/:id/cod", requireAuth, requireCsrfHeader, recordOrderCodHandler);
 adminRouter.post("/orders/:id/notes", requireAuth, requireCsrfHeader, appendOrderNoteHandler);
+adminRouter.patch("/orders/:id/tracking", requireAuth, requireCsrfHeader, updateOrderTrackingHandler);
 adminRouter.patch("/orders/:id/duplicates", requireAuth, requireCsrfHeader, reviewOrderDuplicateHandler);
 adminRouter.post("/orders/:id/returns", requireAuth, requireCsrfHeader, recordOrderReturnHandler);
 adminRouter.post("/orders/:id/refunds", requireAuth, requireCsrfHeader, recordOrderRefundHandler);

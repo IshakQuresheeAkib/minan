@@ -9,6 +9,7 @@ import {
   getDBStatus,
   isDBConnected,
 } from "./config/db.js";
+import { getResendConfig } from "./config/resend.js";
 import { validateStartupConfiguration } from "./config/startupValidation.js";
 import { configureTrustedProxy } from "./config/trustedProxy.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -27,6 +28,11 @@ import {
 } from "./routes/guestOrderAccess.routes.js";
 import { homeBannersRouter } from "./routes/homeBanners.routes.js";
 import { productsRouter } from "./routes/products.routes.js";
+import {
+  processPendingNotifications,
+  startNotificationOutboxProcessor,
+} from "./services/notificationOutbox.service.js";
+import { createResendEmailAdapter } from "./services/transactionalEmail.service.js";
 
 const app = express();
 configureTrustedProxy(app);
@@ -80,13 +86,18 @@ async function bootstrap(): Promise<void> {
   // Fail during startup instead of accepting traffic with incomplete configuration.
   validateStartupConfiguration();
   await connectDB();
+  const email = createResendEmailAdapter(getResendConfig());
 
   const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
+  const stopNotificationOutboxProcessor = startNotificationOutboxProcessor(
+    () => processPendingNotifications(email),
+  );
 
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`${signal} received — closing server and MongoDB connection`);
+    await stopNotificationOutboxProcessor();
     server.close(async () => {
       await disconnectDB();
       process.exit(0);

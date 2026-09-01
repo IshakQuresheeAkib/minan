@@ -7,6 +7,7 @@ export type TransactionalEmailInput = {
   subject: string;
   html: string;
   text?: string;
+  idempotency_key?: string;
 };
 
 type ProviderEmailInput = {
@@ -18,7 +19,7 @@ type ProviderEmailInput = {
 };
 
 export type TransactionalEmailTransport = {
-  send(input: ProviderEmailInput): Promise<{ id: string }>;
+  send(input: ProviderEmailInput, options?: { idempotencyKey: string }): Promise<{ id: string }>;
 };
 
 export type TransactionalEmailAdapter = {
@@ -35,8 +36,8 @@ export class EmailDeliveryError extends Error {
 function createResendTransport(apiKey: string): TransactionalEmailTransport {
   const resend = new Resend(apiKey);
   return {
-    async send(input) {
-      const { data, error } = await resend.emails.send(input);
+    async send(input, options) {
+      const { data, error } = await resend.emails.send(input, options);
       if (error || !data) {
         throw new Error("Resend rejected the email");
       }
@@ -58,7 +59,7 @@ export function createResendEmailAdapter(
           subject: input.subject,
           html: input.html,
           ...(input.text === undefined ? {} : { text: input.text }),
-        });
+        }, input.idempotency_key === undefined ? undefined : { idempotencyKey: input.idempotency_key });
       } catch {
         throw new EmailDeliveryError();
       }

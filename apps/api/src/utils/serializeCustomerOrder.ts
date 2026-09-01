@@ -129,6 +129,13 @@ function shippingCity(shippingZone?: ShippingZone): string | null {
   return shippingZone ? shippingCities[shippingZone] : null;
 }
 
+function trackingStage(order: OrderDocument, entry: OrderDocument["activity"][number]): OrderStatus {
+  const stage = entry.metadata?.tracking_stage;
+  return typeof stage === "string" && stage in stageCopy
+    ? stage as OrderStatus
+    : order.status;
+}
+
 export function serializeCustomerOrder(order: OrderDocument): CustomerOrderTrackingDTO {
   const currentCopy = stageCopy[order.status];
   return {
@@ -139,7 +146,9 @@ export function serializeCustomerOrder(order: OrderDocument): CustomerOrderTrack
       ...currentCopy,
     },
     timeline: order.activity.flatMap((entry) => {
-      const stage = activityStage[entry.event];
+      const stage = entry.event === "tracking_updated"
+        ? trackingStage(order, entry)
+        : activityStage[entry.event];
       if (!stage) return [];
       return [{
         stage,

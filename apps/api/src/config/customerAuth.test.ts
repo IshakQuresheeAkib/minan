@@ -50,6 +50,15 @@ describe("customer authentication cookies", () => {
     );
   });
 
+  it("rejects startup configuration when customer token secrets are identical", () => {
+    process.env.CUSTOMER_JWT_ACCESS_SECRET = "shared-customer-secret";
+    process.env.CUSTOMER_JWT_REFRESH_SECRET = "shared-customer-secret";
+
+    expect(() => getCustomerAuthSecrets()).toThrow(
+      "CUSTOMER_JWT_ACCESS_SECRET and CUSTOMER_JWT_REFRESH_SECRET must differ",
+    );
+  });
+
   it("uses names that cannot collide with admin cookies", () => {
     expect(CUSTOMER_ACCESS_TOKEN_COOKIE).toBe("customer_access_token");
     expect(CUSTOMER_REFRESH_TOKEN_COOKIE).toBe("customer_refresh_token");

@@ -76,6 +76,15 @@ export const orderNoteSchema = z.object({
   expected_revision: expectedRevision,
 });
 
+export const orderTrackingUpdateSchema = z.object({
+  expected_delivery_date: z.iso.date().optional(),
+  public_note: z.string().trim().min(1).max(500).optional(),
+  expected_revision: expectedRevision,
+}).strict().refine(
+  (value) => value.expected_delivery_date !== undefined || value.public_note !== undefined,
+  "A delivery date or public note is required",
+);
+
 export const orderDuplicateReviewSchema = z.object({
   state: z.enum(["reviewed_unique", "confirmed_duplicate"]),
   expected_revision: expectedRevision,
@@ -115,6 +124,7 @@ export type OrderTransitionInput = z.infer<typeof orderTransitionSchema>;
 export type OrderCourierUpdateInput = z.infer<typeof orderCourierUpdateSchema>;
 export type OrderCodInput = z.infer<typeof orderCodSchema>;
 export type OrderNoteInput = z.infer<typeof orderNoteSchema>;
+export type OrderTrackingUpdateInput = z.infer<typeof orderTrackingUpdateSchema>;
 export type OrderDuplicateReviewInput = z.infer<typeof orderDuplicateReviewSchema>;
 export type OrderRefundInput = z.infer<typeof orderRefundSchema>;
 export type OrderReturnInput = z.infer<typeof orderReturnSchema>;

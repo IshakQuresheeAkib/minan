@@ -5,6 +5,8 @@ export const publicRoutes = {
   checkout: "/checkout",
   buyNowCheckout: "/checkout/buy-now",
   paymentResult: "/payment/result",
+  orderTracking: "/orders",
+  customerLogin: "/account/login",
   adminLogin: "/admin/login",
 } as const;
 
