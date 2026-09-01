@@ -175,9 +175,9 @@ export function SearchBar({
     <div
       ref={containerRef}
       className={cn(
-        "relative flex w-full justify-end",
-        isCatalog ? "max-w-none" : "max-w-[300px]",
-        showSuggestions && "z-[80]",
+        "relative flex w-full justify-end justify-self-end",
+        isCatalog ? "max-w-none" : "max-w-62.5",
+        showSuggestions && "z-80",
         className,
       )}
     >
@@ -186,14 +186,14 @@ export function SearchBar({
         aria-label="Product search"
         onSubmit={handleSubmit}
         className={cn(
-          "relative z-10 h-12 w-12 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
+          "relative z-10 h-9 w-10.5 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
           expanded && "w-full",
           isCatalog && "w-full",
         )}
       >
         <Search
           className={cn(
-            "pointer-events-none absolute top-1/2 right-3 z-2 size-6 -translate-y-1/2 transition-colors duration-200",
+            "pointer-events-none absolute top-1/2 right-3 z-2 size-6 -translate-y-1/2 transition-colors duration-300",
             "text-foreground",
           )}
           aria-hidden="true"
@@ -205,7 +205,7 @@ export function SearchBar({
           }
           variant="secondary"
           size="icon"
-          className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-foreground hover:shadow-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="absolute top-0 right-0 z-3 size-9 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-foreground hover:shadow-none focus-visible:ring-2 focus-visible:ring-primary/60"
           onClick={() => {
             if (!isCatalog && !trimmedQuery) {
               expandAndFocus();
@@ -223,11 +223,11 @@ export function SearchBar({
           aria-describedby={statusId}
           autoComplete="off"
           className={cn(
-            "h-12 w-12 rounded-full border border-primary/45 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-primary/50",
+            "h-9 w-9 rounded-full border border-primary/45 bg-primary pr-9 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-primary/50",
             expanded &&
-              "w-full rounded-full pl-3 text-foreground placeholder:text-foreground/70 focus-visible:ring-primary/45",
+              "w-full rounded-full pl-3 text-foreground placeholder:text-xs sm:placeholder:text-sm placeholder:text-foreground/70 focus-visible:ring-primary/45",
             isCatalog &&
-              "w-full bg-background pl-4 text-foreground placeholder:text-foreground/60 transition-colors duration-200",
+              "w-full bg-background pl-4 text-foreground placeholder:text-foreground/60 transition-colors duration-300",
           )}
           onChange={(event) => {
             const nextQuery = event.target.value;

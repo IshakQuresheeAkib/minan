@@ -158,8 +158,7 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
   }, [clearAutoRotate, resetInterval]);
 
   const handlePrev = useCallback(() => {
-    const prev =
-      (currentRef.current - 1 + banners.length) % banners.length;
+    const prev = (currentRef.current - 1 + banners.length) % banners.length;
     goTo(prev, "prev");
     resetInterval();
   }, [banners.length, goTo, resetInterval]);
@@ -282,60 +281,66 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
           );
         })}
 
-        {banners.length > 1 ? <button
-          type="button"
-          onClick={handlePrev}
-          aria-label="Previous slide"
-          className="absolute left-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:left-6"
-        >
-          <ChevronLeft className="size-5" aria-hidden="true" />
-        </button> : null}
+        {banners.length > 1 ? (
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Previous slide"
+            className="absolute left-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:-translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:left-6"
+          >
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </button>
+        ) : null}
 
-        {banners.length > 1 ? <button
-          type="button"
-          onClick={handleNext}
-          aria-label="Next slide"
-          className="absolute right-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:right-6"
-        >
-          <ChevronRight className="size-5" aria-hidden="true" />
-        </button> : null}
+        {banners.length > 1 ? (
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Next slide"
+            className="absolute right-4 top-1/2 z-20 hidden size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-background/35 bg-background/75 text-foreground shadow-md backdrop-blur-md transition-all hover:translate-x-0.5 hover:bg-background hover:shadow-lg md:flex lg:right-6"
+          >
+            <ChevronRight className="size-5" aria-hidden="true" />
+          </button>
+        ) : null}
 
-        {banners.length > 1 ? <div
-          className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-background/35 bg-background/75 px-2 py-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md sm:bottom-6 lg:bottom-8"
-          role="group"
-          aria-label="Slide controls"
-        >
-          {banners.map((slide, index) => (
-            <button
-              key={slide._id}
-              type="button"
-              onClick={() => handleDot(index)}
-              aria-label={`Go to slide ${index + 1}`}
-              aria-current={index === current ? "true" : undefined}
-              className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-200 hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
-            >
-              <span
-                className={cn(
-                  "relative block h-2.5 overflow-hidden rounded-full transition-all duration-300",
-                  index === current
-                    ? "w-8 bg-foreground/15"
-                    : "w-2.5 bg-foreground/20",
-                )}
+        {banners.length > 1 ? (
+          <div
+            className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-background/35 bg-background/75 px-2 py-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md sm:bottom-6 lg:bottom-8"
+            role="group"
+            aria-label="Slide controls"
+          >
+            {banners.map((slide, index) => (
+              <button
+                key={slide._id}
+                type="button"
+                onClick={() => handleDot(index)}
+                aria-label={`Go to slide ${index + 1}`}
+                aria-current={index === current ? "true" : undefined}
+                className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-300 hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
               >
                 <span
                   className={cn(
-                    "absolute inset-y-0 left-0 rounded-full bg-primary",
+                    "relative block h-2.5 overflow-hidden rounded-full transition-all duration-300",
                     index === current
-                      ? prefersReducedMotion
-                        ? "w-full"
-                        : "animate-[hero-dot-progress_4s_linear_forwards]"
-                      : "w-0",
+                      ? "w-8 bg-foreground/15"
+                      : "w-2.5 bg-foreground/20",
                   )}
-                />
-              </span>
-            </button>
-          ))}
-        </div> : null}
+                >
+                  <span
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-full bg-primary",
+                      index === current
+                        ? prefersReducedMotion
+                          ? "w-full"
+                          : "animate-[hero-dot-progress_4s_linear_forwards]"
+                        : "w-0",
+                    )}
+                  />
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

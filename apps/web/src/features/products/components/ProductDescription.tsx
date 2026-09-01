@@ -63,10 +63,7 @@ export function ProductDescription({
     <div>
       <div
         id={contentId}
-        className={cn(
-          "overflow-hidden",
-          collapsed && "max-h-[10.5rem]",
-        )}
+        className={cn("overflow-hidden", collapsed && "max-h-[10.5rem]")}
       >
         {descriptionHtml ? (
           <div
@@ -89,7 +86,7 @@ export function ProductDescription({
           type="button"
           aria-controls={contentId}
           aria-expanded={expanded}
-          className="mt-3 cursor-pointer rounded-sm text-sm font-semibold text-foreground underline-offset-4 transition-colors duration-200 hover:text-foreground/75 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+          className="mt-3 cursor-pointer rounded-sm text-sm font-semibold text-foreground underline-offset-4 transition-colors duration-300 hover:text-foreground/75 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
           onClick={() => setExpanded((current) => !current)}
         >
           {expanded ? "Read Less" : "Read More"}

@@ -532,7 +532,7 @@ export function ProductCatalog({
           ) : (
             <div
               className={cn(
-                "transition-opacity duration-200",
+                "transition-opacity duration-300",
                 showRefreshingProducts && "opacity-60",
               )}
             >

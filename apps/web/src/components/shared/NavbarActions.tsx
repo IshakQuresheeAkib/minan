@@ -3,10 +3,10 @@
 import Link from "next/link";
 import {
   ChevronRight,
-  CircleUserRound,
   LogIn,
   PackageSearch,
-  Store,
+  MapPinned,
+  UserRound,
   UserRoundPlus,
 } from "lucide-react";
 import {
@@ -27,9 +27,9 @@ const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
 const iconButtonClassName =
-  "relative inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-primary/45 text-background transition-colors duration-200 focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none";
+  "relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-background transition-colors duration-300 focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none";
 const menuItemClassName =
-  "group flex min-h-12 cursor-pointer select-none items-center gap-3 rounded-lg px-3 py-2 text-sm outline-none transition-colors duration-200 hover:bg-primary/20 focus-visible:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary/60";
+  "group flex min-h-12 cursor-pointer select-none items-center gap-3 rounded-lg px-3 py-2 text-sm outline-none transition-colors duration-300 hover:bg-primary/20 focus-visible:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary/60";
 
 function ProfileMenuContent({
   forceMount,
@@ -86,7 +86,7 @@ function ProfileMenuContent({
           </span>
         </span>
         <ChevronRight
-          className="size-4 text-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
+          className="size-4 text-foreground/40 transition-transform duration-300 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
           aria-hidden="true"
         />
       </Link>
@@ -123,7 +123,7 @@ function ProfileMenuContent({
           </span>
         </span>
         <ChevronRight
-          className="size-4 text-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
+          className="size-4 text-foreground/40 transition-transform duration-300 group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5"
           aria-hidden="true"
         />
       </Link>
@@ -194,7 +194,7 @@ export function NavbarActions() {
                 aria-label="Stores — coming soon"
                 className={`${iconButtonClassName} pointer-events-none cursor-not-allowed text-background/55`}
               >
-                <Store className="size-5" aria-hidden="true" />
+                <MapPinned className="size-6" aria-hidden="true" />
                 <span
                   className="absolute top-1.5 right-1.5 size-2 rounded-full border border-foreground bg-primary"
                   aria-hidden="true"
@@ -235,7 +235,7 @@ export function NavbarActions() {
             onPointerLeave={scheduleCloseForMouse}
             className={`${iconButtonClassName} cursor-pointer hover:bg-primary hover:text-foreground data-[state=open]:bg-primary data-[state=open]:text-foreground`}
           >
-            <CircleUserRound className="size-5" aria-hidden="true" />
+            <UserRound className="size-6" aria-hidden="true" />
           </button>
         </Popover.Trigger>
 

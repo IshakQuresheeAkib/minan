@@ -83,7 +83,7 @@ export function ProductCard({
           ) : (
             <ProductDetailsLink
               href={productHref}
-              className="cursor-pointer transition-colors duration-200 hover:text-foreground/75 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+              className="cursor-pointer transition-colors duration-300 hover:text-foreground/75 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
             >
               {product.name}
             </ProductDetailsLink>
@@ -111,11 +111,13 @@ export function ProductCard({
                 href={productHref}
                 aria-label={`View product for ${product.name}`}
                 title="View product"
-                className="flex size-8 sm:size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-200 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
+                className="flex size-8 sm:size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
               >
                 <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
               </ProductDetailsLink>
-            ) : <p aria-hidden className=" size-8 sm:size-10 invisible"/>}
+            ) : (
+              <p aria-hidden className=" size-8 sm:size-10 invisible" />
+            )}
           </div>
         </div>
       </div>
@@ -124,9 +126,9 @@ export function ProductCard({
         <Link
           href={wholeCardCta.href}
           aria-label={wholeCardCta.label}
-          className="group/view-more absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-foreground/70 text-background transition-colors duration-200 hover:bg-foreground/80 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/70 focus-visible:outline-none"
+          className="group/view-more absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-foreground/70 text-background transition-colors duration-300 hover:bg-foreground/80 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-primary/70 focus-visible:outline-none"
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-background/35 bg-foreground/65 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm transition-colors duration-200 group-hover/view-more:border-primary group-hover/view-more:text-primary sm:text-base">
+          <span className="inline-flex items-center gap-2 rounded-full border border-background/35 bg-foreground/65 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm transition-colors duration-300 group-hover/view-more:border-primary group-hover/view-more:text-primary sm:text-base">
             {wholeCardCta.overlayText}
             <ArrowRight className="size-4" aria-hidden="true" />
           </span>

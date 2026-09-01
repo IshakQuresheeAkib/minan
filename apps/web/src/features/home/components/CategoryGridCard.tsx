@@ -42,7 +42,7 @@ export function CategoryGridCard({
               {name}
             </span>
           </span>
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-background text-foreground transition-colors duration-200 group-hover/category:bg-primary sm:size-10">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-background text-foreground transition-colors duration-300 group-hover/category:bg-primary sm:size-10">
             <ArrowRight className="size-4 sm:size-5" aria-hidden="true" />
           </span>
         </span>

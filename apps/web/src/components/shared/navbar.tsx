@@ -15,7 +15,7 @@ export function Navbar() {
         <Link
           href={publicRoutes.home}
           aria-label="MINAN — go to homepage"
-          className="w-fit shrink-0 rounded-md justify-self-start transition-opacity duration-200 hover:opacity-85 focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
+          className="w-fit shrink-0 rounded-md justify-self-start transition-opacity duration-300 hover:opacity-85 focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
         >
           <Image
             src="/logo.png"

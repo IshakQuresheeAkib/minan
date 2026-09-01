@@ -1,10 +1,7 @@
 import { CircleCheck } from "lucide-react";
 import { forwardRef, type KeyboardEvent } from "react";
 
-import type {
-  ShippingOption,
-  ShippingZone,
-} from "@/features/checkout/types";
+import type { ShippingOption, ShippingZone } from "@/features/checkout/types";
 import { cn } from "@/lib/utils";
 
 type ShippingMethodSelectorProps = {
@@ -45,11 +42,12 @@ export const ShippingMethodSelector = forwardRef<
       return;
     }
 
-    const direction = event.key === "ArrowDown" || event.key === "ArrowRight"
-      ? 1
-      : event.key === "ArrowUp" || event.key === "ArrowLeft"
-        ? -1
-        : 0;
+    const direction =
+      event.key === "ArrowDown" || event.key === "ArrowRight"
+        ? 1
+        : event.key === "ArrowUp" || event.key === "ArrowLeft"
+          ? -1
+          : 0;
     if (direction === 0) return;
 
     event.preventDefault();
@@ -78,7 +76,7 @@ export const ShippingMethodSelector = forwardRef<
             <label
               key={option.id}
               className={cn(
-                "grid min-h-14 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-md border bg-background px-3.5 py-3 text-sm transition-colors duration-200",
+                "grid min-h-14 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-md border bg-background px-3.5 py-3 text-sm transition-colors duration-300",
                 "hover:border-foreground/40 hover:bg-secondary/35 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/30",
                 selected && "border-primary bg-primary/10",
                 errorMessage && !selected && "border-destructive/60",
