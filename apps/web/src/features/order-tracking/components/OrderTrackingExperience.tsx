@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
-import { CustomerOrderLookup } from "@/features/order-tracking/components/CustomerOrderLookup";
-import { GuestOrderLookup } from "@/features/order-tracking/components/GuestOrderLookup";
 import { OrderTrackingDetails } from "@/features/order-tracking/components/OrderTrackingDetails";
+import { PublicOrderLookup } from "@/features/order-tracking/components/PublicOrderLookup";
 import { restoreCustomerSession } from "@/features/order-tracking/lib/customerSession";
 import {
   claimGuestOrder,
@@ -132,23 +131,5 @@ export function OrderTrackingExperience() {
     return <TrackingDetail key={`${access}-${orderNumber}`} access={access} orderNumber={orderNumber} />;
   }
 
-  return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-      <div className="max-w-2xl">
-        <p className="text-xs font-bold tracking-[0.18em] text-foreground/60 uppercase">MINAN order desk</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Know where your order is.</h1>
-        <p className="mt-4 max-w-xl text-sm leading-7 text-foreground/70">Track one guest order with an email code, or sign in to open an order that belongs to your MINAN account.</p>
-      </div>
-      <div className="mt-8 grid gap-5 lg:grid-cols-2">
-        <section aria-labelledby="guest-order-heading" className="rounded-2xl border bg-background p-5 shadow-sm sm:p-7">
-          <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-foreground"><KeyRound className="size-5" aria-hidden="true" /></span><div><h2 id="guest-order-heading" className="text-xl font-semibold tracking-normal">Track a guest order</h2><p className="mt-1 text-sm leading-6 text-foreground/65">অর্ডার নম্বর ও ইমেইল কোড দিয়ে দেখুন</p></div></div>
-          <div className="mt-6"><GuestOrderLookup initialOrderNumber={orderNumber} /></div>
-        </section>
-        <section aria-labelledby="account-order-heading" className="rounded-2xl border bg-foreground p-5 text-background shadow-lg shadow-foreground/10 sm:p-7">
-          <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-foreground"><ShieldCheck className="size-5" aria-hidden="true" /></span><div><h2 id="account-order-heading" className="text-xl font-semibold tracking-normal">My Orders</h2><p className="mt-1 text-sm leading-6 text-background/70">আপনার অ্যাকাউন্টের অর্ডার দেখুন</p></div></div>
-          <div className="mt-6"><CustomerOrderLookup /></div>
-        </section>
-      </div>
-    </section>
-  );
+  return <PublicOrderLookup />;
 }
