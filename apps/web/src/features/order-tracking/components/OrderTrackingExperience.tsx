@@ -59,7 +59,7 @@ function TrackingDetail({ access, orderNumber }: { access: OrderAccess; orderNum
         if (active) setOrder(nextOrder);
       })
       .catch((loadError: unknown) => {
-        if (access === "account" && loadError instanceof OrderTrackingApiError && loadError.status === 401) {
+        if (active && access === "account" && loadError instanceof OrderTrackingApiError && loadError.status === 401) {
           clearSession();
         }
         if (active) setError(errorMessage(loadError, access));
