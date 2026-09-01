@@ -1,4 +1,4 @@
-import type { FilterQuery } from "mongoose";
+import type { QueryFilter } from "mongoose";
 
 import { decodeOrderCursor, encodeOrderCursor } from "../lib/orderCursor.js";
 import { Order, type OrderDocument } from "../models/Order.js";
@@ -26,7 +26,7 @@ export type CustomerOrderHistoryPage = {
 
 type CustomerHistoryInput = { cursor?: string; limit: number };
 
-function afterCursor(cursor: string): FilterQuery<OrderDocument> {
+function afterCursor(cursor: string): QueryFilter<OrderDocument> {
   const decoded = decodeOrderCursor(cursor);
   return {
     $or: [
@@ -40,7 +40,7 @@ export async function getCustomerOrderHistory(
   customerId: string,
   input: CustomerHistoryInput,
 ): Promise<CustomerOrderHistoryPage> {
-  let filter: FilterQuery<OrderDocument> = { customer_id: customerId };
+  let filter: QueryFilter<OrderDocument> = { customer_id: customerId };
   if (input.cursor) filter = { ...filter, ...afterCursor(input.cursor) };
   const orders = await Order.find(filter)
     .sort({ createdAt: -1, _id: -1 })

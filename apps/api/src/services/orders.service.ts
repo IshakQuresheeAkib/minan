@@ -158,7 +158,9 @@ export function checkoutOwnershipMatchesOrder(
   order: OrderDocument,
   ownership: CheckoutOwnershipContext,
 ): boolean {
-  if (ownership.mode === "guest") return order.customer_id === null;
+  // Historical Orders created before the ownership field was introduced can
+  // still deserialize without the default value; they are unowned guests.
+  if (ownership.mode === "guest") return !order.customer_id;
   return order.customer_id?.toString() === ownership.customerId;
 }
 

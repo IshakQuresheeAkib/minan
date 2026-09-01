@@ -1,4 +1,4 @@
-import type { FilterQuery } from "mongoose";
+import type { QueryFilter } from "mongoose";
 
 import { decodeOrderCursor, encodeOrderCursor } from "../lib/orderCursor.js";
 import { Order, type OrderDocument } from "../models/Order.js";
@@ -37,7 +37,7 @@ function notFound(): PublicOrderTrackingError {
   return new PublicOrderTrackingError("Not found", 404);
 }
 
-function pageAfter(cursor: string): FilterQuery<OrderDocument> {
+function pageAfter(cursor: string): QueryFilter<OrderDocument> {
   const decoded = decodeOrderCursor(cursor);
   return {
     $or: [
@@ -62,7 +62,7 @@ export async function searchPublicOrders(
   const phone = normalizeBangladeshPhone(query);
   if (!BANGLADESH_MOBILE.test(phone)) throw notFound();
 
-  let filter: FilterQuery<OrderDocument> = { normalized_phone: phone };
+  let filter: QueryFilter<OrderDocument> = { normalized_phone: phone };
   if (input.cursor) {
     filter = { ...filter, ...pageAfter(input.cursor) };
   }
