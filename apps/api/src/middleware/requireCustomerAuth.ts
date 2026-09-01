@@ -5,11 +5,11 @@ import { verifyCustomerAccessToken } from "../lib/customerTokens.js";
 import { Customer } from "../models/Customer.js";
 import { CustomerSession } from "../models/CustomerSession.js";
 
-export async function requireCustomerAuth(
+import type { AuthenticatedCustomer } from "../types/auth.types.js";
+
+export async function resolveCustomerSession(
   req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+): Promise<AuthenticatedCustomer | null> {
   const authHeader = req.get("Authorization");
   const bearerToken = authHeader?.startsWith("Bearer ")
     ? authHeader.slice("Bearer ".length)
@@ -18,10 +18,7 @@ export async function requireCustomerAuth(
   const token = bearerToken ||
     (typeof cookieToken === "string" ? cookieToken : null);
 
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!token) return null;
 
   try {
     const payload = verifyCustomerAccessToken(token);
@@ -43,13 +40,24 @@ export async function requireCustomerAuth(
     ]);
 
     if (!customer || !session) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
+      return null;
     }
-
-    req.customer = payload;
-    next();
+    return payload;
   } catch {
-    res.status(401).json({ error: "Unauthorized" });
+    return null;
   }
+}
+
+export async function requireCustomerAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const customer = await resolveCustomerSession(req);
+  if (!customer) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  req.customer = customer;
+  next();
 }

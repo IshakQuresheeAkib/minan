@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { describe, expect, it } from "vitest";
 
 import { Order, type OrderLine } from "../models/Order.js";
@@ -5,6 +6,7 @@ import {
   allocateOrderDiscount,
   buildItemSignature,
   calculateFinancials,
+  checkoutOwnershipMatchesOrder,
   checkoutRequestMatchesOrder,
   normalizeBangladeshPhone,
 } from "./orders.service.js";
@@ -75,4 +77,25 @@ describe("Order financial snapshots", () => {
       shipping_zone: "outside_sylhet",
     }, order)).toBe(false);
   });
+
+  it("never reuses an idempotency Order across checkout ownership modes", () => {
+    const guestOrder = new Order({ ...validOrderForOwnership(), customer_id: null });
+    const customerId = new Types.ObjectId("66f000000000000000000003");
+    const ownedOrder = new Order({ ...validOrderForOwnership(), order_number: "MN-20260830-0002", customer_id: customerId });
+
+    expect(checkoutOwnershipMatchesOrder(guestOrder, { mode: "guest" })).toBe(true);
+    expect(checkoutOwnershipMatchesOrder(guestOrder, { mode: "customer", customerId: customerId.toString() })).toBe(false);
+    expect(checkoutOwnershipMatchesOrder(ownedOrder, { mode: "customer", customerId: customerId.toString() })).toBe(true);
+    expect(checkoutOwnershipMatchesOrder(ownedOrder, { mode: "guest" })).toBe(false);
+  });
 });
+
+function validOrderForOwnership() {
+  return {
+    order_number: "MN-20260830-0001", name: "MINAN Customer", phone_number: "01700000000",
+    normalized_phone: "01700000000", email: "customer@example.com", normalized_email: "customer@example.com",
+    address: "Sylhet", lines: [line()], item_signature: "ownership", checkout_source: "cart" as const,
+    status: "new" as const, financials: calculateFinancials({ lines: [line()], deliveryFee: 60 }),
+    delivery_fee_status: "awaiting" as const, cod_status: "due" as const, guest_access_version: 1,
+  };
+}
