@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { NavPill } from "@/components/shared/NavPill";
+import { NavbarActions } from "@/components/shared/NavbarActions";
 import { publicRoutes } from "@/constants/routes";
 import { SearchBar } from "@/features/home/components/SearchBar";
 
@@ -33,12 +34,7 @@ export function Navbar() {
           <SearchBar />
         </div>
 
-        <Link
-          href={publicRoutes.orderTracking}
-          className="col-start-3 row-start-1 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-primary/45 px-3 text-xs font-bold tracking-wide whitespace-nowrap text-background transition-colors hover:bg-primary hover:text-foreground focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none lg:col-auto lg:row-auto"
-        >
-          Track Orders
-        </Link>
+        <NavbarActions />
       </div>
     </header>
   );

@@ -74,7 +74,7 @@ Public pages use a `72rem` maximum content width, `1rem` mobile padding, and exp
 
 ## Elevation & Depth
 
-Borders express normal grouping. A modest shadow is reserved for the primary dark tracking state and existing floating navigation, never used as decoration on every section. Overlays use the shared dialog/sheet primitives. Static surfaces stay opaque so text remains readable in both themes.
+Borders express normal grouping. A modest shadow is reserved for the primary dark tracking state and existing floating navigation, never used as decoration on every section. Overlays use the shared Radix-backed primitives. Runtime layer ownership lives in `apps/web/src/app/globals.css`: dropdowns use `--z-dropdown: 200` and popovers/tooltips use `--z-popover: 300`. Static surfaces stay opaque so text remains readable in both themes.
 
 ## Shapes
 

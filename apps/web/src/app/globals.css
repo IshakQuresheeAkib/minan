@@ -27,6 +27,8 @@
   --destructive: #de0c09;
   --skeleton: #e7e9ec;
   --skeleton-highlight: rgba(255, 255, 255, 0.72);
+  --z-dropdown: 200;
+  --z-popover: 300;
 }
 
 .dark {
