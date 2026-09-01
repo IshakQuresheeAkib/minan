@@ -1,5 +1,7 @@
 import { Types } from "mongoose";
 
+import { AppError } from "./errors.js";
+
 export type OrderCursor = {
   createdAt: Date;
   id: Types.ObjectId;
@@ -27,6 +29,6 @@ export function decodeOrderCursor(value: string): OrderCursor {
     }
     return { createdAt, id: new Types.ObjectId(parsed.id) };
   } catch {
-    throw new Error("Invalid cursor");
+    throw new AppError("Invalid cursor", 400);
   }
 }

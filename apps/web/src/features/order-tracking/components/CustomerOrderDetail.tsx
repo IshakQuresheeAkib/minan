@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { OrderTrackingDetails } from "@/features/order-tracking/components/OrderTrackingDetails";
+import { restoreCustomerSession } from "@/features/order-tracking/lib/customerSession";
 import { getCustomerOrder, OrderTrackingApiError } from "@/features/order-tracking/lib/orderTrackingApi";
 import type { CustomerOrderTracking } from "@/features/order-tracking/lib/types";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
@@ -13,6 +14,9 @@ export function CustomerOrderDetail({ orderNumber }: { orderNumber: string }) {
   const { clearSession, session, status } = useCustomerAuthStore();
   const [order, setOrder] = useState<CustomerOrderTracking | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (status === "unknown") void restoreCustomerSession().catch(() => undefined);
+  }, [status]);
   useEffect(() => {
     if (!session) return;
     void getCustomerOrder(orderNumber, session.accessToken).then(setOrder).catch((loadError: unknown) => {
