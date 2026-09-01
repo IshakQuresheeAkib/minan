@@ -268,7 +268,8 @@ orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ delivery_fee_status: 1, createdAt: -1 });
 orderSchema.index({ cod_status: 1, createdAt: -1 });
 orderSchema.index({ normalized_phone: 1, item_signature: 1, createdAt: -1 });
-orderSchema.index({ customer_id: 1, createdAt: -1 });
+orderSchema.index({ normalized_phone: 1, createdAt: -1, _id: -1 });
+orderSchema.index({ customer_id: 1, createdAt: -1, _id: -1 });
 orderSchema.index({ normalized_email: 1, createdAt: -1 });
 orderSchema.index({ createdAt: 1, _id: 1 });
 

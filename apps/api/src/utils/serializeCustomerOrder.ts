@@ -51,6 +51,21 @@ export type CustomerOrderTrackingDTO = {
   };
 };
 
+export type CustomerOrderSummaryDTO = {
+  order_id: string;
+  created_at: string;
+  current_stage: CustomerStageCopy & {
+    code: OrderStatus;
+  };
+  expected_delivery_date: string | null;
+  first_item: {
+    name: string;
+    image_url: string | null;
+  } | null;
+  total_item_quantity: number;
+  overall_order_value: number;
+};
+
 const stageCopy: Record<OrderStatus, CustomerStageCopy> = {
   new: {
     label: "Order placed",
@@ -184,5 +199,27 @@ export function serializeCustomerOrder(order: OrderDocument): CustomerOrderTrack
       delivery_fee: order.financials.delivery_fee,
       overall_order_value: order.financials.overall_order_value,
     },
+  };
+}
+
+export function serializeCustomerOrderSummary(order: OrderDocument): CustomerOrderSummaryDTO {
+  const firstItem = order.lines[0];
+  const currentCopy = stageCopy[order.status];
+
+  return {
+    order_id: order.order_number,
+    created_at: order.createdAt.toISOString(),
+    current_stage: {
+      code: order.status,
+      ...currentCopy,
+    },
+    expected_delivery_date: order.expected_delivery_date
+      ? order.expected_delivery_date.toISOString().slice(0, 10)
+      : null,
+    first_item: firstItem
+      ? { name: firstItem.name, image_url: firstItem.image_url ?? null }
+      : null,
+    total_item_quantity: order.lines.reduce((total, line) => total + line.quantity, 0),
+    overall_order_value: order.financials.overall_order_value,
   };
 }

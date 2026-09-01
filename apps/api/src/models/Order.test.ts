@@ -60,8 +60,22 @@ describe("Order tracking domain contract", () => {
   it("indexes ownership and normalized email query paths", () => {
     const indexes = Order.schema.indexes().map(([fields]) => fields);
 
-    expect(indexes).toContainEqual({ customer_id: 1, createdAt: -1 });
+    expect(indexes).toContainEqual({
+      customer_id: 1,
+      createdAt: -1,
+      _id: -1,
+    });
+    expect(indexes).toContainEqual({
+      normalized_phone: 1,
+      createdAt: -1,
+      _id: -1,
+    });
     expect(indexes).toContainEqual({ normalized_email: 1, createdAt: -1 });
+    expect(indexes).toContainEqual({
+      normalized_phone: 1,
+      item_signature: 1,
+      createdAt: -1,
+    });
   });
 
   it("accepts calendar dates at UTC midnight and rejects timestamps", async () => {
