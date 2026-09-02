@@ -34,7 +34,7 @@ export default function HomePage() {
       <Suspense fallback={<HeroFirstSlideShell />}>
         <HomeHeroContent />
       </Suspense>
-      <div className="mx-auto w-full max-w-11/12 px-2 pt-8 pb-10 sm:px-6 lg:px-10 lg:py-12">
+      <div className="mx-auto w-full max-w-11/12 pt-8 pb-10 sm:px-6 lg:px-10 lg:py-12">
         <Suspense fallback={<ProductGridSkeleton />}>
           <HomeCatalogContent />
         </Suspense>

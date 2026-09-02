@@ -77,7 +77,7 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col p-2 sm:p-3">
-        <h3 className="line-clamp-2 min-h-7 text-sm font-semibold text-foreground">
+        <h3 className="line-clamp-2 min-h-7 text-xs sm:text-sm font-semibold text-foreground">
           {wholeCardCta ? (
             product.name
           ) : (
@@ -92,7 +92,7 @@ export function ProductCard({
 
         <div className="mt-auto flex flex-col">
           {hasDiscount ? (
-            <div className="-mb-1.5 sm:-mb-3 mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-1.5 sm:px-2 py-1 text-[9px] font-bold text-foreground">
+            <div className="xs:-mb-1.5 sm:-mb-3 mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-1.5 sm:px-2 py-1 text-[7px] xs:text-[9px] font-bold text-foreground">
               <Tag className="size-2.5" aria-hidden="true" />
               Save Tk {savings.toLocaleString("en-BD")}
             </div>
@@ -111,7 +111,7 @@ export function ProductCard({
                 href={productHref}
                 aria-label={`View product for ${product.name}`}
                 title="View product"
-                className="flex size-8 sm:size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
+                className="flex size-7 xs:size-8 sm:size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-primary hover:text-foreground hover:shadow-md focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
               >
                 <ShoppingCart className="size-4 sm:size-5" aria-hidden="true" />
               </ProductDetailsLink>
