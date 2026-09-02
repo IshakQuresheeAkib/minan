@@ -61,11 +61,12 @@ export const PaymentMethodSelector = forwardRef<
       return;
     }
 
-    const direction = event.key === "ArrowDown" || event.key === "ArrowRight"
-      ? 1
-      : event.key === "ArrowUp" || event.key === "ArrowLeft"
-        ? -1
-        : 0;
+    const direction =
+      event.key === "ArrowDown" || event.key === "ArrowRight"
+        ? 1
+        : event.key === "ArrowUp" || event.key === "ArrowLeft"
+          ? -1
+          : 0;
     if (direction === 0) return;
 
     event.preventDefault();
@@ -90,14 +91,15 @@ export const PaymentMethodSelector = forwardRef<
       <div className="grid gap-2">
         {options.map((option, index) => {
           const selected = value === option.id;
-          const payNow = option.id === "bkash_full"
-            ? merchandiseTotal + deliveryFee
-            : deliveryFee;
+          const payNow =
+            option.id === "bkash_full"
+              ? merchandiseTotal + deliveryFee
+              : deliveryFee;
           return (
             <label
               key={option.id}
               className={cn(
-                "grid min-h-24 cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-lg border bg-background p-4 text-sm transition-colors duration-200",
+                "grid min-h-24 cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-lg border bg-background p-4 text-sm transition-colors duration-300",
                 "hover:border-foreground/40 hover:bg-secondary/35 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/30",
                 selected && "border-primary bg-primary/10",
                 errorMessage && !selected && "border-destructive/60",
@@ -119,7 +121,10 @@ export const PaymentMethodSelector = forwardRef<
               <span className="grid min-w-0 gap-2">
                 <span className="flex flex-col items-start justify-between gap-1 sm:flex-row sm:gap-3">
                   <span className="flex min-w-0 items-center gap-2 font-semibold leading-5">
-                    <option.Icon className="size-4 shrink-0" aria-hidden="true" />
+                    <option.Icon
+                      className="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
                     {option.title}
                   </span>
                   <span className="shrink-0 whitespace-nowrap font-semibold tabular-nums sm:text-right">
@@ -131,7 +136,10 @@ export const PaymentMethodSelector = forwardRef<
                 </span>
                 <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/80">
                   {selected ? (
-                    <CircleCheck className="size-3.5 text-primary" aria-hidden="true" />
+                    <CircleCheck
+                      className="size-3.5 text-primary"
+                      aria-hidden="true"
+                    />
                   ) : null}
                   {option.dueLabel}
                 </span>

@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { getBkashConfig } from "../config/bkash.js";
 import { AppError } from "../lib/errors.js";
 import { parseBody } from "../lib/parseBody.js";
+import { resolveCustomerSession } from "../middleware/requireCustomerAuth.js";
 import {
   bkashCallbackSchema,
   paymentCreateSchema,
@@ -31,7 +32,19 @@ export async function createBkashPaymentHandler(
 ): Promise<void> {
   try {
     const input = parseBody(paymentCreateSchema, req.body);
-    res.json({ data: await startBkashPayment(input, idempotencyKey(req)) });
+    const ownership = input.checkout_identity_mode === "customer"
+      ? await resolveCustomerSession(req)
+      : null;
+    if (input.checkout_identity_mode === "customer" && !ownership) {
+      throw new AppError("Unauthorized", 401);
+    }
+    res.json({
+      data: await startBkashPayment(
+        input,
+        idempotencyKey(req),
+        ownership ? { mode: "customer", customerId: ownership.id } : { mode: "guest" },
+      ),
+    });
   } catch (error) {
     next(error);
   }

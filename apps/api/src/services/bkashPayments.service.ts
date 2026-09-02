@@ -29,6 +29,7 @@ import {
 import {
   checkoutRequestMatchesOrder,
   createOrLoadCheckoutOrder,
+  type CheckoutOwnershipContext,
 } from "./orders.service.js";
 
 const RESULT_TTL_MS = 30 * 60 * 1000;
@@ -529,12 +530,13 @@ async function createAttempt(
 export async function startBkashPayment(
   input: PaymentCreateInput,
   idempotencyKey: string,
+  ownership: CheckoutOwnershipContext = { mode: "guest" },
 ): Promise<StartPaymentResponse> {
   if (process.env.CHECKOUT_MAINTENANCE_MODE === "true") {
     throw new AppError("Checkout payment is temporarily unavailable for maintenance", 503);
   }
   const idempotencyHash = hash(idempotencyKey);
-  const order = await createOrLoadCheckoutOrder(input, idempotencyHash);
+  const order = await createOrLoadCheckoutOrder(input, idempotencyHash, ownership);
 
   if (!checkoutRequestMatchesOrder(input, order)) {
     throw new AppError(

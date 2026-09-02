@@ -25,6 +25,7 @@ const validCheckout = {
 describe("checkout payment validation", () => {
   it("accepts both methods and defaults an older storefront request to COD", () => {
     expect(paymentCreateSchema.parse(validCheckout).payment_method).toBe("cod");
+    expect(paymentCreateSchema.parse(validCheckout).checkout_identity_mode).toBe("guest");
     expect(paymentCreateSchema.parse({
       ...validCheckout,
       payment_method: "bkash_full",
@@ -32,6 +33,17 @@ describe("checkout payment validation", () => {
     expect(paymentCreateSchema.safeParse({
       ...validCheckout,
       payment_method: "card",
+    }).success).toBe(false);
+  });
+
+  it("accepts only explicit customer or guest checkout ownership modes", () => {
+    expect(paymentCreateSchema.parse({
+      ...validCheckout,
+      checkout_identity_mode: "customer",
+    }).checkout_identity_mode).toBe("customer");
+    expect(paymentCreateSchema.safeParse({
+      ...validCheckout,
+      checkout_identity_mode: "admin",
     }).success).toBe(false);
   });
 

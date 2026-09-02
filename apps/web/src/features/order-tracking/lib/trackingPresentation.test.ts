@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildTrackingJourney,
   formatTrackingDate,
+  getOrderTrackingLoginHref,
 } from "./trackingPresentation";
 import type { CustomerOrderTracking } from "./types";
 
@@ -62,5 +63,11 @@ describe("tracking presentation", () => {
 
   it("formats date-only estimates without shifting the calendar day", () => {
     expect(formatTrackingDate("2026-09-03")).toBe("3 Sep 2026");
+  });
+
+  it("returns an account-safe sign-in recovery link without downgrading access to guest proof", () => {
+    expect(getOrderTrackingLoginHref("account", "MN-20260831-0001")).toBe(
+      "/account/login?next=%2Forders%3Forder%3DMN-20260831-0001%26access%3Daccount",
+    );
   });
 });

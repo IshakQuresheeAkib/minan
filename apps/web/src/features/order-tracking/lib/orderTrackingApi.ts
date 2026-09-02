@@ -1,5 +1,7 @@
 import type {
+  CustomerOrderHistoryPage,
   CustomerOrderTracking,
+  PublicOrderSearchResult,
   CustomerSession,
 } from "@/features/order-tracking/lib/types";
 
@@ -35,7 +37,7 @@ async function readError(response: Response): Promise<string> {
   return response.statusText || "Unable to complete this request";
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function customerApiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { accessToken, body, ...fetchOptions } = options;
   const headers = new Headers(fetchOptions.headers);
   const method = fetchOptions.method ?? "GET";
@@ -74,7 +76,7 @@ type GuestOrderCredentials = {
 };
 
 export async function requestGuestOrderOtp(input: GuestOrderCredentials): Promise<void> {
-  await request<{ accepted: true }>("/api/guest-order-access/otp/request", {
+  await customerApiRequest<{ accepted: true }>("/api/guest-order-access/otp/request", {
     body: {
       email: input.email,
       order_number: input.orderNumber,
@@ -86,7 +88,7 @@ export async function requestGuestOrderOtp(input: GuestOrderCredentials): Promis
 export async function verifyGuestOrderOtp(
   input: GuestOrderCredentials & { otp: string },
 ): Promise<void> {
-  await request<{ verified: true }>("/api/guest-order-access/otp/verify", {
+  await customerApiRequest<{ verified: true }>("/api/guest-order-access/otp/verify", {
     body: {
       email: input.email,
       order_number: input.orderNumber,
@@ -97,28 +99,51 @@ export async function verifyGuestOrderOtp(
 }
 
 export async function getGuestOrder(orderNumber: string): Promise<CustomerOrderTracking> {
-  const result = await request<{ order: CustomerOrderTracking }>(
+  const result = await customerApiRequest<{ order: CustomerOrderTracking }>(
     `/api/guest-order-access/orders/${encodeURIComponent(orderNumber)}`,
   );
   return result.order;
+}
+
+export async function searchPublicOrders(
+  query: string,
+  cursor?: string,
+): Promise<PublicOrderSearchResult> {
+  const result = await customerApiRequest<{ data: PublicOrderSearchResult }>("/api/order-tracking/search", {
+    body: cursor ? { query, cursor } : { query },
+    method: "POST",
+  });
+  return result.data;
 }
 
 export async function getCustomerOrder(
   orderNumber: string,
   accessToken: string,
 ): Promise<CustomerOrderTracking> {
-  const result = await request<{ order: CustomerOrderTracking }>(
+  const result = await customerApiRequest<{ order: CustomerOrderTracking }>(
     `/api/customer-orders/${encodeURIComponent(orderNumber)}`,
     { accessToken },
   );
   return result.order;
 }
 
+export async function getCustomerOrders(
+  accessToken: string,
+  cursor?: string,
+): Promise<CustomerOrderHistoryPage> {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  const result = await customerApiRequest<{ data: CustomerOrderHistoryPage }>(
+    `/api/customer-orders${query}`,
+    { accessToken },
+  );
+  return result.data;
+}
+
 export async function claimGuestOrder(
   orderNumber: string,
   accessToken: string,
 ): Promise<CustomerOrderTracking> {
-  const result = await request<{ order: CustomerOrderTracking }>(
+  const result = await customerApiRequest<{ order: CustomerOrderTracking }>(
     `/api/guest-order-access/orders/${encodeURIComponent(orderNumber)}/claim`,
     { accessToken, body: {}, method: "POST" },
   );
@@ -129,16 +154,16 @@ export async function loginCustomer(input: {
   email: string;
   password: string;
 }): Promise<CustomerSession> {
-  return request<CustomerSession>("/api/customer-auth/login", {
+  return customerApiRequest<CustomerSession>("/api/customer-auth/login", {
     body: input,
     method: "POST",
   });
 }
 
 export async function refreshCustomerSession(): Promise<CustomerSession> {
-  return request<CustomerSession>("/api/customer-auth/refresh", { method: "POST" });
+  return customerApiRequest<CustomerSession>("/api/customer-auth/refresh", { method: "POST" });
 }
 
 export async function logoutCustomer(): Promise<void> {
-  await request<void>("/api/customer-auth/logout", { method: "POST" });
+  await customerApiRequest<void>("/api/customer-auth/logout", { method: "POST" });
 }

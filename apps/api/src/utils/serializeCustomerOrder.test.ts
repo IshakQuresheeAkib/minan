@@ -7,7 +7,10 @@ import {
   type OrderActivity,
   type OrderStatus,
 } from "../models/Order.js";
-import { serializeCustomerOrder } from "./serializeCustomerOrder.js";
+import {
+  serializeCustomerOrder,
+  serializeCustomerOrderSummary,
+} from "./serializeCustomerOrder.js";
 
 type TrackingOrderOptions = {
   activity?: OrderActivity[];
@@ -82,6 +85,28 @@ function makeTrackingOrder({
 }
 
 describe("serializeCustomerOrder", () => {
+  it("creates a deliberately smaller phone-history summary", () => {
+    const order = makeTrackingOrder({ status: "shipped" });
+    order.lines[0]!.image_url = "https://res.cloudinary.com/minan/image/upload/shirt.webp";
+    order.lines[0]!.quantity = 2;
+
+    expect(serializeCustomerOrderSummary(order)).toEqual({
+      order_id: "MN-20260830-0002",
+      created_at: "2026-08-30T06:00:00.000Z",
+      current_stage: {
+        code: "shipped",
+        label: "Shipped",
+        helper_text_bn: "আপনার অর্ডার কুরিয়ারের কাছে দেওয়া হয়েছে।",
+      },
+      expected_delivery_date: null,
+      first_item: {
+        name: "Oxford Shirt",
+        image_url: "https://res.cloudinary.com/minan/image/upload/shirt.webp",
+      },
+      total_item_quantity: 2,
+      overall_order_value: 1260,
+    });
+  });
   it.each([
     "new",
     "confirmed",

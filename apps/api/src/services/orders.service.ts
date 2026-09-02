@@ -19,6 +19,10 @@ import { enqueueCustomerOrderNotification } from "./notificationOutbox.service.j
 const BANGLADESH_OFFSET_MS = 6 * 60 * 60 * 1000;
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+export type CheckoutOwnershipContext =
+  | { mode: "guest" }
+  | { mode: "customer"; customerId: string };
+
 function isDuplicateKey(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
 }
@@ -150,6 +154,16 @@ export function checkoutRequestMatchesOrder(
   });
 }
 
+export function checkoutOwnershipMatchesOrder(
+  order: OrderDocument,
+  ownership: CheckoutOwnershipContext,
+): boolean {
+  // Historical Orders created before the ownership field was introduced can
+  // still deserialize without the default value; they are unowned guests.
+  if (ownership.mode === "guest") return !order.customer_id;
+  return order.customer_id?.toString() === ownership.customerId;
+}
+
 async function linkPossibleDuplicates(order: OrderDocument): Promise<void> {
   const duplicates = await Order.find({
     _id: { $ne: order._id },
@@ -182,11 +196,17 @@ async function linkPossibleDuplicates(order: OrderDocument): Promise<void> {
 export async function createOrLoadCheckoutOrder(
   input: PaymentCreateInput,
   idempotencyHash: string,
+  ownership: CheckoutOwnershipContext = { mode: "guest" },
 ): Promise<OrderDocument> {
   let order = await Order.findOne({ checkout_idempotency_hash: idempotencyHash }).select(
     "+checkout_idempotency_hash",
   );
-  if (order) return order;
+  if (order) {
+    if (!checkoutOwnershipMatchesOrder(order, ownership)) {
+      throw new AppError("CHECKOUT_OWNERSHIP_CHANGED", 409);
+    }
+    return order;
+  }
 
   const cart = await buildVerifiedCartSnapshot(input.cart_snapshot);
   const lines: OrderLine[] = cart.items.map((item) => ({
@@ -211,7 +231,7 @@ export async function createOrLoadCheckoutOrder(
     order = await mongoose.connection.transaction(async (session) => {
       const orders = await Order.create([{
         order_number: await allocateOrderNumber(now, session),
-        customer_id: null,
+        customer_id: ownership.mode === "customer" ? ownership.customerId : null,
         name: input.name,
         phone_number: input.phone_number,
         normalized_phone: normalizedPhone,
@@ -253,6 +273,9 @@ export async function createOrLoadCheckoutOrder(
       "+checkout_idempotency_hash",
     );
     if (!order) throw error;
+  }
+  if (!checkoutOwnershipMatchesOrder(order, ownership)) {
+    throw new AppError("CHECKOUT_OWNERSHIP_CHANGED", 409);
   }
   await linkPossibleDuplicates(order);
   return order;

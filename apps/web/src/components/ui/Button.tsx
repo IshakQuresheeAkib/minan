@@ -17,7 +17,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-foreground text-primary shadow-md shadow-primary/50 transition-all duration-200 hover:-translate-y-0.5 hover:bg-foreground/90 hover:text-background hover:shadow-xl hover:shadow-primary/60",
+          "bg-foreground text-primary shadow-md shadow-primary/50 transition-all duration-300 hover:-translate-y-0.5 hover:bg-foreground/90 hover:text-background hover:shadow-xl hover:shadow-primary/60",
         secondary:
           "text-foreground shadow-md shadow-primary/30 transition-colors duration-300 hover:bg-foreground hover:text-primary hover:shadow-primary/70",
       },

@@ -34,6 +34,9 @@ import type {
   ShippingZone,
 } from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
+import { restoreCustomerSession } from "@/features/order-tracking/lib/customerSession";
+import { OrderTrackingApiError } from "@/features/order-tracking/lib/orderTrackingApi";
+import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
 type CheckoutFormProps = {
   cartSnapshot: CartSnapshot;
@@ -67,6 +70,7 @@ export function CheckoutForm({
     payNow: number;
   } | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [forceGuest, setForceGuest] = useState(false);
   const usesShippingZones = shippingOptions.length > 0;
   const supportsPaymentChoice = paymentContract !== undefined;
   const validationSchema = useMemo(
@@ -143,18 +147,34 @@ export function CheckoutForm({
       merchandiseTotal,
       payableDeliveryFee ?? deliveryFee,
     );
+    let session = forceGuest ? null : useCustomerAuthStore.getState().session;
+    if (!forceGuest && useCustomerAuthStore.getState().status === "unknown") {
+      session = await restoreCustomerSession();
+    }
+    const checkoutIdentityMode = session ? "customer" : "guest";
     try {
       const response = await startCheckoutPayment(
         {
           ...values,
           cart_snapshot: cartSnapshot,
+          checkout_identity_mode: checkoutIdentityMode,
           checkout_source: checkoutSource,
           payment_method: paymentMethod,
         },
         getCheckoutIdempotencyKey(checkoutSource, cartSnapshot, values),
+        session?.accessToken,
       );
       handlePaymentResult(response.data, paymentMethod, payNow);
     } catch (error) {
+      const status = error instanceof ApiError || error instanceof OrderTrackingApiError
+        ? error.status
+        : undefined;
+      if (checkoutIdentityMode === "customer" && status === 401) {
+        useCustomerAuthStore.getState().clearSession();
+        setForceGuest(true);
+        toast.error("Your account session has expired. Review your details, then choose Continue as guest.");
+        return;
+      }
       toast.error(
         error instanceof ApiError
           ? error.message
@@ -335,6 +355,15 @@ export function CheckoutForm({
             onClick={() => void onRetry()}
           >
             Retry {retryContext.method === "bkash_full" ? "full" : "delivery-fee"} payment
+          </Button>
+        </div>
+      ) : null}
+      {forceGuest ? (
+        <div className="rounded-xl border border-primary/35 bg-primary/10 p-4 text-sm leading-6 text-foreground" role="status">
+          <p className="font-semibold">Continue checkout as a guest</p>
+          <p className="mt-1 text-foreground/70">Your form and cart are still here. This Order will not be added to an account automatically.</p>
+          <Button className="mt-3" type="button" onClick={() => void form.handleSubmit(onSubmit)()}>
+            Continue as guest
           </Button>
         </div>
       ) : null}

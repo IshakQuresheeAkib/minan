@@ -175,9 +175,9 @@ export function SearchBar({
     <div
       ref={containerRef}
       className={cn(
-        "relative flex w-full justify-end",
-        isCatalog ? "max-w-none" : "max-w-[300px]",
-        showSuggestions && "z-[80]",
+        "relative flex w-full justify-end justify-self-end",
+        isCatalog ? "max-w-none" : "max-w-62.5",
+        showSuggestions && "z-80",
         className,
       )}
     >
@@ -186,14 +186,14 @@ export function SearchBar({
         aria-label="Product search"
         onSubmit={handleSubmit}
         className={cn(
-          "relative z-10 h-12 w-12 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
-          expanded && "w-full",
-          isCatalog && "w-full",
+          "relative z-10 h-9 w-10.5 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
+          expanded && "absolute right-0 top-1/2 -translate-y-1/2 w-40 sm:w-52 2xl:w-70",
+          isCatalog && "relative w-full",
         )}
       >
         <Search
           className={cn(
-            "pointer-events-none absolute top-1/2 right-3 z-2 size-6 -translate-y-1/2 transition-colors duration-200",
+            "pointer-events-none absolute top-1/2 right-3 z-2 size-6 -translate-y-1/2 transition-colors duration-300",
             "text-foreground",
           )}
           aria-hidden="true"
@@ -205,7 +205,7 @@ export function SearchBar({
           }
           variant="secondary"
           size="icon"
-          className="absolute top-0 right-0 z-3 size-12 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-foreground hover:shadow-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="absolute top-0 right-0 z-3 size-9 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-primary/10 hover:text-foreground hover:shadow-none focus-visible:ring-2 focus-visible:ring-primary/60"
           onClick={() => {
             if (!isCatalog && !trimmedQuery) {
               expandAndFocus();
@@ -223,11 +223,11 @@ export function SearchBar({
           aria-describedby={statusId}
           autoComplete="off"
           className={cn(
-            "h-12 w-12 rounded-full border border-primary/45 bg-primary pr-12 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-primary/50",
+            "h-9 w-9 rounded-full border border-primary/45 bg-primary pr-9 pl-0 text-base text-transparent shadow-inner shadow-primary/20 outline-none transition-all duration-1000 ease-in-out placeholder:text-transparent focus-visible:ring-2 focus-visible:ring-primary/50",
             expanded &&
-              "w-full rounded-full pl-3 text-foreground placeholder:text-foreground/70 focus-visible:ring-primary/45",
+              "w-full rounded-full pl-3 text-foreground placeholder:text-xs sm:placeholder:text-sm placeholder:text-foreground/70 focus-visible:ring-primary/45",
             isCatalog &&
-              "w-full bg-background pl-4 text-foreground placeholder:text-foreground/60 transition-colors duration-200",
+              "w-full bg-background pl-4 text-foreground placeholder:text-foreground/60 transition-colors duration-300",
           )}
           onChange={(event) => {
             const nextQuery = event.target.value;
@@ -282,8 +282,8 @@ export function SearchBar({
         <div
           id={resultsId}
           aria-label="Search suggestions"
-          className="absolute top-full right-0 z-90 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-background/90 p-1.5 text-foreground shadow-foreground/10 backdrop-blur"
-        >
+          className="absolute top-full right-0 z-90 mt-5 max-h-80 w-60 2xl:w-70 overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-background/90 p-1.5 text-foreground shadow-foreground/10 backdrop-blur scrollbar-thin scrollbar-thumb-primary/60"
+          >
           {loading && (
             <p className="rounded-md px-3 py-3 text-sm text-foreground/70">
               Searching...
@@ -309,10 +309,10 @@ export function SearchBar({
                 key={product._id}
                 href={`/products/${product.slug}`}
                 onClick={reset}
-                className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-none"
+                className="flex items-center justify-between gap-3 rounded-md px-1 sm:px-3 py-2.5 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-none"
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-foreground">
+                  <span className="block truncate text-xs sm:text-sm font-medium text-foreground">
                     {product.name}
                   </span>
                   <span className="mt-0.5 block truncate text-xs text-foreground/70">
