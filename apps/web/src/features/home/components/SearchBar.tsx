@@ -187,8 +187,8 @@ export function SearchBar({
         onSubmit={handleSubmit}
         className={cn(
           "relative z-10 h-9 w-10.5 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
-          expanded && "w-full",
-          isCatalog && "w-full",
+          expanded && "absolute right-0 top-1/2 -translate-y-1/2 w-40 sm:w-52 2xl:w-70",
+          isCatalog && "relative w-full",
         )}
       >
         <Search
@@ -282,8 +282,8 @@ export function SearchBar({
         <div
           id={resultsId}
           aria-label="Search suggestions"
-          className="absolute top-full right-0 z-90 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-background/90 p-1.5 text-foreground shadow-foreground/10 backdrop-blur"
-        >
+          className="absolute top-full right-0 z-90 mt-5 max-h-80 w-60 2xl:w-70 overflow-y-auto rounded-lg border border-primary/80 shadow-inner bg-background/90 p-1.5 text-foreground shadow-foreground/10 backdrop-blur scrollbar-thin scrollbar-thumb-primary/60"
+          >
           {loading && (
             <p className="rounded-md px-3 py-3 text-sm text-foreground/70">
               Searching...
@@ -309,10 +309,10 @@ export function SearchBar({
                 key={product._id}
                 href={`/products/${product.slug}`}
                 onClick={reset}
-                className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-none"
+                className="flex items-center justify-between gap-3 rounded-md px-1 sm:px-3 py-2.5 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-none"
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-foreground">
+                  <span className="block truncate text-xs sm:text-sm font-medium text-foreground">
                     {product.name}
                   </span>
                   <span className="mt-0.5 block truncate text-xs text-foreground/70">
