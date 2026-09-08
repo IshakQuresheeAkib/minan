@@ -10,7 +10,7 @@ type ProductPriceProps = {
 };
 
 const currentPriceClasses = {
-  sm: "text-sm sm:text-base",
+  sm: "text-xs xs:text-sm sm:text-base",
   md: "text-base",
   lg: "text-2xl",
 } as const;

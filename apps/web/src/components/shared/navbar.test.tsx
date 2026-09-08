@@ -32,7 +32,7 @@ describe("Navbar", () => {
   it("aligns primary navigation with the lg bottom-navigation cutoff", () => {
     const markup = renderToStaticMarkup(<Navbar />);
 
-    expect(markup).toContain("lg:grid-cols-[auto_minmax(360px,1fr)_300px_auto]");
+    expect(markup).toContain("lg:grid-cols-[auto_1fr_auto_auto]");
     expect(markup).toContain("lg:flex");
     expect(markup).not.toContain("xl:grid-cols-");
   });
