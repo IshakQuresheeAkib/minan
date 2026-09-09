@@ -17,7 +17,7 @@ export function ProductDetailsSkeleton() {
       </header>
 
       <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-64 lg:px-8 lg:pb-16 lg:pt-6">
-        <Skeleton className="mb-4 hidden h-4 w-56 rounded lg:block" />
+        <Skeleton className="mb-4 h-11 w-3/4 max-w-sm rounded lg:h-4 lg:w-56" />
 
         <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-12 xl:gap-16">
           <div className="lg:sticky lg:top-6">

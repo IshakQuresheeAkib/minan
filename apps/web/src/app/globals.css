@@ -17,6 +17,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --animate-star-btn: star-btn calc(var(--duration) * 1s) linear infinite;
 }
 
 :root {
@@ -200,6 +201,16 @@
 
   to {
     transform: translateX(100%);
+  }
+}
+
+@keyframes star-btn {
+  from {
+    offset-distance: 0%;
+  }
+
+  to {
+    offset-distance: 100%;
   }
 }
 
