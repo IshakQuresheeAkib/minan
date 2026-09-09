@@ -40,4 +40,24 @@ describe("ProductBreadcrumbs", () => {
     expect(markup).toContain('aria-current="page"');
     expect(markup).toContain("Essential T-Shirt");
   });
+
+  it("shows the breadcrumb on mobile and centers it only on desktop", () => {
+    const markup = renderToStaticMarkup(
+      <ProductBreadcrumbs
+        category={{ name: "Men's Wear", slug: "mens-wear" }}
+        subcategory={null}
+        productName="Essential T-Shirt"
+      />,
+    );
+
+    expect(markup).toMatch(
+      /<nav[^>]*class="(?![^"]*\bhidden\b)[^"]*"[^>]*>/,
+    );
+    expect(markup).toMatch(
+      /<ol[^>]*class="[^"]*\bjustify-start\b[^"]*\blg:justify-center\b[^"]*"/,
+    );
+    expect(markup).toMatch(
+      /<a[^>]*aria-label="Home"[^>]*class="[^"]*\bsize-11\b[^"]*"|<a[^>]*class="[^"]*\bsize-11\b[^"]*"[^>]*aria-label="Home"/,
+    );
+  });
 });

@@ -21,6 +21,9 @@ type ProductBreadcrumbsProps = {
   productName: string;
 };
 
+const breadcrumbLinkClassName =
+  "max-w-full cursor-pointer break-words rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:py-0";
+
 function HomeIcon() {
   return (
     <svg
@@ -65,62 +68,71 @@ export function ProductBreadcrumbs({
   productName,
 }: ProductBreadcrumbsProps) {
   return (
-    <Breadcrumb aria-label="Breadcrumb" className="mb-6 hidden lg:block">
-      <BreadcrumbList className="justify-center gap-2 text-sm font-medium text-gray-500 sm:gap-2">
+    <Breadcrumb aria-label="Breadcrumb" className="mb-4 lg:mb-6">
+      <BreadcrumbList className="justify-start gap-1 text-sm font-medium text-gray-500 sm:gap-1.5 lg:justify-center lg:gap-2">
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
             <Link
               href={publicRoutes.home}
               aria-label="Home"
-              className="text-slate-600 hover:text-foreground"
+              className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-600 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:size-8"
             >
               <HomeIcon />
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator className="text-slate-300 [&>svg]:size-5">
+        <BreadcrumbSeparator className="shrink-0 text-slate-300 [&>svg]:size-5">
           <ChevronSeparator />
         </BreadcrumbSeparator>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href={publicRoutes.products}>Products</Link>
+            <Link
+              href={publicRoutes.products}
+              className={breadcrumbLinkClassName}
+            >
+              Products
+            </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator className="text-slate-300 [&>svg]:size-5">
+        <BreadcrumbSeparator className="shrink-0 text-slate-300 [&>svg]:size-5">
           <ChevronSeparator />
         </BreadcrumbSeparator>
         {category ? (
           <>
-            <BreadcrumbItem>
+            <BreadcrumbItem className="max-w-full">
               <BreadcrumbLink asChild>
-                <Link href={getCollectionPath(category.slug)}>
+                <Link
+                  href={getCollectionPath(category.slug)}
+                  className={breadcrumbLinkClassName}
+                >
                   {category.name}
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator className="text-slate-300 [&>svg]:size-5">
+            <BreadcrumbSeparator className="shrink-0 text-slate-300 [&>svg]:size-5">
               <ChevronSeparator />
             </BreadcrumbSeparator>
           </>
         ) : null}
         {category && subcategory ? (
           <>
-            <BreadcrumbItem>
+            <BreadcrumbItem className="max-w-full">
               <BreadcrumbLink asChild>
                 <Link
                   href={`${getCollectionPath(category.slug)}?subcategory=${encodeURIComponent(subcategory.slug)}`}
+                  className={breadcrumbLinkClassName}
                 >
                   {subcategory.name}
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator className="text-slate-300 [&>svg]:size-5">
+            <BreadcrumbSeparator className="shrink-0 text-slate-300 [&>svg]:size-5">
               <ChevronSeparator />
             </BreadcrumbSeparator>
           </>
         ) : null}
-        <BreadcrumbItem>
-          <BreadcrumbPage className="font-medium text-indigo-500">
+        <BreadcrumbItem className="min-w-0 max-w-full">
+          <BreadcrumbPage className="max-w-full break-words font-medium text-indigo-500">
             {productName}
           </BreadcrumbPage>
         </BreadcrumbItem>

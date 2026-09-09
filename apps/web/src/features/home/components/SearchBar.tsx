@@ -187,7 +187,7 @@ export function SearchBar({
         onSubmit={handleSubmit}
         className={cn(
           "relative z-10 h-9 w-10.5 transition-[width] duration-500 ease-[cubic-bezier(0,0.11,0.35,1.2)]",
-          expanded && "absolute right-0 top-1/2 -translate-y-1/2 w-40 sm:w-52 2xl:w-70",
+          expanded && "absolute right-0 top-1/2 -translate-y-1/2 w-40 sm:w-52 lg:w-40 xl:w-52 2xl:w-70",
           isCatalog && "relative w-full",
         )}
       >
