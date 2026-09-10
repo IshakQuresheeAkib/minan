@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { OrderTrackingExperience } from "@/features/order-tracking/components/OrderTrackingExperience";
@@ -9,6 +8,34 @@ export const metadata: Metadata = {
   robots: privatePageRobots,
 };
 
-export default function OrderTrackingPage() {
-  return <Suspense fallback={null}><OrderTrackingExperience /></Suspense>;
+type OrderTrackingPageProps = {
+  searchParams: Promise<{
+    access?: string | string[];
+    order?: string | string[];
+  }>;
+};
+
+type OrderAccess = "guest" | "account";
+
+function isOrderAccess(
+  value: string | string[] | undefined,
+): value is OrderAccess {
+  return value === "guest" || value === "account";
+}
+
+export default async function OrderTrackingPage({
+  searchParams,
+}: OrderTrackingPageProps) {
+  const params = await searchParams;
+  const orderNumber = typeof params.order === "string"
+    ? params.order.trim()
+    : "";
+  const access = isOrderAccess(params.access) ? params.access : null;
+
+  return (
+    <OrderTrackingExperience
+      access={access}
+      orderNumber={orderNumber}
+    />
+  );
 }

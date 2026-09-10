@@ -70,10 +70,14 @@ export function BuyNowCheckoutClient({
 
   if (!hasHydrated) {
     return (
-      <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
+      <section className="mx-auto grid min-h-[calc(100dvh-10rem)] w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:min-h-[calc(100dvh-5rem)] lg:grid-cols-[1fr_360px] lg:px-8">
         <div>
-          <div className="minan-skeleton h-9 w-52 rounded-md" />
-          <div className="minan-skeleton mt-3 h-5 w-full max-w-xl rounded-md" />
+          <h1 className="text-3xl font-semibold tracking-normal">
+            Buy Now Checkout
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/70">
+            Complete checkout for this selected item. Your cart stays unchanged.
+          </p>
           <div className="mt-8 grid gap-5">
             {[0, 1, 2, 3].map((field) => (
               <div key={field} className="minan-skeleton h-12 rounded-md" />
@@ -82,7 +86,7 @@ export function BuyNowCheckoutClient({
           </div>
         </div>
 
-        <aside className="h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm">
+        <aside className="hidden h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm lg:block">
           <div className="minan-skeleton h-6 w-36 rounded-md" />
           <div className="minan-skeleton mt-5 h-20 rounded-md" />
           <div className="minan-skeleton mt-5 h-5 w-full rounded-md" />
@@ -93,7 +97,7 @@ export function BuyNowCheckoutClient({
 
   if (!item || !cartSnapshot) {
     return (
-      <section className="mx-auto flex min-h-[60dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center sm:px-6 lg:px-8">
+      <section className="mx-auto flex min-h-[calc(100dvh-10rem)] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center sm:px-6 lg:min-h-[calc(100dvh-5rem)] lg:px-8">
         <div className="flex size-14 items-center justify-center rounded-full bg-background">
           <ShoppingBag className="size-6" aria-hidden="true" />
         </div>
@@ -113,7 +117,7 @@ export function BuyNowCheckoutClient({
   }
 
   return (
-    <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
+    <section className="mx-auto grid min-h-[calc(100dvh-10rem)] w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:min-h-[calc(100dvh-5rem)] lg:grid-cols-[1fr_360px] lg:px-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-normal">
           Buy Now Checkout

@@ -34,13 +34,6 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams({
-    access: "account",
-    order: "MN-20260901-0001",
-  }),
-}));
-
 vi.mock("@/features/order-tracking/lib/customerSession", () => ({
   restoreCustomerSession: vi.fn(),
 }));
@@ -77,7 +70,12 @@ describe("OrderTrackingExperience", () => {
     const pendingOrder = deferred<never>();
     apiMocks.getCustomerOrder.mockReturnValue(pendingOrder.promise);
 
-    renderToStaticMarkup(<OrderTrackingExperience />);
+    renderToStaticMarkup(
+      <OrderTrackingExperience
+        access="account"
+        orderNumber="MN-20260901-0001"
+      />,
+    );
     effectCleanups.forEach((cleanup) => cleanup());
     authState.session.accessToken = "fresh-access-token";
 
