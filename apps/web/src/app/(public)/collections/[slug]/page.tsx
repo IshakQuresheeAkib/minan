@@ -16,7 +16,10 @@ import {
   getCachedProductFilterOptions,
   getCachedProducts,
 } from "@/features/products/services/product.cache";
-import type { ProductFilterOptions } from "@/features/products/services/product.service";
+import {
+  toCatalogProductList,
+  type ProductFilterOptions,
+} from "@/features/products/services/product.service";
 import { filteredCatalogRobots } from "@/lib/seo/metadata";
 import { getCollectionStructuredData } from "@/lib/seo/structured-data";
 
@@ -154,7 +157,7 @@ export default async function CollectionPage({
           filters={filters}
           filterOptions={filterOptions}
           fixedCategorySlug={category.slug}
-          initialData={products}
+          initialData={toCatalogProductList(products)}
         />
       </section>
     </>

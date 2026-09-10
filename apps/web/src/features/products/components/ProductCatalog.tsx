@@ -35,9 +35,9 @@ import { ProductGrid } from "@/features/products/components/ProductGrid";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { productColorSwatches } from "@/features/products/constants/product-colors";
 import type { ProductCatalogFilters } from "@/features/products/lib/catalog-filters";
-import type { Product } from "@/features/products/schemas/product.schema";
 import {
   mapProductToCard,
+  type CatalogProduct,
   type ProductFilterOptions,
   type ProductSortOption,
 } from "@/features/products/services/product.service";
@@ -56,7 +56,7 @@ type ProductCatalogProps = {
   filters: ProductCatalogFilters;
   filterOptions: ProductFilterOptions;
   fixedCategorySlug?: string;
-  initialData: ApiList<Product>;
+  initialData: ApiList<CatalogProduct>;
 };
 
 type MultiFilterKey = "category" | "subcategory" | "color" | "size";

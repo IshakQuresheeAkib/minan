@@ -32,3 +32,20 @@ export const primaryNavItems: NavItem[] = [
     icon: CreditCard,
   },
 ];
+
+export function getActivePrimaryNavItemId(pathname: string): string | undefined {
+  return primaryNavItems.find((item) => isPrimaryNavItemActive(item, pathname))
+    ?.id;
+}
+
+function isPrimaryNavItemActive(item: NavItem, pathname: string): boolean {
+  if (item.id === "products") {
+    return (
+      pathname === publicRoutes.products ||
+      pathname.startsWith(`${publicRoutes.products}/`) ||
+      pathname.startsWith("/collections/")
+    );
+  }
+
+  return item.href === pathname;
+}

@@ -16,7 +16,6 @@ import { publicRoutes } from "@/constants/routes";
 import { ProductDetailsLink } from "@/features/products/components/ProductDetailsLink";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import type { Product } from "@/features/products/schemas/product.schema";
-import { getProducts } from "@/features/products/services/product.service";
 import { cn } from "@/lib/utils";
 
 interface SearchBarProps {
@@ -87,7 +86,10 @@ export function SearchBar({
     setError(null);
     setHasSearched(false);
 
-    void getProducts({ search: searchQuery, page: 1, limit: 8 })
+    void import("@/features/products/services/product.service")
+      .then(({ getProducts }) =>
+        getProducts({ search: searchQuery, page: 1, limit: 8 }),
+      )
       .then((response) => {
         if (requestIdRef.current !== requestId) return;
         setResults(response.data);

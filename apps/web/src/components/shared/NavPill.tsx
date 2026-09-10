@@ -6,7 +6,10 @@ import {
   LimelightNav,
   type LimelightNavItem,
 } from "@/components/ui/limelight-nav";
-import { primaryNavItems } from "@/constants/nav-items";
+import {
+  getActivePrimaryNavItemId,
+  primaryNavItems,
+} from "@/constants/nav-items";
 
 export function NavPill() {
   const pathname = usePathname();
@@ -14,9 +17,7 @@ export function NavPill() {
     ...item,
     icon: <item.icon />,
   }));
-  const activeItemId = primaryNavItems.find(
-    (item) => item.href === pathname,
-  )?.id;
+  const activeItemId = getActivePrimaryNavItemId(pathname);
 
   return (
     <LimelightNav

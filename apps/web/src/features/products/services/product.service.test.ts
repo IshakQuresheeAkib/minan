@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { Product } from "@/features/products/schemas/product.schema";
-import { getRelatedProductsOptions } from "@/features/products/services/product.service";
+import {
+  getRelatedProductsOptions,
+  toCatalogProductList,
+} from "@/features/products/services/product.service";
 
 const product: Product = {
   _id: "product-1",
@@ -62,5 +65,37 @@ describe("getRelatedProductsOptions", () => {
         subcategory: null,
       }),
     ).toBeNull();
+  });
+});
+
+describe("toCatalogProductList", () => {
+  it("keeps card and pagination data without serializing product details", () => {
+    const result = toCatalogProductList({
+      data: [product],
+      total: 1,
+      page: 1,
+      limit: 20,
+      hasMore: false,
+    });
+
+    expect(result).toEqual({
+      data: [
+        {
+          _id: "product-1",
+          name: "Oxford Shirt",
+          slug: "oxford-shirt",
+          price: 2500,
+          discount: 0,
+          discounted_price: 2500,
+          images: ["https://example.com/oxford-shirt.jpg"],
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+      hasMore: false,
+    });
+    expect(result.data[0]).not.toHaveProperty("description");
+    expect(result.data[0]).not.toHaveProperty("sizes");
   });
 });

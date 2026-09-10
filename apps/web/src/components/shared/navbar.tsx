@@ -14,6 +14,7 @@ export function Navbar() {
       <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 lg:grid-cols-[auto_1fr_auto_auto] lg:gap-2">
       <Link
           href={publicRoutes.home}
+          prefetch={false}
           aria-label="MINAN — go to homepage"
           className="w-fit shrink-0 rounded-md justify-self-start transition-opacity duration-300 hover:opacity-85 focus-visible:ring-3 focus-visible:ring-primary/60 focus-visible:outline-none"
         >

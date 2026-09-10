@@ -91,6 +91,7 @@ export function CartPageContent() {
         <Button
           className="mt-6"
           href={publicRoutes.products}
+          prefetch={false}
           text="Browse products"
         />
       </section>
@@ -238,6 +239,7 @@ export function CartPageContent() {
           <Button
             className="mt-5 h-11 w-full"
             href={publicRoutes.checkout}
+            prefetch={false}
             text="Proceed to checkout"
           />
         )}

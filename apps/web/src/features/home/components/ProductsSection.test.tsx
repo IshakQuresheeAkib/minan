@@ -6,10 +6,6 @@ import {
   type HomeCategoryProductGroup,
 } from "./ProductsSection";
 
-vi.mock("@/components/ui/skeleton", () => ({
-  Skeleton: () => <div data-testid="product-skeleton" />,
-}));
-
 vi.mock("@/features/home/components/CategoryGridCard", () => ({
   CategoryGridCard: ({ name }: { name: string }) => (
     <article data-testid="category-card">{name}</article>
@@ -23,7 +19,6 @@ vi.mock("@/features/products/components/ProductCard", () => ({
 }));
 
 vi.mock("@/features/products/services/product.service", () => ({
-  getProducts: vi.fn(() => new Promise(() => undefined)),
   mapProductToCard: (product: {
     discount: number;
     discounted_price: number;
@@ -78,17 +73,12 @@ function createCategoryGroup(): HomeCategoryProductGroup {
   };
 }
 
-describe("ProductsSection selected category", () => {
-  it("keeps every product visible on mobile and shows card skeletons while loading", () => {
+describe("ProductsSection category previews", () => {
+  it("renders each product preview once across responsive breakpoints", () => {
     const markup = renderToStaticMarkup(
-      <ProductsSection
-        activeCategorySlug="women"
-        categoryGroups={[createCategoryGroup()]}
-      />,
+      <ProductsSection categoryGroups={[createCategoryGroup()]} />,
     );
 
-    expect(markup).not.toContain("hidden h-full xl:block");
-    expect(markup).toContain('aria-label="Loading more Women products"');
-    expect(markup).not.toContain("Loading all Women products...");
+    expect(markup.match(/>product-4<\/article>/g)).toHaveLength(1);
   });
 });
