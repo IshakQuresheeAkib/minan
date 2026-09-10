@@ -3,7 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Children, type ReactNode, useState } from "react";
+import { Children, type ReactNode, useRef, useState } from "react";
 
 import { publicRoutes } from "@/constants/routes";
 import { CategoryChips } from "@/features/home/components/CategoryChips";
@@ -21,11 +21,13 @@ type HomeCatalogClientProps = {
   children: ReactNode;
 };
 
+const loadSelectedCategoryProducts = () =>
+  import("@/features/home/components/SelectedCategoryProducts").then(
+    (module) => module.SelectedCategoryProducts,
+  );
+
 const SelectedCategoryProducts = dynamic(
-  () =>
-    import("@/features/home/components/SelectedCategoryProducts").then(
-      (module) => module.SelectedCategoryProducts,
-    ),
+  loadSelectedCategoryProducts,
   {
     loading: () => <SelectedCategoryLoading />,
   },
@@ -36,6 +38,7 @@ export function HomeCatalogClient({
   children,
 }: HomeCatalogClientProps) {
   const [activeCategorySlug, setActiveCategorySlug] = useState<string>();
+  const categorySelectionVersionRef = useRef(0);
   const categorySlots = Children.toArray(children);
   const activeCategoryIndex = categories.findIndex(
     (category) => category.slug === activeCategorySlug,
@@ -47,6 +50,30 @@ export function HomeCatalogClient({
   const visibleCategorySlots = categories.flatMap((category, index) =>
     category.hasProducts && categorySlots[index] ? [categorySlots[index]] : [],
   );
+
+  function handleCategoryChange(slug?: string) {
+    const selectionVersion = categorySelectionVersionRef.current + 1;
+    categorySelectionVersionRef.current = selectionVersion;
+
+    const selectedCategory = categories.find(
+      (category) => category.slug === slug,
+    );
+
+    if (!selectedCategory?.hasProducts) {
+      setActiveCategorySlug(slug);
+      return;
+    }
+
+    void loadSelectedCategoryProducts()
+      .then(() => {
+        if (categorySelectionVersionRef.current === selectionVersion) {
+          setActiveCategorySlug(slug);
+        }
+      })
+      .catch(() => {
+        // Keep the current server-rendered catalog visible if the chunk fails.
+      });
+  }
 
   return (
     <section className="space-y-6" aria-labelledby="home-catalog-title">
@@ -76,7 +103,7 @@ export function HomeCatalogClient({
       <CategoryChips
         categories={categories}
         activeCategorySlug={activeCategorySlug}
-        onCategoryChange={setActiveCategorySlug}
+        onCategoryChange={handleCategoryChange}
       />
       {activeCategory ? (
         activeCategory.hasProducts ? (
