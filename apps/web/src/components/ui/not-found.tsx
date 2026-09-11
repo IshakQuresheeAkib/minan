@@ -120,7 +120,7 @@ export function NotFound() {
               className="block transition-transform duration-500 ease-out group-hover:scale-105"
             >
               <Image
-                src="/images/minan-ghost-404.png"
+                src="https://res.cloudinary.com/dhfg728um/image/upload/v1789118610/minan-ghost-404_haki5o.webp"
                 alt=""
                 width={160}
                 height={160}
