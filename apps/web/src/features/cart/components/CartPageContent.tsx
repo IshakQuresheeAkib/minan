@@ -46,9 +46,9 @@ export function CartPageContent() {
 
   if (!hasHydrated) {
     return (
-      <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
+      <section className="mx-auto grid min-h-[calc(100dvh-10rem)] w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:min-h-[calc(100dvh-5rem)] lg:grid-cols-[1fr_340px] lg:px-8">
         <div>
-          <div className="minan-skeleton h-9 w-24 rounded-md" />
+          <h1 className="text-3xl font-semibold tracking-normal">Cart</h1>
           <div className="mt-6 grid gap-4">
             {[0, 1].map((item) => (
               <div
@@ -67,7 +67,7 @@ export function CartPageContent() {
           </div>
         </div>
 
-        <aside className="h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm">
+        <aside className="hidden h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm lg:block">
           <div className="minan-skeleton h-6 w-36 rounded-md" />
           <div className="minan-skeleton mt-5 h-4 w-full rounded-md" />
           <div className="minan-skeleton mt-5 h-11 w-full rounded-md" />
@@ -78,7 +78,7 @@ export function CartPageContent() {
 
   if (items.length === 0) {
     return (
-      <section className="mx-auto flex min-h-[60dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center sm:px-6 lg:px-8">
+      <section className="mx-auto flex min-h-[calc(100dvh-10rem)] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center sm:px-6 lg:min-h-[calc(100dvh-5rem)] lg:px-8">
         <div className="flex size-14 items-center justify-center rounded-full bg-background">
           <ShoppingBag className="size-6" aria-hidden="true" />
         </div>
@@ -91,6 +91,7 @@ export function CartPageContent() {
         <Button
           className="mt-6"
           href={publicRoutes.products}
+          prefetch={false}
           text="Browse products"
         />
       </section>
@@ -98,7 +99,7 @@ export function CartPageContent() {
   }
 
   return (
-    <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
+    <section className="mx-auto grid min-h-[calc(100dvh-10rem)] w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:min-h-[calc(100dvh-5rem)] lg:grid-cols-[1fr_340px] lg:px-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-normal">Cart</h1>
         <div className="mt-6 grid gap-4">
@@ -238,6 +239,7 @@ export function CartPageContent() {
           <Button
             className="mt-5 h-11 w-full"
             href={publicRoutes.checkout}
+            prefetch={false}
             text="Proceed to checkout"
           />
         )}

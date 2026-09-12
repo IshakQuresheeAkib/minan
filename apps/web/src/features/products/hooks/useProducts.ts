@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Product } from "@/features/products/schemas/product.schema";
 import {
   getProducts,
+  type CatalogProduct,
   type ProductSortOption,
 } from "@/features/products/services/product.service";
 
 const PAGE_SIZE = 20;
 
 type InitialProductsData = {
-  data: Product[];
+  data: CatalogProduct[];
   total: number;
   page: number;
   limit: number;
@@ -63,7 +63,7 @@ export function useProducts(options: UseProductsOptions = {}) {
     hasMore: boolean;
     key: string;
     page: number;
-    products: Product[];
+    products: CatalogProduct[];
     total: number;
   }>({
     hasMore: initialData?.hasMore ?? false,

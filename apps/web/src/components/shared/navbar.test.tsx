@@ -10,9 +10,14 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
+    prefetch,
     ...props
-  }: React.PropsWithChildren<{ href: string }>) => (
-    <a href={href} {...props}>
+  }: React.PropsWithChildren<{ href: string; prefetch?: boolean }>) => (
+    <a
+      href={href}
+      data-prefetch={prefetch === false ? "disabled" : "default"}
+      {...props}
+    >
       {children}
     </a>
   ),
@@ -79,5 +84,13 @@ describe("Navbar", () => {
 
     expect(markup).toContain("grid-cols-[auto_minmax(0,1fr)_auto]");
     expect(markup).not.toContain("row-start-2");
+  });
+
+  it("does not prefetch the homepage from the persistent logo link", () => {
+    const markup = renderToStaticMarkup(<Navbar />);
+
+    expect(markup).toContain(
+      '<a href="/" data-prefetch="disabled" aria-label="MINAN — go to homepage"',
+    );
   });
 });

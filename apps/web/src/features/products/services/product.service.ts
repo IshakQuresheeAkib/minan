@@ -79,6 +79,17 @@ export type ProductSortOption =
   | "price-desc"
   | "name-asc";
 
+export type CatalogProduct = Pick<
+  Product,
+  | "_id"
+  | "name"
+  | "slug"
+  | "price"
+  | "discount"
+  | "discounted_price"
+  | "images"
+>;
+
 export type ProductFilterOptions = z.infer<
   typeof productFilterOptionsSchema
 >["data"];
@@ -255,7 +266,34 @@ export function getRelatedProductsOptions(
   };
 }
 
-export function mapProductToCard(product: Product): ProductCardData {
+export function toCatalogProductList(
+  products: ApiList<Product>,
+): ApiList<CatalogProduct> {
+  return {
+    ...products,
+    data: products.data.map(
+      ({
+        _id,
+        name,
+        slug,
+        price,
+        discount,
+        discounted_price,
+        images,
+      }) => ({
+        _id,
+        name,
+        slug,
+        price,
+        discount,
+        discounted_price,
+        images,
+      }),
+    ),
+  };
+}
+
+export function mapProductToCard(product: CatalogProduct): ProductCardData {
   return {
     slug: product.slug,
     name: product.name,

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { type LinkProps } from "next/link";
 import {
   cloneElement,
   useEffect,
@@ -22,6 +22,7 @@ export type LimelightNavItem = {
   icon: ReactElement<NavIconProps>;
   label: string;
   href?: string;
+  prefetch?: LinkProps["prefetch"];
   disabled?: boolean;
   onClick?: () => void;
 };
@@ -199,6 +200,7 @@ export function LimelightNav({
             key={item.id}
             ref={setItemRef(item.id)}
             href={item.href}
+            prefetch={item.prefetch}
             aria-current={isActive ? "page" : undefined}
             data-state={isActive ? "active" : "inactive"}
             onClick={() => {

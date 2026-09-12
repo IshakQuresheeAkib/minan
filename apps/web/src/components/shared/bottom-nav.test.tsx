@@ -6,9 +6,14 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
+    prefetch,
     ...props
-  }: React.PropsWithChildren<{ href: string }>) => (
-    <a href={href} {...props}>
+  }: React.PropsWithChildren<{ href: string; prefetch?: boolean }>) => (
+    <a
+      href={href}
+      data-prefetch={prefetch === false ? "disabled" : "default"}
+      {...props}
+    >
       {children}
     </a>
   ),
@@ -33,5 +38,12 @@ describe("BottomNav", () => {
     const markup = renderToStaticMarkup(<BottomNav />);
 
     expect(markup).not.toContain("-translate-x-1/2 rounded-b-full bg-primary");
+  });
+
+  it("disables automatic prefetching for every fixed mobile navigation link", () => {
+    const markup = renderToStaticMarkup(<BottomNav />);
+
+    expect(markup.match(/data-prefetch="disabled"/g)).toHaveLength(4);
+    expect(markup).not.toContain('data-prefetch="default"');
   });
 });

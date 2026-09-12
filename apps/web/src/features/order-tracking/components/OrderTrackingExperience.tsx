@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
@@ -17,14 +16,11 @@ import {
   OrderTrackingApiError,
 } from "@/features/order-tracking/lib/orderTrackingApi";
 import { getOrderTrackingLoginHref } from "@/features/order-tracking/lib/trackingPresentation";
-import type { CustomerOrderTracking } from "@/features/order-tracking/lib/types";
+import type {
+  CustomerOrderTracking,
+  OrderAccess,
+} from "@/features/order-tracking/lib/types";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
-
-type OrderAccess = "guest" | "account";
-
-function isOrderAccess(value: string | null): value is OrderAccess {
-  return value === "guest" || value === "account";
-}
 
 function errorMessage(error: unknown, access: OrderAccess): string {
   if (error instanceof OrderTrackingApiError && error.status === 401) {
@@ -112,12 +108,14 @@ function TrackingDetail({ access, orderNumber }: { access: OrderAccess; orderNum
   );
 }
 
-export function OrderTrackingExperience() {
-  const searchParams = useSearchParams();
+export function OrderTrackingExperience({
+  access,
+  orderNumber,
+}: {
+  access: OrderAccess | null;
+  orderNumber: string;
+}) {
   const { status } = useCustomerAuthStore();
-  const orderNumber = searchParams.get("order")?.trim() ?? "";
-  const accessValue = searchParams.get("access");
-  const access = isOrderAccess(accessValue) ? accessValue : null;
 
   useEffect(() => {
     if (status === "unknown") {
