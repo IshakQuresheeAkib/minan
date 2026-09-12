@@ -93,6 +93,7 @@ export function NotFound() {
           alt="MINAN"
           width={364}
           height={353}
+          sizes="(min-width: 640px) 58px, 50px"
           className="h-12 w-auto sm:h-14"
           priority
         />
@@ -120,14 +121,13 @@ export function NotFound() {
               className="block transition-transform duration-500 ease-out group-hover:scale-105"
             >
               <Image
-                src="https://res.cloudinary.com/dhfg728um/image/upload/v1789118610/minan-ghost-404_haki5o.webp"
+                src="https://res.cloudinary.com/dhfg728um/image/upload/q_auto,w_320/v1789118610/minan-ghost-404_haki5o.webp"
                 alt=""
                 width={160}
                 height={160}
                 sizes="(min-width: 640px) 160px, 112px"
                 className="size-24 object-contain drop-shadow-[0_18px_18px_rgba(38,38,38,0.12)] select-none sm:size-40"
                 draggable={false}
-                priority
               />
             </span>
           </span>

@@ -38,6 +38,7 @@ export function HomeCatalogClient({
   children,
 }: HomeCatalogClientProps) {
   const [activeCategorySlug, setActiveCategorySlug] = useState<string>();
+  const [pendingCategorySlug, setPendingCategorySlug] = useState<string>();
   const categorySelectionVersionRef = useRef(0);
   const categorySlots = Children.toArray(children);
   const activeCategoryIndex = categories.findIndex(
@@ -60,18 +61,24 @@ export function HomeCatalogClient({
     );
 
     if (!selectedCategory?.hasProducts) {
+      setPendingCategorySlug(undefined);
       setActiveCategorySlug(slug);
       return;
     }
 
+    setPendingCategorySlug(slug);
     void loadSelectedCategoryProducts()
       .then(() => {
         if (categorySelectionVersionRef.current === selectionVersion) {
           setActiveCategorySlug(slug);
+          setPendingCategorySlug(undefined);
         }
       })
       .catch(() => {
         // Keep the current server-rendered catalog visible if the chunk fails.
+        if (categorySelectionVersionRef.current === selectionVersion) {
+          setPendingCategorySlug(undefined);
+        }
       });
   }
 
@@ -103,6 +110,7 @@ export function HomeCatalogClient({
       <CategoryChips
         categories={categories}
         activeCategorySlug={activeCategorySlug}
+        pendingCategorySlug={pendingCategorySlug}
         onCategoryChange={handleCategoryChange}
       />
       {activeCategory ? (

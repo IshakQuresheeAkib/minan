@@ -5,10 +5,6 @@ const apiMocks = vi.hoisted(() => ({
   getGuestOrder: vi.fn(() => new Promise(() => undefined)),
 }));
 
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
-}));
-
 vi.mock("@/features/order-tracking/lib/customerSession", () => ({
   restoreCustomerSession: vi.fn(),
 }));

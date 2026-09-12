@@ -23,6 +23,7 @@ export function Navbar() {
             alt="MINAN"
             width={364}
             height={353}
+            sizes="(min-width: 1024px) 68px, (min-width: 640px) 58px, 50px"
             className="h-12 w-auto sm:h-14 lg:h-16"
           />
         </Link>

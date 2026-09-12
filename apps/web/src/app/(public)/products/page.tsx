@@ -61,20 +61,25 @@ export async function generateMetadata({
   };
 }
 
-export default function ProductsPage({ searchParams }: ProductsPageProps) {
+export default async function ProductsPage({
+  searchParams,
+}: ProductsPageProps) {
+  const filters = parseCatalogFilters(await searchParams);
+
   return (
-    <Suspense fallback={<ProductsPageFallback />}>
-      <RequestedProductsPage searchParams={searchParams} />
-    </Suspense>
+    <ProductsPageFrame filters={filters}>
+      <Suspense fallback={<ProductCatalogSkeleton />}>
+        <RequestedProductsPage filters={filters} />
+      </Suspense>
+    </ProductsPageFrame>
   );
 }
 
 async function RequestedProductsPage({
-  searchParams,
+  filters,
 }: {
-  searchParams: ProductsPageProps["searchParams"];
+  filters: ReturnType<typeof parseCatalogFilters>;
 }) {
-  const filters = parseCatalogFilters(await searchParams);
   const [products, filterOptions] = await Promise.all([
     getCachedProducts(getProductsOptions(filters)),
     getCachedProductFilterOptions(),
@@ -98,21 +103,11 @@ async function RequestedProductsPage({
   }
 
   return (
-    <ProductsPageFrame filters={filters}>
-      <ProductCatalog
-        filters={filters}
-        filterOptions={filterOptions}
-        initialData={toCatalogProductList(products)}
-      />
-    </ProductsPageFrame>
-  );
-}
-
-function ProductsPageFallback() {
-  return (
-    <ProductsPageFrame>
-      <ProductCatalogSkeleton />
-    </ProductsPageFrame>
+    <ProductCatalog
+      filters={filters}
+      filterOptions={filterOptions}
+      initialData={toCatalogProductList(products)}
+    />
   );
 }
 
@@ -121,18 +116,18 @@ function ProductsPageFrame({
   filters,
 }: {
   children: ReactNode;
-  filters?: ReturnType<typeof parseCatalogFilters>;
+  filters: ReturnType<typeof parseCatalogFilters>;
 }) {
   return (
     <section className="mx-auto w-full max-w-11/12 py-10 2xl:px-12">
       <div className="mb-8 flex flex-col gap-2">
         <h1 className="text-3xl font-semibold tracking-normal">
-          {filters?.search
+          {filters.search
             ? `Search results for "${filters.search}"`
             : "Products"}
         </h1>
         <p className="max-w-2xl text-sm leading-6 text-foreground/70">
-          {filters?.search
+          {filters.search
             ? "Browse matching pieces from the current MINAN collection."
             : "Premium daily wear selected for fast browsing and easy ordering."}
         </p>

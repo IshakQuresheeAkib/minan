@@ -12,7 +12,7 @@ import type {
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-   "hero-reveal inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full border border-primary text-sm font-bold tracking-wide transition-[transform,background-color,border-color,color] duration-160 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none focus-visible:ring-3 focus-visible:ring-primary/50",
+  "hero-reveal inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full border border-primary text-sm font-bold tracking-wide transition-[transform,background-color,border-color,color] duration-160 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50 data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none focus-visible:ring-3 focus-visible:ring-primary/50",
   {
     variants: {
       variant: {

@@ -1,4 +1,7 @@
-import { renderToReadableStream } from "react-dom/server";
+import {
+  renderToReadableStream,
+  renderToStaticMarkup,
+} from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -53,7 +56,8 @@ function productList(imageUrl: string) {
 async function renderRequestedProductsPage(
   searchParams: Promise<{ search?: string }>,
 ) {
-  const stream = await renderToReadableStream(ProductsPage({ searchParams }));
+  const page = await ProductsPage({ searchParams });
+  const stream = await renderToReadableStream(page);
   await stream.allReady;
   await new Response(stream).text();
 }
@@ -105,5 +109,25 @@ describe("products catalog image preload", () => {
       expect.stringContaining(encodeURIComponent(filteredImageUrl)),
       expect.objectContaining({ as: "image", fetchPriority: "high" }),
     );
+  });
+});
+
+describe("products loading frame", () => {
+  it("streams the requested search heading while catalog data is pending", async () => {
+    getCachedProductsMock.mockReturnValue(new Promise(() => undefined));
+    getCachedProductFilterOptionsMock.mockResolvedValue({
+      categories: [],
+      colors: [],
+      sizes: [],
+      price: { min: 0, max: 0 },
+    });
+
+    const page = await ProductsPage({
+      searchParams: Promise.resolve({ search: "linen" }),
+    });
+    const initialMarkup = renderToStaticMarkup(page);
+
+    expect(initialMarkup).toContain("Search results for &quot;linen&quot;");
+    expect(initialMarkup).not.toContain(">Products</h1>");
   });
 });

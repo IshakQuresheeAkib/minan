@@ -16,10 +16,11 @@ import {
   OrderTrackingApiError,
 } from "@/features/order-tracking/lib/orderTrackingApi";
 import { getOrderTrackingLoginHref } from "@/features/order-tracking/lib/trackingPresentation";
-import type { CustomerOrderTracking } from "@/features/order-tracking/lib/types";
+import type {
+  CustomerOrderTracking,
+  OrderAccess,
+} from "@/features/order-tracking/lib/types";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
-
-type OrderAccess = "guest" | "account";
 
 function errorMessage(error: unknown, access: OrderAccess): string {
   if (error instanceof OrderTrackingApiError && error.status === 401) {

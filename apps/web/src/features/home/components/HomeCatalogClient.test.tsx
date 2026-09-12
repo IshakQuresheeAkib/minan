@@ -14,6 +14,8 @@ const testHarness = vi.hoisted(() => ({
     | Promise<{ SelectedCategoryProducts: () => null }>
     | undefined,
   setActiveCategorySlug: undefined as ReturnType<typeof vi.fn> | undefined,
+  setPendingCategorySlug: undefined as ReturnType<typeof vi.fn> | undefined,
+  useStateCallCount: 0,
 }));
 
 vi.mock("react", async (importOriginal) => {
@@ -21,7 +23,13 @@ vi.mock("react", async (importOriginal) => {
 
   return {
     ...actual,
-    useState: () => [undefined, testHarness.setActiveCategorySlug],
+    useState: () => {
+      const setter = testHarness.useStateCallCount === 0
+        ? testHarness.setActiveCategorySlug
+        : testHarness.setPendingCategorySlug;
+      testHarness.useStateCallCount += 1;
+      return [undefined, setter];
+    },
   };
 });
 
@@ -49,6 +57,8 @@ describe("HomeCatalogClient", () => {
   beforeEach(() => {
     testHarness.onCategoryChange = undefined;
     testHarness.setActiveCategorySlug = vi.fn();
+    testHarness.setPendingCategorySlug = vi.fn();
+    testHarness.useStateCallCount = 0;
     testHarness.selectedCategoryModulePromise = new Promise((resolve) => {
       testHarness.resolveSelectedCategoryModule = resolve;
     });
@@ -101,6 +111,7 @@ describe("HomeCatalogClient", () => {
     testHarness.onCategoryChange?.("women");
 
     expect(testHarness.setActiveCategorySlug).not.toHaveBeenCalled();
+    expect(testHarness.setPendingCategorySlug).toHaveBeenCalledWith("women");
 
     testHarness.resolveSelectedCategoryModule?.({
       SelectedCategoryProducts: () => null,
@@ -110,6 +121,9 @@ describe("HomeCatalogClient", () => {
     await vi.waitFor(() => {
       expect(testHarness.setActiveCategorySlug).toHaveBeenCalledOnce();
       expect(testHarness.setActiveCategorySlug).toHaveBeenCalledWith("women");
+      expect(testHarness.setPendingCategorySlug).toHaveBeenLastCalledWith(
+        undefined,
+      );
     });
   });
 
@@ -139,6 +153,9 @@ describe("HomeCatalogClient", () => {
 
     expect(testHarness.setActiveCategorySlug).toHaveBeenCalledOnce();
     expect(testHarness.setActiveCategorySlug).toHaveBeenCalledWith(undefined);
+    expect(testHarness.setPendingCategorySlug).toHaveBeenLastCalledWith(
+      undefined,
+    );
   });
 
   it("switches immediately when a category has no lazy product view", () => {

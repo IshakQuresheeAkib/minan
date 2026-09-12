@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { CreditCard, Home, Shirt, ShoppingBag } from "lucide-react";
 
-import { publicRoutes } from "@/constants/routes";
+import { getCollectionPath, publicRoutes } from "@/constants/routes";
 
 export type NavItem = {
   id: string;
@@ -43,7 +43,7 @@ function isPrimaryNavItemActive(item: NavItem, pathname: string): boolean {
     return (
       pathname === publicRoutes.products ||
       pathname.startsWith(`${publicRoutes.products}/`) ||
-      pathname.startsWith("/collections/")
+      pathname.startsWith(getCollectionPath(""))
     );
   }
 

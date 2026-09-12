@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { OrderTrackingExperience } from "@/features/order-tracking/components/OrderTrackingExperience";
+import type { OrderAccess } from "@/features/order-tracking/lib/types";
 import { privatePageRobots } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
@@ -14,8 +15,6 @@ type OrderTrackingPageProps = {
     order?: string | string[];
   }>;
 };
-
-type OrderAccess = "guest" | "account";
 
 function isOrderAccess(
   value: string | string[] | undefined,

@@ -60,6 +60,3 @@ lerna-debug.log*
 .pnpm-debug.log*
 node_modules
 .superpowers
-
-# Local task artifacts
-/2026-09-10/i-want-to-add-this-skill-3/
