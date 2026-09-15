@@ -22,6 +22,7 @@ import { Popover, Tooltip } from "radix-ui";
 import { publicRoutes } from "@/constants/routes";
 
 const PROFILE_MENU_CLOSE_DELAY_MS = 120;
+const STORE_LOCATION_URL = "https://maps.app.goo.gl/zDvr35GASHBCFAuQ9";
 const subscribeToClient = () => () => undefined;
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
@@ -187,27 +188,22 @@ export function NavbarActions() {
       <Tooltip.Provider delayDuration={300}>
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
-            <span className="inline-flex cursor-not-allowed">
-              <button
-                type="button"
-                disabled
-                aria-label="Stores — coming soon"
-                className={`${iconButtonClassName} pointer-events-none cursor-not-allowed text-background/55`}
-              >
-                <MapPinned className="size-6" aria-hidden="true" />
-                <span
-                  className="absolute top-1.5 right-1.5 size-2 rounded-full border border-foreground bg-primary"
-                  aria-hidden="true"
-                />
-              </button>
-            </span>
+            <a
+              href={STORE_LOCATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open MINAN location in Google Maps"
+              className={`${iconButtonClassName} cursor-pointer hover:bg-primary hover:text-foreground focus-visible:bg-primary focus-visible:text-foreground`}
+            >
+              <MapPinned className="size-6" aria-hidden="true" />
+            </a>
           </Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Content
               sideOffset={8}
               className="z-[var(--z-popover)] rounded-md bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground shadow-lg"
             >
-              Stores coming soon
+              Find us on Google Maps
               <Tooltip.Arrow className="fill-background" />
             </Tooltip.Content>
           </Tooltip.Portal>
