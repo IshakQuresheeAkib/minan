@@ -1,7 +1,6 @@
 import type {
   AuthenticatedAdmin,
   AuthenticatedCustomer,
-  AuthenticatedGuestOrder,
 } from "./auth.types.js";
 
 declare global {
@@ -9,7 +8,6 @@ declare global {
     interface Request {
       admin?: AuthenticatedAdmin;
       customer?: AuthenticatedCustomer;
-      guestOrder?: AuthenticatedGuestOrder;
     }
   }
 }

@@ -28,7 +28,7 @@ import {
   recordOrderRefund,
   recordOrderReturn,
   reviewOrderDuplicate,
-  transitionOrderAndQueueNotification,
+  transitionOrder,
   updateOrderCourier,
   updateOrderCustomer,
   updateOrderItems,
@@ -90,7 +90,7 @@ export async function updateOrderItemsHandler(req: Request, res: Response, next:
   try { res.json({ data: await updateOrderItems(id(req), parseBody(orderItemsUpdateSchema, req.body), admin(req)) }); } catch (error) { next(error); }
 }
 export async function transitionOrderHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try { res.json({ data: await transitionOrderAndQueueNotification(id(req), parseBody(orderTransitionSchema, req.body), admin(req)) }); } catch (error) { next(error); }
+  try { res.json({ data: await transitionOrder(id(req), parseBody(orderTransitionSchema, req.body), admin(req)) }); } catch (error) { next(error); }
 }
 export async function updateOrderCourierHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try { res.json({ data: await updateOrderCourier(id(req), parseBody(orderCourierUpdateSchema, req.body), admin(req)) }); } catch (error) { next(error); }

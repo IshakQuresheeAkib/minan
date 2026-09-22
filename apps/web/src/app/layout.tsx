@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+import { Ga4Analytics } from "@/components/analytics/Ga4Analytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { siteConfig, siteOrigin } from "@/config/site.config";
 import "./globals.css";
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <Suspense fallback={null}>
           <MetaPixel />
         </Suspense>
+        <Ga4Analytics />
         <SpeedInsights />
       </body>
     </html>

@@ -203,7 +203,6 @@ async function migrate(): Promise<void> {
       duplicate_order_ids: [],
       duplicate_review_state: "none",
       revision: 1,
-      guest_access_version: 1,
       activity: [{ actor_type: "migration", event: "lead_migrated", reason: mapped.review ? "Legacy delivery_failed requires review" : undefined, created_at: new Date() }],
       refunds: [],
       financial_review_required: mapped.review || (completed !== null && !Number.isSafeInteger(parsedPaid)),

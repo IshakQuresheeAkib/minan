@@ -110,7 +110,6 @@ export interface OrderDocument extends Document {
   shipped_at?: Date;
   delivered_at?: Date;
   expected_delivery_date?: Date;
-  guest_access_version: number;
   duplicate_order_ids: Types.ObjectId[];
   duplicate_review_state: "none" | "pending" | "reviewed_unique" | "confirmed_duplicate";
   exchange_source_order_id?: Types.ObjectId;
@@ -240,13 +239,6 @@ const orderSchema = new Schema<OrderDocument>(
         validator: isUtcCalendarDate,
         message: "Expected delivery date must be a calendar date at UTC midnight",
       },
-    },
-    guest_access_version: {
-      type: Number,
-      required: true,
-      min: 1,
-      default: 1,
-      validate: Number.isSafeInteger,
     },
     duplicate_order_ids: [{ type: Schema.Types.ObjectId, ref: "Order" }],
     duplicate_review_state: {

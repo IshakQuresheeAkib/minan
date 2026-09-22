@@ -9,8 +9,6 @@ export type CustomerOrderStatus =
   | "returned"
   | "exchanged";
 
-export type OrderAccess = "guest" | "account";
-
 export type CustomerOrderTracking = {
   order_id: string;
   created_at: string;

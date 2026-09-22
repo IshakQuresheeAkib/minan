@@ -110,9 +110,8 @@ export function formatBdt(value: number): string {
 }
 
 export function getOrderTrackingLoginHref(
-  access: "guest" | "account",
   orderNumber: string,
 ): string {
-  const next = `/orders?order=${encodeURIComponent(orderNumber)}&access=${access}`;
+  const next = `/orders?order=${encodeURIComponent(orderNumber)}`;
   return `/account/login?next=${encodeURIComponent(next)}`;
 }
