@@ -669,7 +669,7 @@ JWT_ACCESS_SECRET=<same value as API>
 REVALIDATE_SECRET=<same value as STOREFRONT_REVALIDATE_SECRET>
 NEXT_PUBLIC_META_PIXEL_ID=
 NEXT_PUBLIC_GA4_ID=
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_FACEBOOK_PAGE_URL=https://www.facebook.com/your-page-handle
 NEXT_PUBLIC_SITE_URL=https://www.minanclothing.com
 NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 ```
@@ -677,6 +677,7 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 - `API_PROXY_TARGET` is used by both `next.config.ts` rewrites and `lib/api/client.ts`.
 - `JWT_ACCESS_SECRET` is required by `proxy.ts` to verify access-token cookies.
 - `NEXT_PUBLIC_SITE_URL` is used for canonical URLs, sitemap entries, and social metadata.
+- `NEXT_PUBLIC_FACEBOOK_PAGE_URL` enables the public Facebook Page plugin in the storefront footer. Set it to MINAN's unrestricted public Page URL; leave it blank to omit the plugin.
 
 ### Backend `.env`
 
@@ -802,7 +803,7 @@ sequenceDiagram
     UI->>API: POST/PATCH product|category { ..., images: [secure_url] }
 ```
 
-**Frontend:** `lib/cloudinary/upload.ts` orchestrates the flow using `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`.
+**Frontend:** `lib/cloudinary/upload.ts` posts directly to Cloudinary using the `cloudName` returned in the API-generated signature response.
 **Backend:** `lib/cloudinary.ts` signs the upload using `CLOUDINARY_URL`; optional folder via `CLOUDINARY_UPLOAD_FOLDER`.
 **Storage:** Only remote URL strings are persisted in MongoDB. Never store local paths or base64.
 

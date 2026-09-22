@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { siteConfig, siteOrigin } from "@/config/site.config";
 import "./globals.css";
 
@@ -86,6 +88,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" suppressHydrationWarning>
       <body className={` ${manrope.variable} ${plusJakartaSans.variable}`}>
         {children}
+        <Suspense fallback={null}>
+          <MetaPixel />
+        </Suspense>
         <SpeedInsights />
       </body>
     </html>

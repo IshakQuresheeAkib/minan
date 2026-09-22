@@ -1,10 +1,11 @@
 import "server-only";
 
+import { env } from "@/config/env";
 import { checkoutConfigSchema } from "@/features/checkout/schemas/checkout-config.schema";
 import type { CheckoutConfig, PaymentResult } from "@/features/checkout/types";
 
 function apiBaseUrl(): string {
-  const value = process.env.API_PROXY_TARGET?.trim().replace(/\/$/, "");
+  const value = env.apiProxyTarget.trim().replace(/\/$/, "");
   if (!value) throw new Error("API_PROXY_TARGET is not configured");
   const url = new URL(value);
   if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
