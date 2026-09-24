@@ -12,7 +12,7 @@
 
 | Property  | Value                                       |
 | --------- | ------------------------------------------- |
-| Framework | Next.js 16.2.12 App Router                  |
+| Framework | Next.js 16.3.4 App Router                   |
 | Phase     | MVP v1                                      |
 | Market    | Bangladesh (Sylhet)                         |
 | Traffic   | Facebook Ads                                |
@@ -59,7 +59,7 @@
 
 | Technology      | Version / Rule                         |
 | --------------- | -------------------------------------- |
-| Next.js         | 16.2.12 (App Router, `proxy.ts`)       |
+| Next.js         | 16.3.4 (App Router, `proxy.ts`)        |
 | React           | 19.2.7 (Compiler enabled)              |
 | TypeScript      | 6.0.3, strict                          |
 | Tailwind CSS    | 4.3.0                                  |
@@ -97,7 +97,7 @@
 | MongoDB Atlas     | Managed MongoDB 8.3                       | Target             |
 | Cloudinary        | Image storage + CDN                       | Implemented        |
 | Meta Pixel + CAPI | Client helpers + server CAPI              | Partial            |
-| GA4               | Traffic + behavior                        | Partial            |
+| GA4               | Page views + storefront commerce events   | Implemented for current storefront flows |
 | Microsoft Clarity | Session recordings + heatmaps             | Planned            |
 | Vercel Speed Insights | Frontend performance telemetry         | Implemented        |
 
@@ -207,7 +207,8 @@ Only a refresh token whose hash matches `refresh_token_hash` is accepted. A narr
 
 - `/api/customer-auth` currently provides login, refresh, logout, and authenticated `me` endpoints. Customer signup waits for mailbox-ownership verification.
 - Customer JWTs carry the `customer` actor and `minan-customer` audience, plus customer ID, email, session ID, and session version. Customer auth has separate identities, credentials, cookies, routes, and middleware from admin auth.
-- `/api/customer-orders/:orderNumber` returns an Order only when its `customer_id` matches the authenticated customer. The public `/orders` tracking experience supports public lookup and existing-customer access. `/account/login` signs existing customers in.
+- `/api/customer-orders` lists Orders owned by the authenticated customer. `/api/customer-orders/:orderNumber` returns one Order only when its `customer_id` matches that customer. `/account/orders` shows the account history, and `/account/login` signs existing customers in.
+- `/api/order-tracking/search` accepts an Order number or Bangladesh phone number without a customer session. An Order number returns one customer-safe Order view. A phone number returns paginated customer-safe summaries. The former guest OTP and claim routes are absent. Public lookup does not assign `customer_id`.
 
 ### CSRF Mitigation
 
@@ -293,6 +294,7 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `_id`                     | ObjectId | PK |
 | `name`                    | String   | required |
 | `phone_number`            | String   | required, BD format |
+| `normalized_phone`        | String   | required canonical Bangladesh phone number, indexed for public phone lookup |
 | `email`                   | String   | required |
 | `normalized_email`        | String   | required canonical email snapshot, indexed and compared when matching an Order to a checkout retry |
 | `address`                 | String   | required |
@@ -305,7 +307,7 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `payment_method`          | String   | optional `bkash_full | cod`. Absent on historical/exchange Orders |
 | `settled_payment_attempt_id` | ObjectId | first successfully reconciled current-checkout attempt. Prevents cross-purpose overwrite |
 | `checkout_idempotency_hash` | String | unique, sparse, server-only |
-| `customer_id`             | ObjectId / null | optional Customer ownership. Guest Orders remain unowned until an exact proof-based claim |
+| `customer_id`             | ObjectId / null | optional Customer ownership. Guest Orders remain unowned. Public lookup does not assign ownership |
 | `expected_delivery_date`  | Date / null | UTC-midnight estimated delivery date, managed by staff |
 | `customer_note` (activity timeline) | String / null | optional admin-authored customer-visible note on an `OrderActivity` entry. It appears only on that customer timeline entry. Internal activity remains private |
 | `financials`              | Object   | integer-BDT merchandise, discount, fee, COD, paid, refunded, and exchange-credit snapshots |
@@ -401,6 +403,7 @@ The storefront uses one generic, screen-reader-only promotional heading for the 
 | POST   | `/api/bkash/payments/retry` | Create another fee attempt from an opaque retry token without repricing |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
+| POST   | `/api/order-tracking/search` | Public Order-number detail or paginated phone-number summaries, customer-safe responses, CSRF-header protected and rate-limited |
 | POST   | `/api/auth/login`     | Admin login, CSRF-header protected, rate-limited 10 req/15 min/IP |
 | POST   | `/api/auth/refresh`   | Rotate tokens, CSRF-header protected |
 | POST   | `/api/auth/logout`    | Clear auth cookies and refresh-token hashes, CSRF-header protected |
@@ -408,6 +411,7 @@ The storefront uses one generic, screen-reader-only promotional heading for the 
 | POST   | `/api/customer-auth/refresh` | Rotate a customer session, CSRF-header protected, rate-limited 30 req/15 min/IP |
 | POST   | `/api/customer-auth/logout` | Clear customer cookies and revoke the current session, CSRF-header protected |
 | GET    | `/api/customer-auth/me` | Current authenticated customer, allowlisted response |
+| GET    | `/api/customer-orders` | Paginated Orders owned by the authenticated customer |
 | GET    | `/api/customer-orders/:orderNumber` | Read one Order owned by the authenticated customer |
 
 ### Health
@@ -472,8 +476,11 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `/cart`             | Cart                | Public            |
 | `/checkout`         | Checkout            | Public            |
 | `/checkout/buy-now` | Buy-now Checkout    | Public            |
-| `/orders`           | Order Tracking      | Public lookup or authenticated customer access |
+| `/orders`           | Order Tracking      | Public Order-number or phone-number lookup |
 | `/account/login`    | Customer Login      | Public. Existing customer accounts |
+| `/account/orders`   | My Orders           | Authenticated customer history |
+| `/account/orders/[orderNumber]` | My Order Detail | Authenticated customer ownership |
+| `/payment/result`   | Payment Result      | Public result reference resolution |
 | `/admin/login`      | Admin Login         | Public            |
 | `/admin`            | Dashboard           | Admin             |
 | `/admin/products`   | Product Management  | Admin             |
@@ -503,9 +510,10 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
 - `features/products/services/product.cache.ts` owns the storefront Cache Component functions. They use `"use cache"`, the shared `catalog` tag, and the `days` cache-life profile.
 - `next.config.ts` rewrites `/api/:path*` to `API_PROXY_TARGET`, defaulting to `http://localhost:3001`.
-- `components/analytics/MetaPixel.tsx` is mounted by the root layout; it initializes the client-side Pixel when configured and sends `PageView` on pathname changes. `lib/analytics/pixel.ts` contains the Pixel helpers. CAPI is Express-only.
+- `components/analytics/MetaPixel.tsx` is mounted by the root layout. It initializes the client-side Pixel when configured and sends `PageView` on allowed pathname changes. `lib/analytics/pixel.ts` contains the Pixel helpers. CAPI is Express-only.
+- `components/analytics/Ga4Analytics.tsx` loads the configured GA4 tag on allowed routes. `lib/analytics/ga4.ts` sends storefront commerce events and queues events until the tag is ready. `lib/analytics/routes.ts` excludes admin, account, and payment routes except a completed payment result after its reference has been removed from the URL.
 - `store/auth.store.ts` keeps the access token in memory only.
-- `features/order-tracking/` owns public Order lookup and authenticated customer tracking UI. `store/customer-auth.store.ts` keeps the customer session, including its access token, in memory only. Refresh recovery uses the separate httpOnly customer cookie.
+- `features/order-tracking/` owns public Order lookup and authenticated customer history and detail UI. `store/customer-auth.store.ts` keeps the customer session, including its access token, in memory only. Refresh recovery uses the separate httpOnly customer cookie.
 - `store/cart.store.ts` keeps cart items in Zustand and persists selected cart lines to browser `localStorage`.
 
 ---
@@ -549,28 +557,33 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
 ## 14. Analytics & Tracking
 
-Analytics has partial coverage. The tables separate live behavior from planned wiring.
+GA4 records page views and the storefront commerce actions listed below. Meta has a narrower live event set. The Express analytics model remains separate from GA4.
 
 ### Tool Matrix
 
 | Tool               | Fires From     | Role                                      | Status |
 | ------------------ | -------------- | ----------------------------------------- | ------ |
-| Meta Pixel         | Next.js root layout | When configured, global client bootstrap and `PageView` on pathname changes | Implemented; other event wiring is partial |
-| Meta CAPI          | Express        | Server-side mapped events                 | Implemented for events posted to analytics endpoints |
-| GA4                | Next.js client | Traffic and conversion analytics          | Partial - global tag and automatic page views |
+| Meta Pixel         | Next.js root layout | When configured, `PageView` on allowed pathname changes and WhatsApp `Lead` | Implemented for these events |
+| Meta CAPI          | Express        | Server-side mapped events posted to the analytics endpoints | Implemented for posted events |
+| GA4                | Next.js client | Page views and storefront `view_item`, `add_to_cart`, `remove_from_cart`, `begin_checkout`, and `purchase` | Implemented for current flows |
 | Microsoft Clarity  | Next.js client | Session recordings and heatmaps           | Planned |
 | `analytics_events` | Express        | First-party MongoDB analytics log         | Implemented |
 
 ### Current Event Status
 
-| Event            | Client Pixel | Express CAPI | Status |
-| ---------------- | ------------ | ------------ | ------ |
-| `page_view`      | yes          | no           | Live in the client Pixel |
-| `product_view`   | helper-ready | endpoint-ready | Planned wiring |
-| `add_to_cart`    | helper-ready | endpoint-ready | Planned wiring |
-| `checkout_start` | helper-ready | endpoint-ready | Planned wiring |
-| `lead_submit`    | no           | backend-ready | Not fired by the payment create flow yet |
-| `whatsapp_click` | yes          | yes          | Live |
+| Action | GA4 | Meta Pixel / CAPI |
+| ------ | --- | ----------------- |
+| Allowed storefront page view | Automatic GA4 `page_view` | Pixel `PageView`. No CAPI page view |
+| Product detail view | `view_item` | `ViewContent` helper exists but is not wired to the page |
+| Add item from product detail or increase cart quantity | `add_to_cart` | No live event |
+| Remove cart line or decrease quantity | `remove_from_cart` | No live event |
+| Cart or buy-now checkout with available items and valid configuration | `begin_checkout` | No live event |
+| Completed, settled cart or buy-now payment result | `purchase` | No live event |
+| WhatsApp order click | No GA4 event | Pixel `Lead` and Express CAPI `Lead` share an event ID |
+
+GA4 commerce events use BDT and item IDs, names, effective prices, quantities, and available variant labels. The completed payment result supplies the Order number as `transaction_id`, merchandise total as `value`, and delivery fee as `shipping`. The API includes that payload only for the first settled storefront payment attempt, so a duplicate or exchange completion does not produce a purchase payload. The result page removes its opaque reference before allowing GA4 page-view and purchase tracking. Unresolved or failed results stay excluded.
+
+GA4 events do not write to `analytics_events`. The Express schema still accepts `page_view`, `product_view`, `add_to_cart`, `checkout_start`, `lead_submit`, and `whatsapp_click`, but storefront commerce actions currently call GA4 directly rather than posting those event types to Express. Admin traffic metrics therefore depend on the first-party events actually posted.
 
 ### Deduplication Pattern
 
@@ -582,7 +595,7 @@ Events that need deduplication follow this sequence:
 4. Express writes `analytics_events` and forwards to Meta CAPI
 5. Meta deduplicates on matching `event_id`
 
-Current end-to-end live path: `whatsapp_click`.
+Current browser-to-Express-to-CAPI live path: `whatsapp_click`.
 
 Duplicate analytics `event_id` values are ignored before insert, so retries do not create duplicate MongoDB analytics rows.
 
