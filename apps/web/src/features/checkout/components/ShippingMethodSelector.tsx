@@ -1,5 +1,5 @@
 import { CircleCheck } from "lucide-react";
-import { forwardRef, type KeyboardEvent } from "react";
+import { forwardRef } from "react";
 
 import type { ShippingOption, ShippingZone } from "@/features/checkout/types";
 import { cn } from "@/lib/utils";
@@ -31,36 +31,6 @@ export const ShippingMethodSelector = forwardRef<
   },
   ref,
 ) {
-  function handleRadioKeyDown(
-    event: KeyboardEvent<HTMLInputElement>,
-    index: number,
-  ): void {
-    if (event.key === " ") {
-      event.preventDefault();
-      const currentOption = options[index];
-      if (currentOption) onChange(currentOption.id);
-      return;
-    }
-
-    const direction =
-      event.key === "ArrowDown" || event.key === "ArrowRight"
-        ? 1
-        : event.key === "ArrowUp" || event.key === "ArrowLeft"
-          ? -1
-          : 0;
-    if (direction === 0) return;
-
-    event.preventDefault();
-    const nextIndex = (index + direction + options.length) % options.length;
-    const nextOption = options[nextIndex];
-    if (!nextOption) return;
-    onChange(nextOption.id);
-    event.currentTarget
-      .closest("fieldset")
-      ?.querySelectorAll<HTMLInputElement>('input[type="radio"]')
-      [nextIndex]?.focus();
-  }
-
   return (
     <fieldset
       aria-describedby={errorMessage ? errorId : undefined}
@@ -91,7 +61,6 @@ export const ShippingMethodSelector = forwardRef<
                 name={name}
                 onBlur={onBlur}
                 onChange={() => onChange(option.id)}
-                onKeyDown={(event) => handleRadioKeyDown(event, index)}
                 type="radio"
                 value={option.id}
               />
