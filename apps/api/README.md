@@ -6,19 +6,13 @@ The API is the only data layer for the app. Next.js route handlers are intention
 
 In production, Express trusts only Render's loopback, link-local, and private ingress ranges when resolving forwarded client addresses. Keep this policy narrow; do not replace it with blanket `trust proxy: true`.
 
-## Customer authentication and transactional email
+## Customer authentication
 
 Customer account endpoints are isolated under `/api/customer-auth` and use separate customer access/refresh cookies, JWT secrets, middleware, Customer records, and CustomerSession records. They do not reuse admin identities or sessions. Configure `CUSTOMER_JWT_ACCESS_SECRET` and `CUSTOMER_JWT_REFRESH_SECRET` independently from the admin secrets. Production cookies also use the existing `AUTH_COOKIE_DOMAIN` setting.
 
-Public signup is intentionally not routed until email ownership verification is implemented. The existing signup service is foundation code only and must not be exposed as an active-account endpoint.
+Public signup is intentionally not routed. The existing signup service is foundation code only and must not be exposed as an active-account endpoint.
 
-The transactional-email foundation uses the official Resend Node SDK behind an injected adapter. Configure `RESEND_API_KEY` server-side and set `RESEND_FROM` to a sender on a domain verified in Resend, for example `MINAN <orders@example.com>`. No signup, login, or Order mutation sends email; OTP and Order-event delivery remain later steps.
-
-## Guest Order access
-
-Guest Order access is isolated under `/api/guest-order-access`. It uses a short-lived `guest_order_access_token` cookie and a separate `GUEST_ORDER_JWT_SECRET`; never reuse admin or customer JWT secrets. OTP requests require exactly one Order number and the stored normalized email, return a generic response whether that pair matches or not, and never enumerate Orders by email. Configure `GUEST_ORDER_OTP_TTL_SECONDS` (60–900, default 600), `GUEST_ORDER_OTP_ATTEMPT_LIMIT` (1–10, default 5), and `GUEST_ORDER_OTP_RESEND_COOLDOWN_SECONDS` (30–600, default 60). OTPs are sent through the injected Resend adapter, stored only as hashes, expire automatically, and can be redeemed once.
-
-A verified guest can read only its proof-bound Order through the customer-safe serializer. Claiming requires both the guest proof and a separately authenticated customer session; the atomic claim assigns only that Order, increments `guest_access_version`, and never bulk-claims by email. Customer-owned reads are available under `/api/customer-orders` and query only the authenticated customer ID. The Order-tracking migration remains a separate dry-run deployment gate and is not run by guest access.
+Customer-owned reads are available under `/api/customer-orders` and query only the authenticated customer ID. Public Order tracking is provided by `/api/order-tracking`.
 
 `DELIVERY_FEE_INSIDE_SYLHET_BDT` and `DELIVERY_FEE_OUTSIDE_SYLHET_BDT` are the required positive-integer shipping fee sources. `GET /api/checkout/config` exposes the ordered `inside_sylhet` and `outside_sylhet` options, BDT currency, non-refundable policy, and payment contract v2 with ETag/cache metadata. Zone-aware checkout requests submit the `shipping_zone` ID and `payment_method`. The API resolves and freezes every amount: `bkash_full` charges `overall_order_value`, while `cod` charges only the delivery fee and leaves merchandise due on delivery. Retries preserve the original attempt purpose and amount.
 
@@ -48,7 +42,7 @@ Three dry-run-by-default maintenance commands remain: `migrate:orders` for the l
 
 ## Order tracking backfill deployment
 
-Historical Orders must have a usable `normalized_email` and a positive integer `guest_access_version` before customer Order access may rely on those fields. Existing reads do not run Mongoose validation, but do not remove the checkout email compatibility fallback or deploy customer tracking consumers that assume a completed backfill until this sequence finishes:
+Historical Orders must have a usable `normalized_email` before customer Order access may rely on that field. Existing reads do not run Mongoose validation, but do not remove the checkout email compatibility fallback or deploy customer tracking consumers that assume a completed backfill until this sequence finishes:
 
 1. Run the cwd-independent dry run from the repository root: `npm --workspace @minan/api run migrate:order-tracking`.
 2. Resolve every reported Order with no usable email snapshot. Apply mode refuses to write while any unresolved Order remains.

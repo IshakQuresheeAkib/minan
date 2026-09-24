@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
 import { customerOrderListQuerySchema } from "../schemas/publicOrderTracking.schemas.js";
-import { guestOrderPathParamsSchema } from "../schemas/guestOrderAccess.schemas.js";
+import { z } from "zod";
 import {
   CustomerOrderHistoryError,
   getCustomerOrderHistory,
@@ -50,7 +50,7 @@ export async function customerOrderDetailHandler(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const { orderNumber } = guestOrderPathParamsSchema.parse(req.params);
+    const { orderNumber } = z.object({ orderNumber: z.string().trim().min(1).max(64) }).strict().parse(req.params);
     res.json({ order: await getOwnedCustomerOrder(req.customer.id, orderNumber) });
   } catch (error) {
     handleError(error, res, next);

@@ -51,12 +51,10 @@ describe("Order tracking migration runner", () => {
           _id: "order-1",
           email: "Customer@Example.COM",
           normalized_email: { $exists: false },
-          guest_access_version: { $exists: false },
         },
         update: {
           $set: {
             normalized_email: "customer@example.com",
-            guest_access_version: 1,
           },
         },
       },

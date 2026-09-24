@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleCheck, CircleX, Clock3, RotateCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,8 @@ import { paymentResponseMatchesContract } from "@/features/checkout/lib/paymentC
 import { shouldStripPaymentResultReference } from "@/features/checkout/lib/paymentResultReference";
 import type { PaymentResult, PaymentStartResult } from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
+import { trackGa4Purchase } from "@/lib/analytics/ga4";
+import { enableGa4ForCompletedPaymentResult } from "@/lib/analytics/routes";
 import { useBuyNowStore } from "@/store/buy-now.store";
 import { useCartStore } from "@/store/cart.store";
 
@@ -41,6 +43,7 @@ function heading(state: PaymentResult["state"]): string {
 }
 
 export function PaymentResultClient({ result }: { result: PaymentResult }) {
+  const trackedOrder = useRef<string | null>(null);
   const clearCart = useCartStore((state) => state.clearCart);
   const clearBuyNow = useBuyNowStore((state) => state.clearItem);
   const [retryToken, setRetryToken] = useState(result.retry_token ?? null);
@@ -49,12 +52,22 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
   useEffect(() => {
     if (shouldStripPaymentResultReference(result.state)) {
       window.history.replaceState(null, "", publicRoutes.paymentResult);
+      enableGa4ForCompletedPaymentResult();
     }
     if (result.state !== "completed" || !result.checkout_source) return;
     if (result.checkout_source === "cart") clearCart();
     else clearBuyNow();
     clearCheckoutIdempotencyKey(result.checkout_source);
   }, [clearBuyNow, clearCart, result.checkout_source, result.state]);
+
+  useEffect(() => {
+    if (result.state !== "completed" || !result.order_number || !result.ecommerce) return;
+    if (trackedOrder.current === result.order_number) return;
+    if (trackGa4Purchase({
+      transaction_id: result.order_number,
+      ...result.ecommerce,
+    })) trackedOrder.current = result.order_number;
+  }, [result.state, result.order_number, result.ecommerce]);
 
   function continuePayment(next: PaymentStartResult): void {
     if (
@@ -199,10 +212,10 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
           {result.order_number ? (
             <section className="mt-6 w-full max-w-lg rounded-xl border border-primary/40 bg-primary/10 p-4 text-left">
               <h2 className="font-semibold">Track this order</h2>
-              <p className="mt-1 text-sm leading-6 text-foreground/70">Use an email code to open this order. If you already have a MINAN account, you can sign in after verification to save only this order.</p>
+              <p className="mt-1 text-sm leading-6 text-foreground/70">Track your order anytime using your Order number or the phone number provided at checkout.</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button href={`${publicRoutes.orderTracking}?order=${encodeURIComponent(result.order_number)}`} size="sm">Track order</Button>
-                <Button href={`${publicRoutes.customerLogin}?next=${encodeURIComponent(`${publicRoutes.orderTracking}?order=${encodeURIComponent(result.order_number)}`)}`} size="sm" variant="secondary">Sign in to Orders</Button>
+                <Button href={publicRoutes.orderTracking} size="sm">Track order</Button>
+                <Button href={`${publicRoutes.customerLogin}?next=${encodeURIComponent("/account/orders")}`} size="sm" variant="secondary">Sign in to Orders</Button>
               </div>
             </section>
           ) : null}

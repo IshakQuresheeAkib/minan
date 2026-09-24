@@ -48,13 +48,12 @@ function validOrder() {
 }
 
 describe("Order tracking domain contract", () => {
-  it("defaults new Orders to unclaimed guest access version one", async () => {
+  it("defaults new Orders to no customer owner", async () => {
     const order = new Order(validOrder());
 
     await order.validate();
 
     expect(order.customer_id).toBeNull();
-    expect(order.guest_access_version).toBe(1);
   });
 
   it("indexes ownership and normalized email query paths", () => {

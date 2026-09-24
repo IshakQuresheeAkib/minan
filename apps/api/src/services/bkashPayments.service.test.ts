@@ -791,13 +791,42 @@ describe("bKash Order lifecycle", () => {
   it("resolves a completed result to Order number, fee paid and frozen COD", async () => {
     const completed = attempt("completed");
     completed.result_token_hash = "stored";
+    const settledOrder = {
+      ...order(),
+      settled_payment_attempt_id: completed._id,
+      lines: [{
+        product_id: "product-1", name: "Linen Shirt", unit_price: 700,
+        allocated_order_discount: 200, size: "M", color: "Black", quantity: 2,
+      }],
+    };
     vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(completed) as never);
-    vi.spyOn(Order, "findById").mockResolvedValue(order() as never);
+    vi.spyOn(Order, "findById").mockResolvedValue(settledOrder as never);
 
     const result = await resolvePaymentResult("r".repeat(43));
 
     expect(result).toMatchObject({ state: "completed", order_number: "MN-20260805-0001", fee_paid: 60, cod_due: 1200 });
     expect(result).not.toHaveProperty("amount");
+    expect(result.ecommerce).toEqual({
+      value: 1200,
+      shipping: 60,
+      items: [{ item_id: "product-1", item_name: "Linen Shirt", price: 600, quantity: 2, item_variant: "M / Black" }],
+    });
+    expect(JSON.stringify(result.ecommerce)).not.toContain("MINAN Customer");
+  });
+
+  it("does not expose a purchase for a duplicate completed attempt", async () => {
+    const completed = attempt("completed");
+    const settledOrder = {
+      ...order(),
+      settled_payment_attempt_id: new Types.ObjectId(),
+    };
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(completed) as never);
+    vi.spyOn(Order, "findById").mockResolvedValue(settledOrder as never);
+
+    const result = await resolvePaymentResult("r".repeat(43));
+
+    expect(result.state).toBe("completed");
+    expect(result.ecommerce).toBeUndefined();
   });
 
   it("blocks payment creation and retry during checkout maintenance", async () => {

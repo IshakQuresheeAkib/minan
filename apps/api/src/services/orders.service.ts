@@ -14,7 +14,6 @@ import {
 import { OrderCounter } from "../models/OrderCounter.js";
 import type { PaymentCreateInput } from "../schemas/bkash.schemas.js";
 import { buildVerifiedCartSnapshot } from "./checkoutCart.service.js";
-import { enqueueCustomerOrderNotification } from "./notificationOutbox.service.js";
 
 const BANGLADESH_OFFSET_MS = 6 * 60 * 60 * 1000;
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -250,7 +249,6 @@ export async function createOrLoadCheckoutOrder(
         delivery_fee_status: "awaiting",
         cod_status: cart.total > 0 ? "due" : "not_required",
         revision: 1,
-        guest_access_version: 1,
         activity: [{
           actor_type: "customer",
           event: "order_created",
@@ -264,7 +262,6 @@ export async function createOrLoadCheckoutOrder(
       }], { session });
       const created = orders[0];
       if (!created) throw new AppError("Order creation did not return an Order", 500);
-      await enqueueCustomerOrderNotification(created, "order_created", session);
       return created;
     });
   } catch (error) {

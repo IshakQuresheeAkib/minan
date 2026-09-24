@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import { getProductPriceQuote } from "@/features/products/services/product.service";
 import { useCartStore } from "@/store/cart.store";
 
-export function useCartPricingSync(): void {
+export function useCartPricingSync(onSettled?: () => void): void {
+  const onSettledRef = useRef(onSettled);
+  useEffect(() => {
+    onSettledRef.current = onSettled;
+  }, [onSettled]);
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const applyPricingQuote = useCartStore((state) => state.applyPricingQuote);
@@ -28,12 +32,14 @@ export function useCartPricingSync(): void {
         }
 
         const result = applyPricingQuote(quote);
+        onSettledRef.current?.();
         if (result.priceChanged) {
           toast.info("Your cart was updated with the latest prices.");
         }
       })
       .catch(() => {
         if (!cancelled) {
+          onSettledRef.current?.();
           toast.error("Could not refresh current product prices.");
         }
       });

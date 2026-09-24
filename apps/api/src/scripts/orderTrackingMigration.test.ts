@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { planOrderTrackingMigration } from "./orderTrackingMigration.js";
 
 describe("Order tracking migration plan", () => {
-  it("backfills only normalized email and guest access version", () => {
+  it("backfills only normalized email", () => {
     const plan = planOrderTrackingMigration([{
       _id: "order-1",
       email: "  Customer@Example.COM ",
@@ -15,11 +15,9 @@ describe("Order tracking migration plan", () => {
         match: {
           email: "  Customer@Example.COM ",
           normalized_email: { $exists: false },
-          guest_access_version: { $exists: false },
         },
         set: {
           normalized_email: "customer@example.com",
-          guest_access_version: 1,
         },
       }],
       unresolved: [],
@@ -35,7 +33,6 @@ describe("Order tracking migration plan", () => {
       _id: "order-1",
       email: "Customer@Example.COM",
       normalized_email: "customer@example.com",
-      guest_access_version: 1,
     }]);
 
     expect(plan).toEqual({ changes: [], unresolved: [] });
@@ -46,13 +43,11 @@ describe("Order tracking migration plan", () => {
       _id: "order-1",
       email: "Customer@Example.COM",
       normalized_email: "stale@example.com",
-      guest_access_version: 0,
     }]);
 
     expect(plan.changes[0]?.match).toEqual({
       email: "Customer@Example.COM",
       normalized_email: "stale@example.com",
-      guest_access_version: 0,
     });
   });
 });

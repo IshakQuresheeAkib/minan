@@ -75,7 +75,6 @@ function makeTrackingOrder({
     delivery_fee_status: deliveryFeeStatus,
     cod_status: settledPaymentAttemptId ? "not_required" : "due",
     revision: 1,
-    guest_access_version: 1,
     activity,
     refunds: [],
     financial_review_required: financialReviewRequired,

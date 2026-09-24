@@ -1,6 +1,6 @@
 # MINAN Project Documentation
 
-**Scope:** Marketing-focused commerce platform with Order-based checkout, fulfillment, fee payment, COD, returns, refunds, and exchanges.
+**Scope:** Commerce platform for marketing traffic, with Order-based checkout, fulfillment, fee payments, COD, returns, refunds, and exchanges.
 **Market:** Bangladesh, mobile-first, 3G/4G, Facebook Ads.
 **Supabase:** Not used.
 **Database:** Data persistence is MongoDB Atlas through the Express API.
@@ -26,7 +26,7 @@
 - Order creation and auditable fulfillment through first-party MongoDB data
 - Meta Pixel + CAPI infrastructure with event deduplication
 - Authenticated full-access admin dashboard
-- Supports future e-commerce migration
+- Supports a future e-commerce migration
 - Facebook custom audience retargeting
 
 ---
@@ -39,13 +39,13 @@
 - TypeScript strict mode everywhere: no `any`, no `as unknown` casting.
 - No Next.js Route Handlers under `app/api/` for data operations. `app/api/revalidate/route.ts` is allowed for cache invalidation only.
 - No Next.js Server Actions: `*.actions.ts` files are plain async functions that call Express.
-- Next.js rewrites `/api/:path*` to `API_PROXY_TARGET`; do not add data route handlers to replace this.
+- Next.js rewrites `/api/:path*` to `API_PROXY_TARGET`. Do not add data route handlers to replace this.
 - Use GSAP for orchestrated page and component motion. CSS/Tailwind transitions and keyframes are allowed for loading states, progress indicators, shadcn/ui state transitions, and small interaction feedback. Do not use or suggest Framer Motion.
 - Zustand only for global client state.
 - React Hook Form + Zod for forms.
 - Do not target Radix UI internal DOM nodes with GSAP.
-- Prefer Tailwind v4 utilities for component styling. Global CSS is reserved for theme tokens, base rules, browser-normalization helpers, and shared keyframes. Inline styles are allowed only for calculated runtime values, dynamic color swatches, or third-party component CSS-variable configuration; do not introduce CSS-in-JS libraries.
-- Frontend Zod schemas live in `features/<domain>/schemas/`; backend keeps independent equivalent schemas.
+- Prefer Tailwind v4 utilities for component styling. Global CSS is reserved for theme tokens, base rules, browser-normalization helpers, and shared keyframes. Inline styles are allowed only for calculated runtime values, dynamic color swatches, or third-party component CSS-variable configuration. Do not introduce CSS-in-JS libraries.
+- Frontend Zod schemas live in `features/<domain>/schemas/`. The backend keeps independent equivalent schemas.
 - `next/image` for images. Never raw `<img>` tags.
 - `next/link` for internal routes. Never raw `<a>` tags for internal navigation.
 - Cloudinary URLs are the production image-storage target. Seed data may use temporary remote placeholder URLs.
@@ -86,7 +86,6 @@
 | express-rate-limit | 8.x                            |
 | helmet             | 8.x                            |
 | Zod                | 4.x                            |
-| Resend             | 6.x, server-only transactional email adapter |
 | Vitest             | 4.x, API test runner           |
 
 ### Infrastructure
@@ -98,7 +97,7 @@
 | MongoDB Atlas     | Managed MongoDB 8.3                       | Target             |
 | Cloudinary        | Image storage + CDN                       | Implemented        |
 | Meta Pixel + CAPI | Client helpers + server CAPI              | Partial            |
-| GA4               | Traffic + behavior                        | Planned            |
+| GA4               | Traffic + behavior                        | Partial            |
 | Microsoft Clarity | Session recordings + heatmaps             | Planned            |
 | Vercel Speed Insights | Frontend performance telemetry         | Implemented        |
 
@@ -110,24 +109,26 @@
 Browser -> Next.js (Vercel) -> Express API (Render) -> MongoDB Atlas
 ```
 
-### Auth Cookie Strategy - Cross-Domain Requirement
+### Production auth-cookie deployments
 
-Both frontend and backend must run on subdomains of the same parent domain so cookies are readable by `proxy.ts`:
+The normal browser flow calls same-origin `/api/*` URLs. Next.js rewrites those requests to `API_PROXY_TARGET`, so the browser does not need the Vercel and Render hosts to share a parent domain. With the default deployment domains, leave `AUTH_COOKIE_DOMAIN` unset: Express then emits host-only cookies for the frontend origin, and `proxy.ts` can read the admin cookies on page requests.
+
+Custom domains on a shared parent domain are an optional production arrangement when cookies must deliberately be shared between frontend and API subdomains, or when the browser calls the API directly:
 
 | Service           | Domain          |
 | ----------------- | --------------- |
 | Frontend (Vercel) | `app.minan.com` |
 | Backend (Render)  | `api.minan.com` |
 
-Express sets auth cookies with `AUTH_COOKIE_DOMAIN=.minan.com` in production. This lets the browser send the access token cookie on page requests to `app.minan.com`, so `proxy.ts` can verify admin auth before protected pages render.
+In that arrangement, Express sets `AUTH_COOKIE_DOMAIN=.minan.com`. The browser can then send the access-token cookie with page requests to `app.minan.com`, which lets `proxy.ts` verify admin access before protected pages render.
 
-**Production cookie auth requires custom domains.** Admin, customer, and guest-access cookies will not work correctly across default `*.vercel.app` and `*.onrender.com` domains because they do not share a parent domain.
+**Do not set `AUTH_COOKIE_DOMAIN=.minan.com` while the frontend is served from `*.vercel.app`.** Browsers reject that cookie because its `Domain` attribute does not match the response host. This breaks persisted admin and customer sessions (including refresh recovery). The default `*.vercel.app` and `*.onrender.com` domains cannot share a single parent-domain cookie, but that is not required for the rewrite-based flow above.
 
 ### Request Layers
 
 | Layer              | Role                                                                   |
 | ------------------ | ---------------------------------------------------------------------- |
-| `proxy.ts`         | Verifies the access-token cookie; redirects or defers refresh-cookie recovery to the admin provider |
+| `proxy.ts`         | Verifies the access-token cookie. Redirects or defers refresh-cookie recovery to the admin provider |
 | Next.js Client     | Sends the applicable in-memory admin or customer Bearer token on API calls |
 | Next.js Rewrites   | Proxies `/api/:path*` to `API_PROXY_TARGET` from `next.config.ts`      |
 | Next.js Revalidate | Accepts server-to-server storefront cache invalidation at `/api/revalidate` |
@@ -137,7 +138,7 @@ Express sets auth cookies with `AUTH_COOKIE_DOMAIN=.minan.com` in production. Th
 
 ### `proxy.ts`
 
-`proxy.ts` is placed at `apps/web/src/proxy.ts` and exports the standard Next.js proxy function plus static `config.matcher`. It does not need registration in `next.config.ts`. A missing, expired, or invalid access token is allowed through only when a refresh-token cookie exists; `AdminSessionProvider` then attempts the refresh before rendering the protected admin content. Without a recoverable refresh-token cookie, the proxy redirects to `/admin/login`.
+`proxy.ts` lives at `apps/web/src/proxy.ts` and exports the standard Next.js proxy function and static `config.matcher`. It needs no registration in `next.config.ts`. When the access token is missing, expired, or invalid, the proxy lets the request through only if a refresh-token cookie exists. `AdminSessionProvider` attempts recovery before protected admin content renders. Otherwise, the proxy redirects to `/admin/login`.
 
 ### Admin Boot Flow
 
@@ -152,7 +153,7 @@ If refresh fails, the client clears Zustand and redirects to `/admin/login`.
 
 | Option        | Value                                            |
 | ------------- | ------------------------------------------------ |
-| `origin`      | Comma-separated `ALLOWED_ORIGINS`; requests without an Origin are allowed |
+| `origin`      | Comma-separated `ALLOWED_ORIGINS`. Requests without an Origin are allowed |
 | `credentials` | `true`                                           |
 
 Never use `*` for CORS origin.
@@ -161,22 +162,21 @@ Never use `*` for CORS origin.
 
 ## 6. Authentication
 
-MINAN has deliberately separate admin and customer identity systems. They use distinct models, JWT signing-key configuration, cookies, routes, middleware, and session stores; neither accepts the other actor's tokens. Guest Order access is a separate, short-lived, proof-bound capability rather than an account session.
+MINAN keeps admin and customer identity systems separate. Each has its own models, JWT signing-key configuration, cookies, routes, middleware, and session stores. Neither accepts the other actor's tokens.
 
-**Pattern:** Access and refresh JWTs with server-side refresh-token hash rotation for admins and customers. Guest Order access uses a one-Order JWT issued only after email OTP verification.
+**Pattern:** Admin and customer access and refresh JWTs use server-side refresh-token hash rotation.
 
 ### Token Storage
 
 | Actor / token | Storage | TTL |
 | ------------- | ------- | --- |
-| Admin access / refresh | httpOnly cookies; access token also in Zustand memory; refresh hash on `admin_users` | 15 min / 7 days |
-| Customer access / refresh | Separate `customer_*` httpOnly cookies; refresh hash in `customer_sessions` | 15 min / 7 days |
-| Guest Order access | `guest_order_access_token` httpOnly cookie or Bearer token; proof is bound to one Order, its normalized email, challenge, and access version | 15 min |
+| Admin access / refresh | httpOnly cookies. Access token also in Zustand memory. Refresh hash on `admin_users` | 15 min / 7 days |
+| Customer access / refresh | Separate `customer_*` httpOnly cookies. Refresh hash in `customer_sessions` | 15 min / 7 days |
 
 - Admin cookie access token -> `proxy.ts` server-side admin guard
 - Admin Zustand access token -> `Authorization: Bearer` header for Express admin API calls
-- Customer access may be supplied through its separate cookie or Bearer token; the middleware also confirms the active Customer and CustomerSession
-- Refresh tokens are stored only as hashes; the immediately preceding hash supports bounded concurrent-rotation handling
+- Customer access may be supplied through its separate cookie or Bearer token. The middleware also confirms the active Customer and CustomerSession.
+- Refresh tokens are stored only as hashes. The immediately preceding hash supports bounded concurrent-rotation handling.
 
 ### Cookie Config
 
@@ -195,21 +195,19 @@ Local development uses `secure: false`, `sameSite: "lax"`, and no cookie domain.
 1. `POST /api/auth/login` -> argon2 verify -> issue access + refresh cookies and return access token in the response body
 2. Express stores `argon2.hash(refreshToken)` on the admin user and clears `previous_refresh_token_hash`
 3. Next.js stores access token in `auth.store.ts`
-4. `proxy.ts` verifies the access-token cookie; when only a refresh-token cookie is present, it allows `AdminSessionProvider` to attempt recovery before protected content renders
+4. `proxy.ts` verifies the access-token cookie. When only a refresh-token cookie is present, it allows `AdminSessionProvider` to attempt recovery before protected content renders.
 5. API calls send `Authorization: Bearer <accessToken>` from Zustand
 6. 401 -> `POST /api/auth/refresh` -> Express atomically rotates refresh-token hash and returns a new access token
 7. Concurrent refresh with the immediately previous token returns `409 Concurrent token rotation`
 8. `POST /api/auth/logout` clears cookies and nulls refresh-token hashes
 
-Only the refresh token whose hash matches `refresh_token_hash` is accepted, with a narrow previous-token check for concurrent rotation. Replay of older refresh JWTs fails after rotation. Deactivated admins fail login and refresh. Because access tokens are stateless, an access token issued before deactivation can remain valid until its 15-minute expiry.
+Only a refresh token whose hash matches `refresh_token_hash` is accepted. A narrow previous-token check handles concurrent rotation. Older refresh JWTs fail after rotation. Deactivated admins cannot log in or refresh. Access tokens are stateless, so one issued before deactivation can remain valid for up to 15 minutes.
 
 ### Customer Auth and Order Access
 
-- `/api/customer-auth` currently exposes login, refresh, logout, and authenticated `me` endpoints. Customer signup remains intentionally unavailable until mailbox ownership verification is complete.
+- `/api/customer-auth` currently provides login, refresh, logout, and authenticated `me` endpoints. Customer signup waits for mailbox-ownership verification.
 - Customer JWTs carry the `customer` actor and `minan-customer` audience, plus customer ID, email, session ID, and session version. Customer auth has separate identities, credentials, cookies, routes, and middleware from admin auth.
-- `/api/guest-order-access/otp/request` accepts exactly one Order number and email, always returns a generic accepted response, and sends a code only when the pair matches. OTPs are hashed, time-limited, single-use, rate-limited, and sent by the server-only Resend adapter.
-- A verified guest may read only the proof-bound Order through the customer-safe serializer. A separately authenticated customer may claim that exact unowned Order with the proof; the atomic claim increments `guest_access_version` and never bulk-links historical Orders by email.
-- `/api/customer-orders/:orderNumber` returns only an Order whose `customer_id` matches the authenticated customer. The public `/orders` tracking experience supports guest OTP access and existing-customer order access; `/account/login` signs existing customers in.
+- `/api/customer-orders/:orderNumber` returns an Order only when its `customer_id` matches the authenticated customer. The public `/orders` tracking experience supports public lookup and existing-customer access. `/account/login` signs existing customers in.
 
 ### CSRF Mitigation
 
@@ -296,21 +294,20 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `name`                    | String   | required |
 | `phone_number`            | String   | required, BD format |
 | `email`                   | String   | required |
-| `normalized_email`        | String   | required normalized email, indexed; used for one-Order guest proof only |
+| `normalized_email`        | String   | required canonical email snapshot, indexed and compared when matching an Order to a checkout retry |
 | `address`                 | String   | required |
 | `customer_notes`          | String   | optional customer checkout note |
 | `order_number`            | String   | unique `MN-YYYYMMDD-####` allocated by an atomic daily counter |
 | `lines`                   | Array    | frozen product/variant/price/discount lines with return and credit accounting |
 | `status`                  | String   | `new | confirmed | processing | shipped | delivered | on_hold | cancelled | returned | exchanged` |
 | `checkout_source`         | String   | `cart | buy_now | exchange` |
-| `shipping_zone`           | String   | optional `inside_sylhet` or `outside_sylhet`; historical/exchange Orders remain unspecified |
-| `payment_method`          | String   | optional `bkash_full | cod`; absent on historical/exchange Orders |
-| `settled_payment_attempt_id` | ObjectId | first successfully reconciled current-checkout attempt; prevents cross-purpose overwrite |
+| `shipping_zone`           | String   | optional `inside_sylhet` or `outside_sylhet`. Historical/exchange Orders remain unspecified |
+| `payment_method`          | String   | optional `bkash_full | cod`. Absent on historical/exchange Orders |
+| `settled_payment_attempt_id` | ObjectId | first successfully reconciled current-checkout attempt. Prevents cross-purpose overwrite |
 | `checkout_idempotency_hash` | String | unique, sparse, server-only |
-| `customer_id`             | ObjectId / null | optional Customer ownership; guest Orders remain unowned until an exact proof-based claim |
-| `guest_access_version`    | Number   | positive access-proof revision; increments when an Order is claimed |
+| `customer_id`             | ObjectId / null | optional Customer ownership. Guest Orders remain unowned until an exact proof-based claim |
 | `expected_delivery_date`  | Date / null | UTC-midnight estimated delivery date, managed by staff |
-| `customer_note` (activity timeline) | String / null | optional admin-authored customer-visible note on an `OrderActivity` entry; surfaced only on that customer timeline entry while internal activity remains private |
+| `customer_note` (activity timeline) | String / null | optional admin-authored customer-visible note on an `OrderActivity` entry. It appears only on that customer timeline entry. Internal activity remains private |
 | `financials`              | Object   | integer-BDT merchandise, discount, fee, COD, paid, refunded, and exchange-credit snapshots |
 | `delivery_fee_status`     | String   | independent fee lifecycle |
 | `cod_status`              | String   | independent COD lifecycle |
@@ -318,27 +315,19 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `activity` / `refunds`    | Array    | append-only operational audit records |
 | `createdAt` / `updatedAt` | Date     | timestamps |
 
-The legacy `leads` collection remains unchanged for one compatibility release and is a migration rollback source only. New checkouts are not dual-written.
+The legacy `leads` collection stays unchanged for one compatibility release and is only a migration rollback source. New checkouts write to Orders only.
 
 ### `customers` and `customer_sessions`
 
-`customers` holds the customer email, normalized-email unique index, argon2 password hash, active flag, and session version. `customer_sessions` holds a Customer reference, session version, refresh-token hash, immediate previous hash, expiry, rotation time, and revocation time. `customers.toJSON` excludes the password hash, normalized email, and session version; `customer_sessions.toJSON` excludes both refresh-token hashes. The session collection has TTL cleanup on `expires_at` and an active-session lookup index.
-
-### `verification_challenges`
-
-Guest access challenges are bound to one `order_id`, normalized email, and the required `purpose: guest_order_access` discriminator. Each record stores only a hashed OTP, attempt count/limit, expiry, one-time consumption/revocation state, and resend availability. TTL removes expired challenges. They are not reusable customer-login or account-verification records.
-
-### `notification_outboxes`
-
-The notification outbox reliably queues customer-safe transactional-email events: `order_created`, `status_confirmed`, `status_shipped`, `status_delivered`, and `status_cancelled`. A record stores the Order reference, recipient email, event type, unique dedupe key, serialized customer-safe Order snapshot, delivery status, retry schedule/count, processing lease, provider message ID, and a bounded error message. The server processor leases up to 100 due records per run, runs every minute, and marks an event failed after three delivery attempts. Actual delivery still depends on valid Resend credentials and sender-domain verification.
+`customers` stores the customer email, normalized-email unique index, argon2 password hash, active flag, and session version. `customer_sessions` stores a Customer reference, session version, refresh-token hash, immediate previous hash, expiry, rotation time, and revocation time. `customers.toJSON` removes the password hash, normalized email, and session version. `customer_sessions.toJSON` removes both refresh-token hashes. The session collection has TTL cleanup on `expires_at` and an active-session lookup index.
 
 ### `payment_attempts`
 
-Each checkout attempt is linked through `order_id` with `payment_purpose: delivery_fee | order_total`. It stores the frozen purpose and exact amount, Order-number invoice, provider result, and hashed short-lived result/retry references. `lead_id` remains nullable only for the compatibility release; migrated attempts are classified `legacy_full_order`. Retries preserve the prior purpose and amount and never reprice merchandise.
+Each checkout attempt links to its Order through `order_id` and records `payment_purpose: delivery_fee | order_total`. It stores the frozen purpose and amount, the Order-number invoice, provider result, and hashed short-lived result and retry references. `lead_id` remains nullable only for the compatibility release. Migrated attempts use `legacy_full_order`. Retries keep their original purpose and amount and never reprice merchandise.
 
 ### `bkash_tokens`
 
-Private singleton cache for the bKash token grant. It is shared across Render cold starts; secrets and token values are never serialized to storefront or admin responses.
+This private singleton cache holds the bKash token grant. It survives Render cold starts. Secrets and token values never appear in storefront or admin responses.
 
 ### `analytics_events`
 
@@ -380,14 +369,14 @@ Private singleton cache for the bKash token grant. It is shared across Render co
 | `pending_cleanup_urls`     | [String] | removed managed images retained until storefront sync succeeds |
 | `createdAt` / `updatedAt`  | Date     | timestamps |
 
-The storefront uses one generic screen-reader-only promotional heading for the hero carousel. Headlines are not stored or managed per banner.
+The storefront uses one generic, screen-reader-only promotional heading for the hero carousel. Banner records do not store or manage headlines.
 
 ### Mongoose Patterns
 
 - `timestamps: true` on all schemas except `analytics_events`
-- Products support reversible deactivation through `is_active` and explicit admin-only permanent deletion; categories, subcategories, and admins remain soft-delete-only
+- Products support reversible deactivation through `is_active` and explicit admin-only permanent deletion. Categories, subcategories, and admins remain soft-delete-only.
 - Product queries populate `category_id` and `subcategory_id` when their related data is needed
-- Indexes: product/category/subcategory `slug`, product `subcategory_id`, subcategory `{ category_id, display_order, name }`, admin `email`, Customer `normalized_email`, CustomerSession expiry/active-session indexes, Order `{ customer_id, createdAt }`, NotificationOutbox `dedupe_key` and `{ status, available_at, locked_at }`, analytics `{ event_type, createdAt }`, analytics `event_id`
+- Indexes: product/category/subcategory `slug`, product `subcategory_id`, subcategory `{ category_id, display_order, name }`, admin `email`, Customer `normalized_email`, CustomerSession expiry/active-session indexes, Order `{ customer_id, createdAt }`, analytics `{ event_type, createdAt }`, analytics `event_id`
 - `pre("save")` on admin users hashes passwords
 - `toJSON` transform on admin users strips password and refresh-token hashes
 
@@ -402,9 +391,9 @@ The storefront uses one generic screen-reader-only promotional heading for the h
 | GET    | `/api/products`       | List active products. Query params: `category`, `subcategory`, `color`, `size`, `search`, `minPrice`, `maxPrice`, `sort`, `page`, `limit`, `exclude` |
 | GET    | `/api/products/home`  | Active categories with up to seven newest active products per category and group totals |
 | GET    | `/api/products/filters` | Active catalog filter options: categories with referenced subcategories, colors, sizes, and effective min/max price |
-| POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs; duplicates are deduplicated |
+| POST   | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 submitted product IDs. Duplicates are deduplicated |
 | GET    | `/api/products/:slug` | Single active product by slug |
-| GET    | `/api/home-banners`   | Ordered homepage banners with responsive images and image descriptions; empty until the singleton seed exists |
+| GET    | `/api/home-banners`   | Ordered homepage banners with responsive images and image descriptions. Empty until the singleton seed exists |
 | GET    | `/api/checkout/config` | Cacheable backend-authoritative ordered shipping options, BDT fees, and non-refundable policy |
 | POST   | `/api/bkash/payments` | Create/idempotently retrieve an Order and start its frozen delivery-fee attempt |
 | GET    | `/api/bkash/callback` | Verify and reconcile the provider redirect, including valid late completions |
@@ -419,10 +408,6 @@ The storefront uses one generic screen-reader-only promotional heading for the h
 | POST   | `/api/customer-auth/refresh` | Rotate a customer session, CSRF-header protected, rate-limited 30 req/15 min/IP |
 | POST   | `/api/customer-auth/logout` | Clear customer cookies and revoke the current session, CSRF-header protected |
 | GET    | `/api/customer-auth/me` | Current authenticated customer, allowlisted response |
-| POST   | `/api/guest-order-access/otp/request` | Request an email OTP for one Order number/email pair; generic response, CSRF-header protected, rate-limited 5 req/15 min/IP |
-| POST   | `/api/guest-order-access/otp/verify` | Verify a one-time guest Order OTP and issue short-lived access proof, CSRF-header protected, rate-limited 10 req/15 min/IP |
-| GET    | `/api/guest-order-access/orders/:orderNumber` | Read only the Order bound to valid guest proof using the customer-safe serializer |
-| POST   | `/api/guest-order-access/orders/:orderNumber/claim` | Claim that exact unowned Order for an authenticated customer with valid guest proof |
 | GET    | `/api/customer-orders/:orderNumber` | Read one Order owned by the authenticated customer |
 
 ### Health
@@ -431,7 +416,7 @@ The storefront uses one generic screen-reader-only promotional heading for the h
 | ------ | --------- | ----------- |
 | GET    | `/health` | API health check with MongoDB connection status. Returns `200 ok` or `503 degraded` |
 
-There is no public `GET /api/categories` route. Homepage category navigation comes from `/api/products/home`; catalog categories and referenced subcategories come from `/api/products/filters`.
+There is no public `GET /api/categories` route. Homepage category navigation comes from `/api/products/home`. Catalog categories and referenced subcategories come from `/api/products/filters`.
 
 The `subcategory` product filter is applied only when at least one `category` filter is also selected. Requested subcategories must be active and belong to the selected categories.
 
@@ -442,7 +427,7 @@ The `subcategory` product filter is applied only when at least one `category` fi
 | GET    | `/api/admin/dashboard`                 | admin | Order workflow plus product/category view and traffic metrics |
 | GET    | `/api/admin/orders`                    | admin | Paginated search/filter summaries |
 | GET    | `/api/admin/orders/changes`            | admin | Opaque-cursor new-Order polling |
-| GET    | `/api/admin/orders/export`             | admin | Filtered, injection-safe UTF-8 CSV; 10,000-row cap |
+| GET    | `/api/admin/orders/export`             | admin | Filtered, injection-safe UTF-8 CSV. 10,000-row cap |
 | GET    | `/api/admin/orders/:id`                | admin | Full Order, activity, refunds, and payment attempts |
 | PATCH/POST | `/api/admin/orders/:id/*`          | admin | Revision-safe customer/items/workflow/courier/COD/notes/duplicates/returns/refunds/exchanges/payment-recheck operations |
 | GET    | `/api/admin/products`                  | admin | List all products, including inactive. Query params: `search`, `category_id`, `status`, `page`, `limit` |
@@ -467,11 +452,11 @@ The `subcategory` product filter is applied only when at least one `category` fi
 | GET    | `/api/admin/uploads/signature`         | admin | Get Cloudinary signed upload params |
 | POST   | `/api/admin/uploads/delete`            | admin | Delete unreferenced managed Cloudinary uploads by public ID |
 | GET    | `/api/admin/home-banners`              | admin | Get the versioned ordered banner set and sync state |
-| POST   | `/api/admin/home-banners`              | admin | Append a banner with an image description, responsive images, and `expected_revision`; maximum five |
+| POST   | `/api/admin/home-banners`              | admin | Append a banner with an image description, responsive images, and `expected_revision`. Maximum five |
 | PATCH  | `/api/admin/home-banners/reorder`      | admin | Replace the complete order using `expected_revision` |
 | POST   | `/api/admin/home-banners/sync`         | admin | Retry storefront invalidation and deferred media cleanup |
 | PATCH  | `/api/admin/home-banners/:id`          | admin | Update the image description or one/both responsive images using `expected_revision` |
-| DELETE | `/api/admin/home-banners/:id`          | admin | Remove a banner using `expected_revision`; the final banner is protected |
+| DELETE | `/api/admin/home-banners/:id`          | admin | Remove a banner using `expected_revision`. The final banner is protected |
 
 Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
@@ -487,8 +472,8 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `/cart`             | Cart                | Public            |
 | `/checkout`         | Checkout            | Public            |
 | `/checkout/buy-now` | Buy-now Checkout    | Public            |
-| `/orders`           | Order Tracking      | Public; guest OTP or authenticated customer access |
-| `/account/login`    | Customer Login      | Public; existing customer accounts |
+| `/orders`           | Order Tracking      | Public lookup or authenticated customer access |
+| `/account/login`    | Customer Login      | Public. Existing customer accounts |
 | `/admin/login`      | Admin Login         | Public            |
 | `/admin`            | Dashboard           | Admin             |
 | `/admin/products`   | Product Management  | Admin             |
@@ -501,7 +486,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `/admin/leads`      | Redirect to Orders  | Admin             |
 | `/admin/admins`     | Admin Management    | Admin             |
 
-`/admin/login` lives under the public route group at `app/(public)/admin/login/page.tsx`. Protected admin routes live under `app/(admin)/admin/`.
+`/admin/login` belongs to the public route group at `app/(public)/admin/login/page.tsx`. Protected admin routes belong to `app/(admin)/admin/`.
 
 ---
 
@@ -518,9 +503,9 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
 - `features/products/services/product.cache.ts` owns the storefront Cache Component functions. They use `"use cache"`, the shared `catalog` tag, and the `days` cache-life profile.
 - `next.config.ts` rewrites `/api/:path*` to `API_PROXY_TARGET`, defaulting to `http://localhost:3001`.
-- `lib/analytics/pixel.ts` contains client-side Meta Pixel helpers only. CAPI is Express-only.
+- `components/analytics/MetaPixel.tsx` is mounted by the root layout; it initializes the client-side Pixel when configured and sends `PageView` on pathname changes. `lib/analytics/pixel.ts` contains the Pixel helpers. CAPI is Express-only.
 - `store/auth.store.ts` keeps the access token in memory only.
-- `features/order-tracking/` owns customer and guest tracking UI. `store/customer-auth.store.ts` keeps the customer session, including its access token, in memory only; refresh recovery uses the separate httpOnly customer cookie.
+- `features/order-tracking/` owns public Order lookup and authenticated customer tracking UI. `store/customer-auth.store.ts` keeps the customer session, including its access token, in memory only. Refresh recovery uses the separate httpOnly customer cookie.
 - `store/cart.store.ts` keeps cart items in Zustand and persists selected cart lines to browser `localStorage`.
 
 ---
@@ -533,13 +518,13 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `phone_number` | text     | yes      | BD regex `/^(?:\+?88)?01[3-9]\d{8}$/` |
 | `email`        | email    | yes      | valid email |
 | `address`      | textarea | yes      | min 8, max 400 |
-| `shipping_zone` | radio   | yes      | `inside_sylhet` or `outside_sylhet`; the browser never submits a fee amount |
-| `payment_method` | radio  | yes      | `bkash_full` or `cod`; neither is preselected under payment contract v2 |
+| `shipping_zone` | radio   | yes      | `inside_sylhet` or `outside_sylhet`. The browser never submits a fee amount |
+| `payment_method` | radio  | yes      | `bkash_full` or `cod`. Neither is preselected under payment contract v2 |
 | `notes`        | textarea | no       | max 500 |
 
-`GET /api/checkout/config` exposes `inside_sylhet` and `outside_sylhet` in display order with backend-authoritative positive integer fees, BDT currency, the non-refundable policy, payment contract v2 (`bkash_full`, `cod`), and ETag/revalidation metadata. During the compatibility release it also exposes the legacy `delivery_fee`; absence of `payment_contract` keeps the previous fee-only COD storefront behavior. Checkout is disabled when the applicable fee contract is unavailable or invalid. Shipping and v2 payment choices start unselected.
+`GET /api/checkout/config` returns `inside_sylhet` and `outside_sylhet` in display order. The backend sets positive-integer fees, BDT currency, the non-refundable policy, payment contract v2 (`bkash_full`, `cod`), and ETag/revalidation metadata. During the compatibility release it also returns the legacy `delivery_fee`. Without `payment_contract`, the storefront keeps its previous fee-only COD behavior. Checkout stays disabled when the relevant fee contract is unavailable or invalid. Shipping and v2 payment choices begin unselected.
 
-`POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. It accepts `payment_method: bkash_full | cod`; missing values temporarily default to `cod` for the previous storefront. It verifies products, variants, and prices server-side, creates one frozen Order per idempotency key, and charges either `overall_order_value` for full payment or `delivery_fee` for COD. The payment method is excluded from the browser idempotency fingerprint so a confirmed-terminal switch reuses the Order, while active or uncertain attempts block switching. Full payment sets online-paid merchandise to the frozen merchandise total and COD due to zero; COD completion pays only the fee. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Retries preserve the original purpose and exact amount. First completion wins atomically; a late second completion triggers financial review instead of overwriting settled balances. Callback Execute/query recovery, signature checks, amount/currency/invoice verification, result tokens, rate limits, and late completion reconciliation remain mandatory. Cart state clears only after a completed result resolves.
+`POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. It accepts `payment_method: bkash_full | cod`. Missing values temporarily use `cod` for the previous storefront. The server verifies products, variants, and prices, creates one frozen Order per idempotency key, and charges `overall_order_value` for full payment or `delivery_fee` for COD. The payment method is outside the browser idempotency fingerprint. A confirmed-terminal switch reuses the Order, while active or uncertain attempts block switching. Full payment sets online-paid merchandise to the frozen merchandise total and COD due to zero. COD completion pays the fee only. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Retries keep the original purpose and exact amount. The first completion wins atomically. A late second completion triggers financial review without replacing settled balances. Callback Execute/query recovery, signature checks, amount, currency, invoice verification, result tokens, rate limits, and late-completion reconciliation are mandatory. The cart clears only after a completed result resolves.
 
 ---
 
@@ -550,7 +535,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - WhatsApp ordering from PDP with pre-filled message and `/api/whatsapp-click`
 - Cart stored in Zustand and persisted to browser `localStorage`
 - Product catalog supports multi-select category/subcategory/color/size filters, effective min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
-- Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`; storefront cards, PDP, cart, buy-now, and frozen Order lines use the effective discounted price.
+- Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`. Storefront cards, PDP, cart, buy-now, and frozen Order lines use the effective discounted price.
 - Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
 - Checkout creates one MongoDB Order with separate auditable full-Order or delivery-fee payment attempts
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the frozen Order snapshot
@@ -558,21 +543,21 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - Versioned homepage banner management with 16:9 desktop and 4:5 mobile Cloudinary assets, atomic ordering, and deferred cleanup
 - Dashboard aggregates Bangladesh-local Order workflow metrics, top viewed product/category, and traffic sources
 - Vercel Speed Insights is mounted in the root frontend layout
-- Customer and guest order tracking use the customer-safe Order serializer; qualifying Order events enqueue transactional emails through the notification outbox.
+- Public and customer order tracking use the customer-safe Order serializer.
 
 ---
 
 ## 14. Analytics & Tracking
 
-Analytics is partially implemented. Keep current/live behavior separate from planned wiring.
+Analytics has partial coverage. The tables separate live behavior from planned wiring.
 
 ### Tool Matrix
 
 | Tool               | Fires From     | Role                                      | Status |
 | ------------------ | -------------- | ----------------------------------------- | ------ |
-| Meta Pixel helpers | Next.js client | `fbq("track")` helpers                    | Partial - helpers exist, no global bootstrap script |
+| Meta Pixel         | Next.js root layout | When configured, global client bootstrap and `PageView` on pathname changes | Implemented; other event wiring is partial |
 | Meta CAPI          | Express        | Server-side mapped events                 | Implemented for events posted to analytics endpoints |
-| GA4                | Next.js client | Traffic and conversion analytics          | Planned |
+| GA4                | Next.js client | Traffic and conversion analytics          | Partial - global tag and automatic page views |
 | Microsoft Clarity  | Next.js client | Session recordings and heatmaps           | Planned |
 | `analytics_events` | Express        | First-party MongoDB analytics log         | Implemented |
 
@@ -580,7 +565,7 @@ Analytics is partially implemented. Keep current/live behavior separate from pla
 
 | Event            | Client Pixel | Express CAPI | Status |
 | ---------------- | ------------ | ------------ | ------ |
-| `page_view`      | planned      | no           | Planned |
+| `page_view`      | yes          | no           | Live in the client Pixel |
 | `product_view`   | helper-ready | endpoint-ready | Planned wiring |
 | `add_to_cart`    | helper-ready | endpoint-ready | Planned wiring |
 | `checkout_start` | helper-ready | endpoint-ready | Planned wiring |
@@ -589,7 +574,7 @@ Analytics is partially implemented. Keep current/live behavior separate from pla
 
 ### Deduplication Pattern
 
-For deduped events:
+Events that need deduplication follow this sequence:
 
 1. Client generates `event_id` with `crypto.randomUUID()`
 2. Client fires Meta Pixel with `event_id`
@@ -625,16 +610,16 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | CSRF             | `X-Requested-With: XMLHttpRequest` on state-changing requests |
 | Password storage | argon2 |
 | Refresh replay   | server-side refresh-token hash rotation |
-| Token expiry     | Access: 15 min; Refresh: 7 days |
-| Customer/admin separation | Distinct models, session stores, JWT audiences, cookie names, routes, and middleware; configure signing keys independently |
-| Guest Order authorization | One-Order/email/challenge/version-bound proof after hashed, single-use OTP; no email-based enumeration or bulk ownership linking |
-| Brute force      | Rate-limit admin/customer login and guest OTP request/verify routes |
+| Token expiry     | Access: 15 min. Refresh: 7 days |
+| Customer/admin separation | Distinct models, session stores, JWT audiences, cookie names, routes, and middleware. Configure signing keys independently |
+| Public Order lookup | Rate-limited lookup by Order number or phone; identifier matching is not ownership proof. Customer Order reads require an authenticated matching `customer_id` |
+| Brute force      | Rate-limit admin and customer login routes |
 | Checkout spam    | layered IP and idempotency-key limits on `/api/bkash/payments` |
-| Proxy spoofing   | In production trust only `loopback`, `linklocal`, and `uniquelocal` address ranges, stopping at the first public hop; never use blanket `trust proxy: true` |
+| Proxy spoofing   | In production trust only `loopback`, `linklocal`, and `uniquelocal` address ranges, stopping at the first public hop. Never use blanket `trust proxy: true` |
 | HTTP headers     | `helmet` |
 | CORS             | specific `ALLOWED_ORIGINS`, credentials enabled, never `*` |
 | Password leak    | Mongoose `toJSON` strips `password` |
-| Privilege escalation | Single admin access model; never accept role or privilege values from request body |
+| Privilege escalation | Single admin access model. Never accept role or privilege values from request body |
 
 ---
 
@@ -647,19 +632,19 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Database | MongoDB Atlas 8.3     | -               |
 | Images   | Cloudinary            | -               |
 
-Custom domains are required for production cookie auth.
+Custom domains are recommended for a stable production identity, but they are required for cookie auth only when cookies must be shared across the frontend and API subdomains or the browser calls the API directly. The rewrite-based flow also supports default Vercel and Render domains with host-only cookies.
 
 ### Database maintenance and migration retirement
 
-The Order/payment expansion and the product, banner, admin-role, lead-checkout, and packing-status backfills are complete; their one-time scripts and npm aliases are retired.
+The Order/payment expansion and the product, banner, admin-role, lead-checkout, and packing-status backfills are complete. Their one-time scripts and npm aliases are retired.
 
 Retain `npm --workspace @minan/api run migrate:orders` until every legacy payment attempt has `order_id` and no longer depends on `lead_id`. It reports a dry run by default. Before any `-- --apply` run, take a database backup, resolve all reported anomalies, enable checkout maintenance for payment creation/retry, and keep callbacks, results, and admin rechecks available. Re-run the dry run afterward to verify counts, financial totals, attempt links, transaction IDs, and dashboard metrics.
 
-The migration preserves Lead `_id` values, timestamps, checkout snapshots and idempotency hashes; assigns deterministic Bangladesh-date Order numbers; classifies pre-cutover attempts `legacy_full_order`; backfills `order_id` while retaining `lead_id`; and leaves `leads` untouched. Keep the legacy collection until the compatibility and rollback window is explicitly closed. Legacy Leads are not a rollback path for Orders created after cutover.
+The migration preserves Lead `_id` values, timestamps, checkout snapshots, and idempotency hashes. It assigns deterministic Bangladesh-date Order numbers, marks pre-cutover attempts as `legacy_full_order`, backfills `order_id` while retaining `lead_id`, and leaves `leads` untouched. Keep the legacy collection until the compatibility and rollback window is explicitly closed. Orders created after cutover cannot use legacy Leads as a rollback path.
 
-The separate `migrate:order-tracking` command is also dry-run by default. Before guest/customer Order access can rely on historical records, run `npm --workspace @minan/api run migrate:order-tracking`, resolve every unusable email snapshot, take a backup, then run `npm --workspace @minan/api run migrate:order-tracking -- --apply`. Its compare-and-set writes stop rather than overwrite a concurrent change. Completion requires a final dry run reporting zero Orders to backfill and zero unresolved records. It never assigns `customer_id`, adds activity, or changes timestamps.
+The separate `migrate:order-tracking` command backfills `normalized_email` from historical Order email snapshots and runs as a dry run by default. Review the dry run and take a backup before applying it; apply refuses unresolved email snapshots, and compare-and-set writes stop on concurrent changes. Verify completion with a final dry run showing zero Orders to backfill and zero unresolved records. The command never assigns `customer_id`, adds activity, or changes timestamps.
 
-Admin role removal changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window; old web against new API or new web against old API can break admin refresh/admin-user forms. Existing legacy JWTs that still include `role` are tolerated by the new parser as long as they contain valid `id` and `email` claims.
+Removing admin roles changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window. Mixing an old web app with a new API, or a new web app with an old API, can break admin refresh and admin-user forms. The new parser tolerates legacy JWTs containing `role` when they also contain valid `id` and `email` claims.
 
 ### Frontend `.env.local`
 
@@ -669,7 +654,7 @@ JWT_ACCESS_SECRET=<same value as API>
 REVALIDATE_SECRET=<same value as STOREFRONT_REVALIDATE_SECRET>
 NEXT_PUBLIC_META_PIXEL_ID=
 NEXT_PUBLIC_GA4_ID=
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_FACEBOOK_PAGE_URL=https://www.facebook.com/your-page-handle
 NEXT_PUBLIC_SITE_URL=https://www.minanclothing.com
 NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 ```
@@ -677,6 +662,7 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=01XXXXXXXXX
 - `API_PROXY_TARGET` is used by both `next.config.ts` rewrites and `lib/api/client.ts`.
 - `JWT_ACCESS_SECRET` is required by `proxy.ts` to verify access-token cookies.
 - `NEXT_PUBLIC_SITE_URL` is used for canonical URLs, sitemap entries, and social metadata.
+- `NEXT_PUBLIC_FACEBOOK_PAGE_URL` enables the public Facebook Page plugin in the storefront footer. Set it to MINAN's unrestricted public Page URL. Leave it blank to omit the plugin.
 
 ### Backend `.env`
 
@@ -687,11 +673,7 @@ JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
 CUSTOMER_JWT_ACCESS_SECRET=
 CUSTOMER_JWT_REFRESH_SECRET=
-GUEST_ORDER_JWT_SECRET=
-# Optional bounded values: defaults 600 seconds, 5 attempts, 60-second resend cooldown.
-GUEST_ORDER_OTP_TTL_SECONDS=600
-GUEST_ORDER_OTP_ATTEMPT_LIMIT=5
-GUEST_ORDER_OTP_RESEND_COOLDOWN_SECONDS=60
+# Set only when the browser frontend and API use minan.com subdomains.
 AUTH_COOKIE_DOMAIN=.minan.com
 ALLOWED_ORIGINS=http://localhost:3000,https://minan-web.vercel.app, https://minanclothing.com
 META_CAPI_TOKEN=
@@ -709,8 +691,6 @@ BKASH_APP_KEY=
 BKASH_APP_SECRET=
 BKASH_USERNAME=
 BKASH_PASSWORD=
-RESEND_API_KEY=
-RESEND_FROM=MINAN <orders@example.com>
 DELIVERY_FEE_BDT=100
 DELIVERY_FEE_INSIDE_SYLHET_BDT=60
 DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120
@@ -718,17 +698,16 @@ API_PUBLIC_URL=https://api.minan.com
 FRONTEND_URL=https://app.minan.com
 ```
 
-- `AUTH_COOKIE_DOMAIN` should be `.minan.com` in production when frontend and backend share the parent domain.
-- `CUSTOMER_JWT_ACCESS_SECRET`, `CUSTOMER_JWT_REFRESH_SECRET`, and `GUEST_ORDER_JWT_SECRET` must all be set. Startup enforces that the customer access and refresh secrets differ; configure three independent high-entropy values and never reuse the admin signing secrets. JWT audiences and actor claims are additional token-type separation, not a reason to share signing keys.
-- `RESEND_API_KEY` stays server-side and `RESEND_FROM` must use a Resend-verified sender domain. Startup validates the API-key format and sender syntax along with bKash, shipping, customer-auth, and guest-OTP configuration; Resend verifies the sender domain when sending.
+- Set `AUTH_COOKIE_DOMAIN=.minan.com` only when the browser frontend is also on a `minan.com` subdomain. Omit it for the default `*.vercel.app` rewrite deployment; otherwise, browsers reject the cookie.
+- `CUSTOMER_JWT_ACCESS_SECRET` and `CUSTOMER_JWT_REFRESH_SECRET` must both be set and differ. Configure independent high-entropy values and never reuse the admin signing secrets. JWT audiences and actor claims add another layer of token-type separation.
 - In production, Express trusts only `loopback`, `linklocal`, and `uniquelocal` address ranges when resolving client IPs, stopping at the first public hop. Do not replace this with `trust proxy: true`.
 - `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password and `is_active: true`.
-- `cleanup:inactive-admin-sessions` is a guarded legacy-maintenance command. Run it without `--apply` before reactivating an inactive legacy admin; after reviewing the count, rerun with `-- --apply` to clear stale refresh-token hashes and advance `session_version`. Normal admin deactivation performs this revocation automatically.
+- `cleanup:inactive-admin-sessions` is a guarded legacy-maintenance command. Run it without `--apply` before reactivating an inactive legacy admin. After reviewing the count, rerun it with `-- --apply` to clear stale refresh-token hashes and advance `session_version`. Normal admin deactivation performs this revocation automatically.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 - `API_PUBLIC_URL` must be the directly reachable Render API origin used for the bKash callback. `FRONTEND_URL` is the Vercel storefront origin used after callback verification.
-- `DELIVERY_FEE_INSIDE_SYLHET_BDT=60`, `DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120`, and compatibility fallback `DELIVERY_FEE_BDT=100` are required positive integers for this release; do not add frontend public fee variables. Remove the fallback only in a later cleanup release after the previous storefront can no longer send traffic.
+- `DELIVERY_FEE_INSIDE_SYLHET_BDT=60`, `DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120`, and compatibility fallback `DELIVERY_FEE_BDT=100` are required positive integers for this release. Do not add frontend public fee variables. Remove the fallback in a later cleanup release, once the previous storefront can no longer send traffic.
 - `CHECKOUT_MAINTENANCE_MODE=true` blocks payment creation and retry during migration while preserving callbacks, result resolution, and admin recheck.
-- The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL; it does not depend on the browser rewrite.
+- The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL. It does not depend on the browser rewrite.
 - Use bKash sandbox credentials until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Replace the base URL and credentials together for production.
 - `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
 
@@ -769,7 +748,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 
 ## 20. Backend Structure Rules
 
-- `apps/api/src/models/` contains Mongoose models for products, categories, subcategories, Orders/counters, legacy Leads, payment attempts, analytics events, admins, customers/customer sessions, guest verification challenges, and notification outbox records.
+- `apps/api/src/models/` contains Mongoose models for products, categories, subcategories, Orders/counters, legacy Leads, payment attempts, analytics events, admins, and customers/customer sessions.
 - `apps/api/src/schemas/` contains backend Zod schemas. Backend schemas are independent from frontend schemas.
 - `apps/api/src/services/` owns business logic and DB access.
 - `apps/api/src/controllers/` owns Express request/response handling.
@@ -777,18 +756,18 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
-- Non-admin router mounts include products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, admin auth, customer auth, guest Order access, and customer-owned Order reads.
+- Non-admin router mounts include products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, admin auth, customer auth, public Order tracking, and customer-owned Order reads.
 - Admin router is mounted at `/api/admin`.
-- All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh rather than through a database lookup on every request.
+- All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh. The system does not query the database on every request.
 - All admin writes require auth and CSRF header.
-- Slugs are generated through `lib/slugify.ts`; duplicate slugs resolve with suffixes in current admin services.
+- Slugs are generated through `lib/slugify.ts`. Current admin services resolve duplicates with suffixes.
 - Admin serializers and model transforms must never expose password or refresh-token hashes.
 
 ---
 
 ## 21. Cloudinary Image Upload Flow
 
-Admin image uploads use a signed upload pattern: Express generates the signature, the browser posts the file directly to Cloudinary, and only the resulting `secure_url` is stored in MongoDB.
+Admin image uploads use signed uploads. Express generates the signature, the browser posts the file directly to Cloudinary, and MongoDB stores only the resulting `secure_url`.
 
 ```mermaid
 sequenceDiagram
@@ -802,8 +781,8 @@ sequenceDiagram
     UI->>API: POST/PATCH product|category { ..., images: [secure_url] }
 ```
 
-**Frontend:** `lib/cloudinary/upload.ts` orchestrates the flow using `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`.
-**Backend:** `lib/cloudinary.ts` signs the upload using `CLOUDINARY_URL`; optional folder via `CLOUDINARY_UPLOAD_FOLDER`.
+**Frontend:** `lib/cloudinary/upload.ts` posts directly to Cloudinary using the `cloudName` returned in the API-generated signature response.
+**Backend:** `lib/cloudinary.ts` signs the upload using `CLOUDINARY_URL`. An optional folder comes from `CLOUDINARY_UPLOAD_FOLDER`.
 **Storage:** Only remote URL strings are persisted in MongoDB. Never store local paths or base64.
 
 ### Managed Image Cleanup

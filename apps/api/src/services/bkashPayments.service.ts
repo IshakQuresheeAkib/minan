@@ -79,6 +79,17 @@ export type PaymentResult = {
   merchant_invoice_number?: string;
   bkash_trx_id?: string;
   retry_token?: string;
+  ecommerce?: {
+    value: number;
+    shipping: number;
+    items: Array<{
+      item_id: string;
+      item_name: string;
+      price: number;
+      quantity: number;
+      item_variant?: string;
+    }>;
+  };
 };
 
 function hash(value: string): string {
@@ -935,6 +946,9 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
   const isDuplicateCompletion = attempt.status === "completed" &&
     order.settled_payment_attempt_id !== undefined &&
     order.settled_payment_attempt_id.toString() !== attempt._id.toString();
+  const isSettledStorefrontPurchase = attempt.status === "completed" &&
+    order.settled_payment_attempt_id?.toString() === attempt._id.toString() &&
+    (order.checkout_source === "cart" || order.checkout_source === "buy_now");
   return {
     state: attempt.status,
     message: isDuplicateCompletion
@@ -953,6 +967,17 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
     merchant_invoice_number: attempt.merchant_invoice_number,
     bkash_trx_id: attempt.bkash_trx_id,
     retry_token: retryToken,
+    ecommerce: isSettledStorefrontPurchase ? {
+      value: order.financials.merchandise_total,
+      shipping: order.financials.delivery_fee,
+      items: order.lines.map((line) => ({
+        item_id: line.product_id,
+        item_name: line.name,
+        price: line.unit_price - line.allocated_order_discount / line.quantity,
+        quantity: line.quantity,
+        item_variant: [line.size, line.color].filter((part) => part && part !== "N/A").join(" / "),
+      })),
+    } : undefined,
   };
 }
 

@@ -26,7 +26,6 @@ export async function migrateOrderTracking(
         _id: 1,
         email: 1,
         normalized_email: 1,
-        guest_access_version: 1,
       },
     },
   ).toArray();

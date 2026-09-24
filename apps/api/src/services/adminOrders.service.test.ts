@@ -512,7 +512,6 @@ describe("Order workflow integrity", () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
       customer_id: customerId,
       normalized_email: "customer@example.com",
-      guest_access_version: 1,
       lines: [expect.objectContaining({
         image_url: "https://res.cloudinary.com/minan/image/upload/replacement.webp",
       })],

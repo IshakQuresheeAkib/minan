@@ -1,7 +1,7 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
@@ -16,13 +16,23 @@ import type {
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useCartPricingSync } from "@/features/products/hooks/useCartPricingSync";
 import { useCartStore } from "@/store/cart.store";
+import { toGa4Item, trackGa4CommerceEvent } from "@/lib/analytics/ga4";
 
 function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
 export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
-  useCartPricingSync();
+  const trackedCheckout = useRef(false);
+  useCartPricingSync(() => {
+    if (trackedCheckout.current || !config) return;
+    const currentItems = useCartStore.getState().items;
+    if (currentItems.length === 0 || currentItems.some((item) => !item.isAvailable)) return;
+    trackedCheckout.current = trackGa4CommerceEvent(
+      "begin_checkout",
+      currentItems.map(toGa4Item),
+    );
+  });
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const [shippingZone, setShippingZone] = useState<ShippingZone>();

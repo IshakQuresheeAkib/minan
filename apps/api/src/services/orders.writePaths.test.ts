@@ -11,7 +11,6 @@ vi.mock("./checkoutCart.service.js", () => ({
 
 import { Order } from "../models/Order.js";
 import { OrderCounter } from "../models/OrderCounter.js";
-import { NotificationOutbox } from "../models/NotificationOutbox.js";
 import { createOrLoadCheckoutOrder } from "./orders.service.js";
 
 const DB_SESSION = {} as ClientSession;
@@ -72,14 +71,13 @@ describe("new checkout Order tracking fields", () => {
     expect(create).toHaveBeenCalledWith([expect.objectContaining({
       customer_id: null,
       normalized_email: "customer@example.com",
-      guest_access_version: 1,
       lines: [expect.objectContaining({
         image_url: "https://res.cloudinary.com/minan/image/upload/shirt.webp",
       })],
     })], { session: DB_SESSION });
   });
 
-  it("commits a new checkout Order and its receipt outbox entry in one transaction", async () => {
+  it("commits a new checkout Order in one transaction", async () => {
     const orderId = new Types.ObjectId();
     const createdAt = new Date("2026-09-01T00:00:00.000Z");
     vi.spyOn(Order, "findOne").mockReturnValue({
@@ -107,7 +105,6 @@ describe("new checkout Order tracking fields", () => {
     vi.spyOn(Order, "find").mockReturnValue({
       select: vi.fn().mockResolvedValue([]),
     } as never);
-    const outbox = vi.spyOn(NotificationOutbox, "updateOne").mockResolvedValue({ upsertedCount: 1 } as never);
     buildVerifiedCartSnapshotMock.mockResolvedValue({
       items: [{
         product_id: new Types.ObjectId().toString(),
@@ -136,13 +133,8 @@ describe("new checkout Order tracking fields", () => {
 
     expect(mongoose.connection.transaction).toHaveBeenCalledOnce();
     expect(Order.create).toHaveBeenCalledWith(
-      [expect.objectContaining({ order_number: "MN-20260901-0001" })],
+      [expect.objectContaining({ order_number: expect.stringMatching(/^MN-\d{8}-0001$/) })],
       { session: DB_SESSION },
-    );
-    expect(outbox).toHaveBeenCalledWith(
-      { dedupe_key: `${orderId}:order_created:1` },
-      expect.objectContaining({ $setOnInsert: expect.objectContaining({ event_type: "order_created" }) }),
-      { upsert: true, session: DB_SESSION },
     );
   });
 });

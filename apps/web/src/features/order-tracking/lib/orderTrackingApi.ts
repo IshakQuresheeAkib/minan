@@ -70,41 +70,6 @@ export async function customerApiRequest<T>(path: string, options: RequestOption
   return (await response.json()) as T;
 }
 
-type GuestOrderCredentials = {
-  orderNumber: string;
-  email: string;
-};
-
-export async function requestGuestOrderOtp(input: GuestOrderCredentials): Promise<void> {
-  await customerApiRequest<{ accepted: true }>("/api/guest-order-access/otp/request", {
-    body: {
-      email: input.email,
-      order_number: input.orderNumber,
-    },
-    method: "POST",
-  });
-}
-
-export async function verifyGuestOrderOtp(
-  input: GuestOrderCredentials & { otp: string },
-): Promise<void> {
-  await customerApiRequest<{ verified: true }>("/api/guest-order-access/otp/verify", {
-    body: {
-      email: input.email,
-      order_number: input.orderNumber,
-      otp: input.otp,
-    },
-    method: "POST",
-  });
-}
-
-export async function getGuestOrder(orderNumber: string): Promise<CustomerOrderTracking> {
-  const result = await customerApiRequest<{ order: CustomerOrderTracking }>(
-    `/api/guest-order-access/orders/${encodeURIComponent(orderNumber)}`,
-  );
-  return result.order;
-}
-
 export async function searchPublicOrders(
   query: string,
   cursor?: string,
@@ -137,17 +102,6 @@ export async function getCustomerOrders(
     { accessToken },
   );
   return result.data;
-}
-
-export async function claimGuestOrder(
-  orderNumber: string,
-  accessToken: string,
-): Promise<CustomerOrderTracking> {
-  const result = await customerApiRequest<{ order: CustomerOrderTracking }>(
-    `/api/guest-order-access/orders/${encodeURIComponent(orderNumber)}/claim`,
-    { accessToken, body: {}, method: "POST" },
-  );
-  return result.order;
 }
 
 export async function loginCustomer(input: {

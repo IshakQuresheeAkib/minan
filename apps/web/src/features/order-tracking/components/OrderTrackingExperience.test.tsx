@@ -72,7 +72,6 @@ describe("OrderTrackingExperience", () => {
 
     renderToStaticMarkup(
       <OrderTrackingExperience
-        access="account"
         orderNumber="MN-20260901-0001"
       />,
     );

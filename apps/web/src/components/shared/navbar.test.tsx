@@ -42,11 +42,13 @@ describe("Navbar", () => {
     expect(markup).not.toContain("xl:grid-cols-");
   });
 
-  it("places stores and profile actions after search in source order", () => {
+  it("places the store location and profile actions after search in source order", () => {
     const markup = renderToStaticMarkup(<Navbar />);
 
     const searchIndex = markup.indexOf('role="search"');
-    const storesIndex = markup.indexOf('aria-label="Stores — coming soon"');
+    const storesIndex = markup.indexOf(
+      'aria-label="Open MINAN location in Google Maps"',
+    );
     const profileIndex = markup.indexOf('aria-label="Open profile menu"');
 
     expect(searchIndex).toBeGreaterThanOrEqual(0);
@@ -56,11 +58,14 @@ describe("Navbar", () => {
     expect(storesIndex).toBeLessThan(profileIndex);
   });
 
-  it("keeps unfinished stores and signup actions visibly unavailable", () => {
+  it("links the store location to Google Maps and keeps signup unavailable", () => {
     const markup = renderToStaticMarkup(<Navbar />);
 
-    expect(markup).toContain('aria-label="Stores — coming soon"');
-    expect(markup).toContain('disabled=""');
+    expect(markup).toContain(
+      'href="https://maps.app.goo.gl/zDvr35GASHBCFAuQ9"',
+    );
+    expect(markup).toContain('target="_blank"');
+    expect(markup).toContain('rel="noopener noreferrer"');
     expect(markup).toContain('aria-label="Create account — coming soon"');
     expect(markup).toContain('aria-disabled="true"');
   });

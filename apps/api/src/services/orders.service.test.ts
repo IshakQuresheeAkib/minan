@@ -96,6 +96,6 @@ function validOrderForOwnership() {
     normalized_phone: "01700000000", email: "customer@example.com", normalized_email: "customer@example.com",
     address: "Sylhet", lines: [line()], item_signature: "ownership", checkout_source: "cart" as const,
     status: "new" as const, financials: calculateFinancials({ lines: [line()], deliveryFee: 60 }),
-    delivery_fee_status: "awaiting" as const, cod_status: "due" as const, guest_access_version: 1,
+    delivery_fee_status: "awaiting" as const, cod_status: "due" as const,
   };
 }

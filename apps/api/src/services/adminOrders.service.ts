@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import mongoose, { type ClientSession, type QueryFilter, UpdateQuery, Types } from "mongoose";
+import { type ClientSession, type QueryFilter, UpdateQuery, Types } from "mongoose";
 
 import { shippingAreaLabel } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
@@ -29,7 +29,6 @@ import type {
 import type { AuthenticatedAdmin } from "../types/auth.types.js";
 import { serializeOrder } from "../utils/serializeOrder.js";
 import { buildVerifiedCartSnapshot } from "./checkoutCart.service.js";
-import { enqueueCustomerOrderNotification } from "./notificationOutbox.service.js";
 import {
   allocateOrderDiscount,
   allocateOrderNumber,
@@ -464,36 +463,6 @@ export async function updateOrderTracking(
   return serializeOrder(order, [], true);
 }
 
-const customerNotificationEvents = {
-  confirmed: "status_confirmed",
-  shipped: "status_shipped",
-  delivered: "status_delivered",
-  cancelled: "status_cancelled",
-} as const;
-
-export async function transitionOrderAndQueueNotification(
-  id: string,
-  input: OrderTransitionInput,
-  admin: AuthenticatedAdmin,
-) {
-  const session = await mongoose.startSession();
-  try {
-    let result: ReturnType<typeof serializeOrder> | undefined;
-    await session.withTransaction(async () => {
-      result = await transitionOrder(id, input, admin, session);
-      const eventType = customerNotificationEvents[input.status as keyof typeof customerNotificationEvents];
-      if (!eventType) return;
-      const order = await Order.findById(id).session(session);
-      if (!order) throw new AppError("Order not found", 404);
-      await enqueueCustomerOrderNotification(order, eventType, session);
-    });
-    if (!result) throw new AppError("Order transition did not complete", 500);
-    return result;
-  } finally {
-    await session.endSession();
-  }
-}
-
 export async function reviewOrderDuplicate(id: string, input: OrderDuplicateReviewInput, admin: AuthenticatedAdmin) {
   const order = await casUpdate(id, input.expected_revision, {
     $set: { duplicate_review_state: input.state },
@@ -585,7 +554,7 @@ export async function createOrderExchange(id: string, input: OrderExchangeInput,
     normalized_email: source.normalized_email || normalizeEmail(source.email), address: source.address,
     lines, item_signature: buildItemSignature(lines), checkout_source: "exchange", status: "confirmed",
     financials, delivery_fee_status: "not_required", cod_status: financials.cod_due ? "due" : "not_required",
-    exchange_source_order_id: source._id, revision: 1, guest_access_version: 1,
+    exchange_source_order_id: source._id, revision: 1,
     activity: [{ actor_type: "admin", admin_id: admin.id, admin_email: admin.email, event: "exchange_order_created", reason: input.reason, metadata: { source_order_number: source.order_number, exchange_credit: appliedCredit }, created_at: new Date() }],
     financial_review_required: returned.credit > appliedCredit,
   });
