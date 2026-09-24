@@ -9,6 +9,7 @@ import { publicRoutes } from "@/constants/routes";
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useCartPricingSync } from "@/features/products/hooks/useCartPricingSync";
 import { useCartStore } from "@/store/cart.store";
+import { toGa4Item, trackGa4CommerceEvent } from "@/lib/analytics/ga4";
 
 function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
@@ -43,6 +44,18 @@ export function CartPageContent() {
     [items],
   );
   const hasUnavailableItems = items.some((item) => !item.isAvailable);
+
+  const removeCartItem = (item: (typeof items)[number]) => {
+    removeItem(item.lineId);
+    trackGa4CommerceEvent("remove_from_cart", [toGa4Item(item)]);
+  };
+
+  const changeQuantity = (item: (typeof items)[number], delta: number) => {
+    updateQuantity(item.lineId, item.quantity + delta);
+    trackGa4CommerceEvent(delta > 0 ? "add_to_cart" : "remove_from_cart", [
+      toGa4Item({ ...item, quantity: Math.abs(delta) }),
+    ]);
+  };
 
   if (!hasHydrated) {
     return (
@@ -147,7 +160,7 @@ export function CartPageContent() {
                     <button
                       type="button"
                       className="mt-1 cursor-pointer font-semibold underline underline-offset-3 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/50"
-                      onClick={() => removeItem(item.lineId)}
+                      onClick={() => removeCartItem(item)}
                     >
                       Remove this item
                     </button>
@@ -172,9 +185,7 @@ export function CartPageContent() {
                     size="icon"
                     className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none disabled:opacity-40"
                     disabled={item.quantity <= 1 || !item.isAvailable}
-                    onClick={() =>
-                      updateQuantity(item.lineId, item.quantity - 1)
-                    }
+                    onClick={() => changeQuantity(item, -1)}
                     icon={<Minus className="size-4" aria-hidden="true" />}
                   />
                   <span className="w-8 text-center text-sm font-semibold">
@@ -187,9 +198,7 @@ export function CartPageContent() {
                     size="icon"
                     disabled={!item.isAvailable}
                     className="size-10 border-0 bg-transparent p-0 text-foreground shadow-none hover:bg-background hover:text-foreground hover:shadow-none"
-                    onClick={() =>
-                      updateQuantity(item.lineId, item.quantity + 1)
-                    }
+                    onClick={() => changeQuantity(item, 1)}
                     icon={<Plus className="size-4" aria-hidden="true" />}
                   />
                 </div>
@@ -198,7 +207,7 @@ export function CartPageContent() {
                   type="button"
                   aria-label={`Remove ${item.name}`}
                   className="flex size-10 items-center justify-center rounded-md text-foreground/70 transition-colors cursor-pointer hover:bg-background hover:text-destructive focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/50"
-                  onClick={() => removeItem(item.lineId)}
+                  onClick={() => removeCartItem(item)}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
                 </button>

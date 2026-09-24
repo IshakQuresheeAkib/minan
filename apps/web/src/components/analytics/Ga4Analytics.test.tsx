@@ -44,18 +44,19 @@ describe("Ga4Analytics", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders GA4 scripts with send_page_view disabled on public routes", () => {
+  it("configures one initial page view with a query-free location", () => {
     navigationState.pathname = "/products";
     const markup = renderToStaticMarkup(<Ga4Analytics />);
 
     expect(markup).toContain("googletagmanager.com/gtag/js?id=G-VALIDTEST123");
-    expect(markup).toContain("send_page_view: false");
-    expect(markup).toContain("page_location");
+    expect(markup).toContain("page_location: window.location.origin + window.location.pathname");
+    expect(markup).not.toContain("send_page_view: false");
+    expect(markup).not.toContain("gtag('event', 'page_view'");
   });
 
   it.each([
-    "/payment/result",
     "/payment",
+    "/payment/result",
     "/account",
     "/account/orders",
     "/account/orders/MN-1234",

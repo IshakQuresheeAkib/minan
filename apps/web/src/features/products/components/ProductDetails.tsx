@@ -23,6 +23,7 @@ import { SizeColorSelector } from "@/features/products/components/SizeColorSelec
 import { TrustBadges } from "@/features/products/components/TrustBadges";
 import type { ProductDetail } from "@/features/products/schemas/product.schema";
 import { openWhatsAppOrder } from "@/lib/analytics/whatsapp";
+import { toGa4Item, trackGa4CommerceEvent } from "@/lib/analytics/ga4";
 import { useBuyNowStore } from "@/store/buy-now.store";
 import { useCartStore, type CartItemInput } from "@/store/cart.store";
 
@@ -60,6 +61,7 @@ function ProductDetailsContent({ children, product }: ProductDetailsProps) {
   const setBuyNowItem = useBuyNowStore((state) => state.setItem);
   const galleryRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
+  const trackedProduct = useRef<string | null>(null);
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(
@@ -72,6 +74,16 @@ function ProductDetailsContent({ children, product }: ProductDetailsProps) {
   const discounted_price = product.discounted_price;
   const savings = originalPrice - discounted_price;
   const hasDiscount = discount > 0 && discounted_price < originalPrice;
+
+  useEffect(() => {
+    if (trackedProduct.current === product._id) return;
+    if (trackGa4CommerceEvent("view_item", [toGa4Item({
+      productId: product._id,
+      name: product.name,
+      price: product.discounted_price,
+      quantity: 1,
+    })])) trackedProduct.current = product._id;
+  }, [product._id, product.name, product.discounted_price]);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
@@ -171,6 +183,7 @@ function ProductDetailsContent({ children, product }: ProductDetailsProps) {
 
     if (selectedItem) {
       addItem(selectedItem);
+      trackGa4CommerceEvent("add_to_cart", [toGa4Item(selectedItem)]);
       router.push(publicRoutes.cart);
     }
   };

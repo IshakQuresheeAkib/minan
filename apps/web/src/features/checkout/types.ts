@@ -77,4 +77,15 @@ export type PaymentResult = {
   merchant_invoice_number?: string;
   bkash_trx_id?: string;
   retry_token?: string;
+  ecommerce?: {
+    value: number;
+    shipping: number;
+    items: Array<{
+      item_id: string;
+      item_name: string;
+      price: number;
+      quantity: number;
+      item_variant?: string;
+    }>;
+  };
 };

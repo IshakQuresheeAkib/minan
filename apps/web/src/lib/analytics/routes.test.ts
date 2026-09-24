@@ -2,12 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   configureGa4RouteScoping,
+  enableGa4ForCompletedPaymentResult,
   extractPathname,
+  getGa4PaymentResultVersion,
   isAnalyticsAllowed,
+  isGa4Allowed,
+  onGa4PaymentResultReady,
   setGa4Disabled,
 } from "./routes";
 
 describe("isAnalyticsAllowed", () => {
+  it("keeps GA4 off the payment result until completion removes its reference", () => {
+    expect(isGa4Allowed("/payment/result")).toBe(false);
+    expect(isAnalyticsAllowed("/payment/result")).toBe(false);
+    expect(isGa4Allowed("/payment/other")).toBe(false);
+  });
   it.each([
     "/",
     "/products",
@@ -98,9 +107,11 @@ describe("configureGa4RouteScoping", () => {
     location: {
       pathname: string;
       origin: string;
+      search: string;
     };
     addEventListener: (type: string, listener: () => void, useCapture?: boolean) => void;
     removeEventListener: (type: string, listener: () => void, useCapture?: boolean) => void;
+    dispatchEvent: (event: Event) => boolean;
     [key: string]: unknown;
   };
 
@@ -109,9 +120,10 @@ describe("configureGa4RouteScoping", () => {
     const replaceState = vi.fn();
     mockWindow = {
       history: { pushState, replaceState },
-      location: { pathname: "/products", origin: "http://localhost" },
+      location: { pathname: "/products", origin: "http://localhost", search: "" },
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => true),
     };
     vi.stubGlobal("window", mockWindow);
   });
@@ -120,8 +132,11 @@ describe("configureGa4RouteScoping", () => {
     vi.unstubAllGlobals();
   });
 
-  it("synchronously disables GA4 when pushState navigates to an excluded route", () => {
+  it("blocks reference-bearing results and allows only a completed clean result", () => {
     const cleanup = configureGa4RouteScoping(measurementId);
+    const listener = vi.fn();
+    const unsubscribe = onGa4PaymentResultReady(listener);
+    const versionBeforeCompletion = getGa4PaymentResultVersion();
 
     mockWindow.history.pushState(
       null,
@@ -130,9 +145,26 @@ describe("configureGa4RouteScoping", () => {
     );
     expect(mockWindow[`ga-disable-${measurementId}`]).toBe(true);
 
+    mockWindow.location.pathname = "/payment/result";
+    mockWindow.location.search = "?reference=30min-secret-token";
+    enableGa4ForCompletedPaymentResult();
+    expect(isGa4Allowed("/payment/result")).toBe(false);
+
+    mockWindow.location.search = "";
+    enableGa4ForCompletedPaymentResult();
+    expect(isGa4Allowed("/payment/result")).toBe(true);
+    expect(getGa4PaymentResultVersion()).toBe(versionBeforeCompletion + 1);
+    expect(mockWindow.dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "minan:ga4-payment-result-ready" }));
+    mockWindow.location.search = "?reference=another-token";
+    expect(isGa4Allowed("/payment/result")).toBe(false);
+
+    mockWindow.history.pushState(null, "", "/payment/start");
+    expect(mockWindow[`ga-disable-${measurementId}`]).toBe(true);
+
     mockWindow.history.pushState(null, "", "/products");
     expect(mockWindow[`ga-disable-${measurementId}`]).toBe(false);
 
+    unsubscribe();
     cleanup();
   });
 

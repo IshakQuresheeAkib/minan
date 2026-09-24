@@ -1,3 +1,5 @@
+import { env } from "@/config/env";
+
 const EXCLUDED_ANALYTICS_ROUTE_PREFIXES = [
   "/payment",
   "/account",
@@ -17,6 +19,44 @@ export function isAnalyticsAllowed(pathname: string | null | undefined): boolean
   return !EXCLUDED_ANALYTICS_ROUTE_PREFIXES.some(
     (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`),
   );
+}
+
+const PAYMENT_RESULT_READY_EVENT = "minan:ga4-payment-result-ready";
+let completedPaymentResultReady = false;
+let paymentResultVersion = 0;
+
+export function isGa4Allowed(pathname: string | null | undefined): boolean {
+  if (pathname?.trim().toLowerCase() === "/payment/result") {
+    return (
+      completedPaymentResultReady &&
+      typeof window !== "undefined" &&
+      window.location.search === ""
+    );
+  }
+  return isAnalyticsAllowed(pathname);
+}
+
+export function onGa4PaymentResultReady(listener: () => void): () => void {
+  window.addEventListener(PAYMENT_RESULT_READY_EVENT, listener);
+  return () => window.removeEventListener(PAYMENT_RESULT_READY_EVENT, listener);
+}
+
+export function getGa4PaymentResultVersion(): number {
+  return paymentResultVersion;
+}
+
+export function enableGa4ForCompletedPaymentResult(): void {
+  if (
+    typeof window === "undefined" ||
+    window.location.pathname !== "/payment/result" ||
+    window.location.search
+  ) {
+    return;
+  }
+  completedPaymentResultReady = true;
+  paymentResultVersion += 1;
+  setGa4Disabled(env.ga4Id.trim(), false);
+  window.dispatchEvent(new Event(PAYMENT_RESULT_READY_EVENT));
 }
 
 export function setGa4Disabled(measurementId: string, disabled: boolean): void {
@@ -55,7 +95,11 @@ export function configureGa4RouteScoping(measurementId: string): () => void {
   const handleUrlChange = (url: string | URL | null | undefined): void => {
     const nextPathname = extractPathname(url);
     if (nextPathname !== null) {
-      setGa4Disabled(measurementId, !isAnalyticsAllowed(nextPathname));
+      const nextUrl = url ? new URL(url, window.location.origin) : null;
+      if (nextPathname !== "/payment/result" || nextUrl?.search) {
+        completedPaymentResultReady = false;
+      }
+      setGa4Disabled(measurementId, !isGa4Allowed(nextPathname));
     }
   };
 
@@ -76,7 +120,10 @@ export function configureGa4RouteScoping(measurementId: string): () => void {
   };
 
   const onPopState = (): void => {
-    setGa4Disabled(measurementId, !isAnalyticsAllowed(window.location.pathname));
+    if (window.location.pathname !== "/payment/result" || window.location.search) {
+      completedPaymentResultReady = false;
+    }
+    setGa4Disabled(measurementId, !isGa4Allowed(window.location.pathname));
   };
   window.addEventListener("popstate", onPopState, true);
 

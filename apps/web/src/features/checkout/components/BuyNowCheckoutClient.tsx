@@ -2,7 +2,7 @@
 
 import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
@@ -17,6 +17,7 @@ import type {
 import { ProductPrice } from "@/features/products/components/ProductPrice";
 import { useBuyNowPricingSync } from "@/features/products/hooks/useBuyNowPricingSync";
 import { useBuyNowStore } from "@/store/buy-now.store";
+import { toGa4Item, trackGa4CommerceEvent } from "@/lib/analytics/ga4";
 
 function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
@@ -27,7 +28,16 @@ export function BuyNowCheckoutClient({
 }: {
   config: CheckoutConfig | null;
 }) {
-  useBuyNowPricingSync();
+  const trackedCheckout = useRef(false);
+  useBuyNowPricingSync(() => {
+    if (trackedCheckout.current || !config) return;
+    const currentItem = useBuyNowStore.getState().item;
+    if (!currentItem?.isAvailable) return;
+    trackedCheckout.current = trackGa4CommerceEvent(
+      "begin_checkout",
+      [toGa4Item(currentItem)],
+    );
+  });
   const item = useBuyNowStore((state) => state.item);
   const hasHydrated = useBuyNowStore((state) => state.hasHydrated);
   const [shippingZone, setShippingZone] = useState<ShippingZone>();

@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleCheck, CircleX, Clock3, RotateCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,8 @@ import { paymentResponseMatchesContract } from "@/features/checkout/lib/paymentC
 import { shouldStripPaymentResultReference } from "@/features/checkout/lib/paymentResultReference";
 import type { PaymentResult, PaymentStartResult } from "@/features/checkout/types";
 import { ApiError } from "@/lib/api/client";
+import { trackGa4Purchase } from "@/lib/analytics/ga4";
+import { enableGa4ForCompletedPaymentResult } from "@/lib/analytics/routes";
 import { useBuyNowStore } from "@/store/buy-now.store";
 import { useCartStore } from "@/store/cart.store";
 
@@ -41,6 +43,7 @@ function heading(state: PaymentResult["state"]): string {
 }
 
 export function PaymentResultClient({ result }: { result: PaymentResult }) {
+  const trackedOrder = useRef<string | null>(null);
   const clearCart = useCartStore((state) => state.clearCart);
   const clearBuyNow = useBuyNowStore((state) => state.clearItem);
   const [retryToken, setRetryToken] = useState(result.retry_token ?? null);
@@ -49,12 +52,22 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
   useEffect(() => {
     if (shouldStripPaymentResultReference(result.state)) {
       window.history.replaceState(null, "", publicRoutes.paymentResult);
+      enableGa4ForCompletedPaymentResult();
     }
     if (result.state !== "completed" || !result.checkout_source) return;
     if (result.checkout_source === "cart") clearCart();
     else clearBuyNow();
     clearCheckoutIdempotencyKey(result.checkout_source);
   }, [clearBuyNow, clearCart, result.checkout_source, result.state]);
+
+  useEffect(() => {
+    if (result.state !== "completed" || !result.order_number || !result.ecommerce) return;
+    if (trackedOrder.current === result.order_number) return;
+    if (trackGa4Purchase({
+      transaction_id: result.order_number,
+      ...result.ecommerce,
+    })) trackedOrder.current = result.order_number;
+  }, [result.state, result.order_number, result.ecommerce]);
 
   function continuePayment(next: PaymentStartResult): void {
     if (

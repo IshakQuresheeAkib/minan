@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 
 import { env } from "@/config/env";
-import { getGa4MeasurementId } from "@/lib/analytics/ga4";
+import { getGa4MeasurementId, markGa4Ready } from "@/lib/analytics/ga4";
 import {
   configureGa4RouteScoping,
-  isAnalyticsAllowed,
+  getGa4PaymentResultVersion,
+  isGa4Allowed,
+  onGa4PaymentResultReady,
   setGa4Disabled,
 } from "@/lib/analytics/routes";
 
@@ -27,9 +29,14 @@ export function Ga4Analytics() {
   const measurementId = getGa4MeasurementId(env.ga4Id);
   const pathname = usePathname();
   const scriptLoaded = useRef(false);
+  const paymentResultVersion = useSyncExternalStore(
+    onGa4PaymentResultReady,
+    getGa4PaymentResultVersion,
+    () => 0,
+  );
 
   if (measurementId && typeof window !== "undefined") {
-    setGa4Disabled(measurementId, !isAnalyticsAllowed(pathname));
+    setGa4Disabled(measurementId, !isGa4Allowed(pathname));
   }
 
   useEffect(() => {
@@ -46,21 +53,28 @@ export function Ga4Analytics() {
       return;
     }
 
-    const allowed = isAnalyticsAllowed(pathname);
+    const allowed = isGa4Allowed(pathname);
     setGa4Disabled(measurementId, !allowed);
 
-    if (allowed && scriptLoaded.current) {
+    if (
+      allowed &&
+      pathname === "/payment/result" &&
+      paymentResultVersion > 0 &&
+      scriptLoaded.current
+    ) {
       const gtag = getWindowGtag();
       if (gtag) {
+        const referrer = document.referrer ? new URL(document.referrer) : null;
         gtag("event", "page_view", {
           page_path: pathname,
           page_location: window.location.origin + pathname,
+          page_referrer: referrer ? referrer.origin + referrer.pathname : undefined,
         });
       }
     }
-  }, [measurementId, pathname]);
+  }, [measurementId, pathname, paymentResultVersion]);
 
-  if (!measurementId || !isAnalyticsAllowed(pathname)) {
+  if (!measurementId || !isGa4Allowed(pathname)) {
     return null;
   }
 
@@ -73,11 +87,11 @@ export function Ga4Analytics() {
 window['dataLayer'] = window['dataLayer'] || [];
 function gtag(){window['dataLayer'].push(arguments);}
 gtag('js', new Date());
-gtag('config', '${measurementId}', { send_page_view: false });
 if (typeof window !== 'undefined' && window.location) {
-  gtag('event', 'page_view', {
-    page_path: window.location.pathname,
-    page_location: window.location.origin + window.location.pathname
+  const referrer = document.referrer ? new URL(document.referrer) : null;
+  gtag('config', '${measurementId}', {
+    page_location: window.location.origin + window.location.pathname,
+    page_referrer: referrer ? referrer.origin + referrer.pathname : undefined
   });
 }
 `,
@@ -88,6 +102,7 @@ if (typeof window !== 'undefined' && window.location) {
         src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
         onLoad={() => {
           scriptLoaded.current = true;
+          markGa4Ready();
         }}
       />
     </>
