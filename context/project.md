@@ -294,7 +294,7 @@ Subcategories are managed within the admin category experience. Public catalog f
 | `name`                    | String   | required |
 | `phone_number`            | String   | required, BD format |
 | `email`                   | String   | required |
-| `normalized_email`        | String   | required normalized email, indexed. Used for one-Order guest proof only |
+| `normalized_email`        | String   | required canonical email snapshot, indexed and compared when matching an Order to a checkout retry |
 | `address`                 | String   | required |
 | `customer_notes`          | String   | optional customer checkout note |
 | `order_number`            | String   | unique `MN-YYYYMMDD-####` allocated by an atomic daily counter |
@@ -503,9 +503,9 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
 - `features/products/services/product.cache.ts` owns the storefront Cache Component functions. They use `"use cache"`, the shared `catalog` tag, and the `days` cache-life profile.
 - `next.config.ts` rewrites `/api/:path*` to `API_PROXY_TARGET`, defaulting to `http://localhost:3001`.
-- `lib/analytics/pixel.ts` contains client-side Meta Pixel helpers only. CAPI is Express-only.
+- `components/analytics/MetaPixel.tsx` is mounted by the root layout; it initializes the client-side Pixel when configured and sends `PageView` on pathname changes. `lib/analytics/pixel.ts` contains the Pixel helpers. CAPI is Express-only.
 - `store/auth.store.ts` keeps the access token in memory only.
-- `features/order-tracking/` owns customer and guest tracking UI. `store/customer-auth.store.ts` keeps the customer session, including its access token, in memory only. Refresh recovery uses the separate httpOnly customer cookie.
+- `features/order-tracking/` owns public Order lookup and authenticated customer tracking UI. `store/customer-auth.store.ts` keeps the customer session, including its access token, in memory only. Refresh recovery uses the separate httpOnly customer cookie.
 - `store/cart.store.ts` keeps cart items in Zustand and persists selected cart lines to browser `localStorage`.
 
 ---
@@ -555,7 +555,7 @@ Analytics has partial coverage. The tables separate live behavior from planned w
 
 | Tool               | Fires From     | Role                                      | Status |
 | ------------------ | -------------- | ----------------------------------------- | ------ |
-| Meta Pixel helpers | Next.js client | `fbq("track")` helpers                    | Partial - helpers exist, no global bootstrap script |
+| Meta Pixel         | Next.js root layout | When configured, global client bootstrap and `PageView` on pathname changes | Implemented; other event wiring is partial |
 | Meta CAPI          | Express        | Server-side mapped events                 | Implemented for events posted to analytics endpoints |
 | GA4                | Next.js client | Traffic and conversion analytics          | Partial - global tag and automatic page views |
 | Microsoft Clarity  | Next.js client | Session recordings and heatmaps           | Planned |
@@ -565,7 +565,7 @@ Analytics has partial coverage. The tables separate live behavior from planned w
 
 | Event            | Client Pixel | Express CAPI | Status |
 | ---------------- | ------------ | ------------ | ------ |
-| `page_view`      | planned      | no           | Planned |
+| `page_view`      | yes          | no           | Live in the client Pixel |
 | `product_view`   | helper-ready | endpoint-ready | Planned wiring |
 | `add_to_cart`    | helper-ready | endpoint-ready | Planned wiring |
 | `checkout_start` | helper-ready | endpoint-ready | Planned wiring |
@@ -612,7 +612,7 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Refresh replay   | server-side refresh-token hash rotation |
 | Token expiry     | Access: 15 min. Refresh: 7 days |
 | Customer/admin separation | Distinct models, session stores, JWT audiences, cookie names, routes, and middleware. Configure signing keys independently |
-| Guest Order authorization | One-Order/email/challenge/version-bound proof after hashed, single-use OTP. No email-based enumeration or bulk ownership linking |
+| Public Order lookup | Rate-limited lookup by Order number or phone; identifier matching is not ownership proof. Customer Order reads require an authenticated matching `customer_id` |
 | Brute force      | Rate-limit admin and customer login routes |
 | Checkout spam    | layered IP and idempotency-key limits on `/api/bkash/payments` |
 | Proxy spoofing   | In production trust only `loopback`, `linklocal`, and `uniquelocal` address ranges, stopping at the first public hop. Never use blanket `trust proxy: true` |
@@ -642,7 +642,7 @@ Retain `npm --workspace @minan/api run migrate:orders` until every legacy paymen
 
 The migration preserves Lead `_id` values, timestamps, checkout snapshots, and idempotency hashes. It assigns deterministic Bangladesh-date Order numbers, marks pre-cutover attempts as `legacy_full_order`, backfills `order_id` while retaining `lead_id`, and leaves `leads` untouched. Keep the legacy collection until the compatibility and rollback window is explicitly closed. Orders created after cutover cannot use legacy Leads as a rollback path.
 
-The separate `migrate:order-tracking` command also runs as a dry run by default. Before guest or customer Order access relies on historical records, run `npm --workspace @minan/api run migrate:order-tracking`, resolve every unusable email snapshot, and take a backup. Then run `npm --workspace @minan/api run migrate:order-tracking -- --apply`. Its compare-and-set writes stop on a concurrent change. Completion requires a final dry run with zero Orders to backfill and zero unresolved records. The command never assigns `customer_id`, adds activity, or changes timestamps.
+The separate `migrate:order-tracking` command backfills `normalized_email` from historical Order email snapshots and runs as a dry run by default. Review the dry run and take a backup before applying it; apply refuses unresolved email snapshots, and compare-and-set writes stop on concurrent changes. Verify completion with a final dry run showing zero Orders to backfill and zero unresolved records. The command never assigns `customer_id`, adds activity, or changes timestamps.
 
 Removing admin roles changed the auth and admin-user payload shapes. Deploy the API and web app in the same release window. Mixing an old web app with a new API, or a new web app with an old API, can break admin refresh and admin-user forms. The new parser tolerates legacy JWTs containing `role` when they also contain valid `id` and `email` claims.
 

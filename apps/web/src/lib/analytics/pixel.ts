@@ -8,7 +8,6 @@ type FbqFunction = {
     params?: Record<string, unknown>,
     options?: { eventID?: string },
   ): void;
-  (command: "consent", action: "grant" | "revoke"): void;
   callMethod?: (...args: unknown[]) => void;
   loaded?: boolean;
   queue?: unknown[][];
@@ -62,14 +61,6 @@ export function initializeMetaPixel(pixelId: string): void {
   }
 
   window.fbq("init", pixelId);
-}
-
-export function setMetaPixelConsent(action: "grant" | "revoke"): void {
-  if (typeof window === "undefined" || !window.fbq) {
-    return;
-  }
-
-  window.fbq("consent", action);
 }
 
 export function trackPixelEvent(

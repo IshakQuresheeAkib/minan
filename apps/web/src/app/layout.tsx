@@ -92,7 +92,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <Suspense fallback={null}>
           <MetaPixel />
         </Suspense>
-        <Ga4Analytics />
+        <Suspense fallback={null}>
+          <Ga4Analytics />
+        </Suspense>
         <SpeedInsights />
       </body>
     </html>

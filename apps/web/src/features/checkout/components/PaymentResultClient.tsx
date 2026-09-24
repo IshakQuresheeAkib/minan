@@ -199,10 +199,10 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
           {result.order_number ? (
             <section className="mt-6 w-full max-w-lg rounded-xl border border-primary/40 bg-primary/10 p-4 text-left">
               <h2 className="font-semibold">Track this order</h2>
-              <p className="mt-1 text-sm leading-6 text-foreground/70">Use an email code to open this order. If you already have a MINAN account, you can sign in after verification to save only this order.</p>
+              <p className="mt-1 text-sm leading-6 text-foreground/70">Track your order anytime using your Order number or the phone number provided at checkout.</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button href={`${publicRoutes.orderTracking}?order=${encodeURIComponent(result.order_number)}`} size="sm">Track order</Button>
-                <Button href={`${publicRoutes.customerLogin}?next=${encodeURIComponent(`${publicRoutes.orderTracking}?order=${encodeURIComponent(result.order_number)}`)}`} size="sm" variant="secondary">Sign in to Orders</Button>
+                <Button href={publicRoutes.orderTracking} size="sm">Track order</Button>
+                <Button href={`${publicRoutes.customerLogin}?next=${encodeURIComponent("/account/orders")}`} size="sm" variant="secondary">Sign in to Orders</Button>
               </div>
             </section>
           ) : null}

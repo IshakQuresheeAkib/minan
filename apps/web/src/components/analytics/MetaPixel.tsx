@@ -4,11 +4,8 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 import { env } from "@/config/env";
-import {
-  initializeMetaPixel,
-  setMetaPixelConsent,
-  trackPixelEvent,
-} from "@/lib/analytics/pixel";
+import { initializeMetaPixel, trackPixelEvent } from "@/lib/analytics/pixel";
+import { isAnalyticsAllowed } from "@/lib/analytics/routes";
 
 export function MetaPixel() {
   const pixelId = env.metaPixelId.trim();
@@ -16,7 +13,7 @@ export function MetaPixel() {
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (!pixelId) {
+    if (!pixelId || !isAnalyticsAllowed(pathname)) {
       return;
     }
 
@@ -25,7 +22,6 @@ export function MetaPixel() {
       initialized.current = true;
     }
 
-    setMetaPixelConsent("grant");
     trackPixelEvent("PageView");
   }, [pathname, pixelId]);
 
