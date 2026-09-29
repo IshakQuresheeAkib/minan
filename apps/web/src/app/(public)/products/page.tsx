@@ -22,7 +22,7 @@ import {
 import { filteredCatalogRobots } from "@/lib/seo/metadata";
 
 const productsSocialImage = {
-  url: "/hero/limited-offer.webp",
+  url: "/hero/desktop-fallback.webp",
   width: 1200,
   height: 720,
   alt: "MINAN premium fashion collection in Bangladesh",

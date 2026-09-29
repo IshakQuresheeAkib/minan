@@ -2,57 +2,55 @@
 
 import Link from "next/link";
 import { Loader2, LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
+import useSWRInfinite from "swr/infinite";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { restoreCustomerSession } from "@/features/order-tracking/lib/customerSession";
 import {
-  getCustomerOrders,
   logoutCustomer,
-  OrderTrackingApiError,
 } from "@/features/order-tracking/lib/orderTrackingApi";
 import type { CustomerOrderHistoryPage } from "@/features/order-tracking/lib/types";
+import {
+  createCustomerOrderHistoryKeyLoader,
+  fetchCustomerOrderHistoryPage,
+  isCustomerOrderLoadMoreError,
+  type CustomerOrderHistoryKeyLoader,
+} from "@/features/order-tracking/lib/customerOrderHistorySWR";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
 export function CustomerOrderHistory() {
   const { clearSession, session, status } = useCustomerAuthStore();
-  const [page, setPage] = useState<CustomerOrderHistoryPage | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const customerId = session?.customer.id ?? null;
+  const getKey = useMemo(
+    () => createCustomerOrderHistoryKeyLoader(customerId),
+    [customerId],
+  );
+  const {
+    data,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+    setSize,
+    size,
+  } = useSWRInfinite<CustomerOrderHistoryPage, unknown, CustomerOrderHistoryKeyLoader>(
+    getKey,
+    fetchCustomerOrderHistoryPage,
+  );
+  const pages = data ?? [];
+  const orders = pages.flatMap((page) => page.orders);
+  const lastPage = pages.at(-1);
+  const isInitialError = Boolean(error && !data);
+  const isLoadMoreError = isCustomerOrderLoadMoreError(error);
+  const isRefreshError = Boolean(error && data && !isLoadMoreError);
 
   useEffect(() => {
     if (status === "unknown")
       void restoreCustomerSession().catch(() => undefined);
   }, [status]);
-  useEffect(() => {
-    if (!session) return;
-    void getCustomerOrders(session.accessToken)
-      .then(setPage)
-      .catch((loadError: unknown) => {
-        if (
-          loadError instanceof OrderTrackingApiError &&
-          loadError.status === 401
-        )
-          clearSession();
-        setError("We could not load your Order history. Please sign in again.");
-      })
-      .finally(() => setLoading(false));
-  }, [clearSession, session]);
 
-  async function loadMore(): Promise<void> {
-    if (!session || !page?.next_cursor) return;
-    setLoading(true);
-    try {
-      const next = await getCustomerOrders(
-        session.accessToken,
-        page.next_cursor,
-      );
-      setPage({ ...next, orders: [...page.orders, ...next.orders] });
-    } finally {
-      setLoading(false);
-    }
-  }
   async function signOut(): Promise<void> {
     try {
       await logoutCustomer();
@@ -67,6 +65,7 @@ export function CustomerOrderHistory() {
         Checking your account…
       </main>
     );
+
   if (!session)
     return (
       <main className="mx-auto max-w-3xl px-4 py-12">
@@ -106,23 +105,36 @@ export function CustomerOrderHistory() {
         This history includes Orders placed while signed in or saved one at a
         time after email verification.
       </p>
-      {loading && !page ? (
+      {isLoading && !data ? (
         <p className="mt-8 flex gap-2" role="status">
           <Loader2 className="size-4 animate-spin" /> Loading Orders…
         </p>
       ) : null}
-      {error ? (
+      {isInitialError ? (
         <p className="mt-6 text-destructive" role="alert">
-          {error}
+          We could not load your Order history. Please try again.
         </p>
       ) : null}
-      {page?.orders.length === 0 ? (
+      {isRefreshError ? (
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-destructive" role="alert">
+          <span>We could not refresh your Order history.</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => void mutate()}
+          >
+            Retry
+          </Button>
+        </div>
+      ) : null}
+      {data && orders.length === 0 ? (
         <p className="mt-8 rounded-xl border p-5 text-foreground/70">
           No Orders are saved to this account yet.
         </p>
       ) : null}
       <ul className="mt-6 grid gap-3">
-        {page?.orders.map((order) => (
+        {orders.map((order) => (
           <li key={order.order_id}>
             <Link
               className="block rounded-xl border p-4 transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-primary/50 focus-visible:outline-none"
@@ -139,13 +151,28 @@ export function CustomerOrderHistory() {
           </li>
         ))}
       </ul>
-      {page?.next_cursor ? (
+      {isLoadMoreError ? (
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+          <span>Failed to load additional Orders.</span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => void setSize(size)}
+          >
+            Retry
+          </Button>
+        </div>
+      ) : null}
+      {lastPage?.next_cursor && !isLoadMoreError ? (
         <Button
           className="mt-5"
           type="button"
           variant="secondary"
-          disabled={loading}
-          onClick={() => void loadMore()}
+          loading={isValidating}
+          loadingText="Loading more..."
+          disabled={isValidating}
+          onClick={() => void setSize(size + 1)}
         >
           Load more
         </Button>

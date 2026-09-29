@@ -10,8 +10,8 @@ describe("home banner response schema", () => {
           {
             _id: "seed",
             alt_text: "Three models wearing MINAN panjabi",
-            desktop_image_url: "/hero/limited-offer.webp",
-            mobile_image_url: "/hero/limited-offer.webp",
+            desktop_image_url: "/hero/desktop-fallback.webp",
+            mobile_image_url: "/hero/desktop-fallback.webp",
           },
         ],
       }).success,
@@ -24,8 +24,8 @@ describe("home banner response schema", () => {
         data: Array.from({ length: 6 }, (_, index) => ({
           _id: String(index),
           alt_text: "Three models wearing MINAN panjabi",
-          desktop_image_url: "/hero/limited-offer.webp",
-          mobile_image_url: "/hero/limited-offer.webp",
+          desktop_image_url: "/hero/desktop-fallback.webp",
+          mobile_image_url: "/hero/desktop-fallback.webp",
         })),
       }).success,
     ).toBe(false);
@@ -37,8 +37,8 @@ describe("home banner response schema", () => {
         data: [
           {
             _id: "missing-copy",
-            desktop_image_url: "/hero/limited-offer.webp",
-            mobile_image_url: "/hero/limited-offer.webp",
+            desktop_image_url: "/hero/desktop-fallback.webp",
+            mobile_image_url: "/hero/desktop-fallback.webp",
           },
         ],
       }).success,

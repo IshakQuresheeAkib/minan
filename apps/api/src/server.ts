@@ -78,9 +78,22 @@ async function bootstrap(): Promise<void> {
   // Fail during startup instead of accepting traffic with incomplete configuration.
   validateStartupConfiguration();
   await connectDB();
+
   const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    console.error(`Server failed to start on port ${port}:`, error.message);
+    if (error.code === "EADDRINUSE") {
+      console.error(
+        `Port ${port} is already in use by another process. Please terminate the conflicting process or choose a different port via the PORT environment variable.`,
+      );
+    }
+    void disconnectDB().finally(() => {
+      process.exit(1);
+    });
+  });
+
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`${signal} received — closing server and MongoDB connection`);
     server.close(async () => {

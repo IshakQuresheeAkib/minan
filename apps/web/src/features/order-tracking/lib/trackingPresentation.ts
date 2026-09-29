@@ -93,6 +93,7 @@ export function buildTrackingJourney(order: CustomerOrderTracking): TrackingJour
 export function formatTrackingDate(value: string): string {
   const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
   const date = isDateOnly ? new Date(`${value}T00:00:00.000Z`) : new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
   const parts = new Intl.DateTimeFormat("en", {
     day: "numeric",
     month: "short",
@@ -109,9 +110,16 @@ export function formatBdt(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
-export function getOrderTrackingLoginHref(
-  orderNumber: string,
-): string {
-  const next = `/orders?order=${encodeURIComponent(orderNumber)}`;
-  return `/account/login?next=${encodeURIComponent(next)}`;
+const orderNumberPattern = /^MN-\d{8}-\d{4}$/i;
+
+export function normalizePublicOrderNumber(value: string): string | null {
+  const normalized = value.trim();
+  return orderNumberPattern.test(normalized) ? normalized.toUpperCase() : null;
+}
+
+export function getPublicOrderSearchHref(value: string): string {
+  const orderNumber = normalizePublicOrderNumber(value);
+  return orderNumber
+    ? `/orders?order=${encodeURIComponent(orderNumber)}`
+    : "/orders";
 }

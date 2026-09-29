@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import { cn } from "@/lib/utils";
 
 const colorSwatchMap: Record<string, string> = {
@@ -29,11 +31,19 @@ export function SizeColorSelector({
   onSizeChange,
   onColorChange,
 }: SizeColorSelectorProps) {
+  const sizeHeadingId = useId();
+  const colorHeadingId = useId();
+
   return (
     <div className="space-y-8">
       {sizes.length > 0 ? (
-        <div>
-          <h3 className="mb-4 text-[17px] font-bold text-foreground">Size</h3>
+        <div role="group" aria-labelledby={sizeHeadingId}>
+          <h3
+            id={sizeHeadingId}
+            className="mb-4 text-[17px] font-bold text-foreground"
+          >
+            Size
+          </h3>
           <div className="flex flex-wrap gap-3">
             {sizes.map((size) => {
               const isActive = size === selectedSize;
@@ -60,8 +70,13 @@ export function SizeColorSelector({
       ) : null}
 
       {colors.length > 0 ? (
-        <div>
-          <h3 className="mb-4 text-[17px] font-bold text-foreground">Color</h3>
+        <div role="group" aria-labelledby={colorHeadingId}>
+          <h3
+            id={colorHeadingId}
+            className="mb-4 text-[17px] font-bold text-foreground"
+          >
+            Color
+          </h3>
           <div className="flex flex-wrap gap-3">
             {colors.map((color) => {
               const isActive = color === selectedColor;

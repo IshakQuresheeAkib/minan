@@ -25,6 +25,7 @@ export default async function OrderTrackingPage({
   return (
     <OrderTrackingExperience
       orderNumber={orderNumber}
+      hasOrderQuery={params.order !== undefined}
     />
   );
 }
