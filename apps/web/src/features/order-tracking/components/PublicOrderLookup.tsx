@@ -30,6 +30,8 @@ export function PublicOrderLookup({
   const router = useRouter();
   const requestVersion = useRef(0);
   const autoSearchedOrderNumber = useRef<string | null>(null);
+  const previousOrderNumber = useRef(initialOrderNumber ?? null);
+  const preserveLookupOnQueryClear = useRef(false);
   const [query, setQuery] = useState(initialOrderNumber ?? "");
   const [phoneResult, setPhoneResult] = useState<Extract<PublicOrderSearchResult, { kind: "phone" }> | null>(null);
   const [order, setOrder] = useState<CustomerOrderTracking | null>(null);
@@ -45,7 +47,14 @@ export function PublicOrderLookup({
     const searchQuery = orderNumber ?? nextQuery.trim();
     const href = getPublicOrderSearchHref(searchQuery);
     const currentHref = `${window.location.pathname}${window.location.search}`;
-    if (currentHref !== href) router.replace(href, { scroll: false });
+    if (currentHref !== href) {
+      preserveLookupOnQueryClear.current = !orderNumber && Boolean(
+        normalizePublicOrderNumber(
+          new URLSearchParams(window.location.search).get("order") ?? "",
+        ),
+      );
+      router.replace(href, { scroll: false });
+    }
     if (orderNumber) autoSearchedOrderNumber.current = orderNumber;
 
     const version = ++requestVersion.current;
@@ -72,6 +81,27 @@ export function PublicOrderLookup({
     if (!clearInvalidOrderQuery) return;
     window.history.replaceState(null, "", publicRoutes.orderTracking);
   }, [clearInvalidOrderQuery]);
+
+  useEffect(() => {
+    const nextOrderNumber = initialOrderNumber ?? null;
+    const hadOrderNumber = previousOrderNumber.current !== null;
+    previousOrderNumber.current = nextOrderNumber;
+
+    if (!hadOrderNumber || nextOrderNumber) return;
+
+    autoSearchedOrderNumber.current = null;
+    if (preserveLookupOnQueryClear.current) {
+      preserveLookupOnQueryClear.current = false;
+      return;
+    }
+
+    requestVersion.current += 1;
+    setQuery("");
+    setOrder(null);
+    setPhoneResult(null);
+    setError(null);
+    setLoading(false);
+  }, [initialOrderNumber]);
 
   useEffect(() => {
     const orderNumber = initialOrderNumber
