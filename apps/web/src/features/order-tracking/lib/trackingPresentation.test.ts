@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildTrackingJourney,
   formatTrackingDate,
-  getOrderTrackingLoginHref,
+  getPublicOrderSearchHref,
+  normalizePublicOrderNumber,
 } from "./trackingPresentation";
 import type { CustomerOrderTracking } from "./types";
 
@@ -65,9 +66,22 @@ describe("tracking presentation", () => {
     expect(formatTrackingDate("2026-09-03")).toBe("3 Sep 2026");
   });
 
-  it("returns a sign-in recovery link for an account-owned order", () => {
-    expect(getOrderTrackingLoginHref("MN-20260831-0001")).toBe(
-      "/account/login?next=%2Forders%3Forder%3DMN-20260831-0001",
+  it("returns the original value instead of throwing for an invalid date", () => {
+    expect(formatTrackingDate("not-a-date")).toBe("not-a-date");
+  });
+
+  it("normalizes only exact order numbers for public URL lookup", () => {
+    expect(normalizePublicOrderNumber(" mn-20260831-0001 ")).toBe(
+      "MN-20260831-0001",
     );
+    expect(normalizePublicOrderNumber("MN-20260831-00012")).toBeNull();
+    expect(normalizePublicOrderNumber("01712345678")).toBeNull();
+  });
+
+  it("keeps phone searches out of the URL", () => {
+    expect(getPublicOrderSearchHref("MN-20260831-0001")).toBe(
+      "/orders?order=MN-20260831-0001",
+    );
+    expect(getPublicOrderSearchHref("01712345678")).toBe("/orders");
   });
 });

@@ -20,8 +20,8 @@ describe("home banner validation", () => {
       revision: 1,
       banners: [
         {
-          desktop_image_url: "/hero/limited-offer.webp",
-          mobile_image_url: "/hero/limited-offer.webp",
+          desktop_image_url: "/hero/desktop-fallback.webp",
+          mobile_image_url: "/hero/desktop-fallback.webp",
         },
       ],
     });
@@ -141,9 +141,7 @@ describe("product description validation", () => {
     expect(
       productCreateSchema.safeParse({
         ...baseProduct,
-        description_html: "x".repeat(
-          MAX_PRODUCT_DESCRIPTION_LENGTH + 1,
-        ),
+        description_html: "x".repeat(MAX_PRODUCT_DESCRIPTION_LENGTH + 1),
       }).success,
     ).toBe(false);
   });

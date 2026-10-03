@@ -204,6 +204,16 @@
   }
 }
 
+@keyframes minan-preloader-progress {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(300%);
+  }
+}
+
 @keyframes star-btn {
   from {
     offset-distance: 0%;

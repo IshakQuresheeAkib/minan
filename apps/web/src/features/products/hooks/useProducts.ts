@@ -118,8 +118,8 @@ export function useProducts(options: UseProductsOptions = {}) {
 
       if (isFirstPage) {
         setIsRefreshing(true);
-        setErrorState(null);
       }
+      setErrorState(null);
       setIsLoading(true);
 
       try {
@@ -198,12 +198,24 @@ export function useProducts(options: UseProductsOptions = {}) {
       return;
     }
 
+    if (error) {
+      return;
+    }
+
     if (page > 0 && !hasMore) {
       return;
     }
 
     void fetchPage(page === 0 ? 1 : page + 1);
-  }, [fetchPage, hasMore, page]);
+  }, [error, fetchPage, hasMore, page]);
+
+  const retry = useCallback(() => {
+    if (loadingRef.current) {
+      return;
+    }
+
+    void fetchPage(page === 0 ? 1 : page + 1);
+  }, [fetchPage, page]);
 
   useEffect(() => {
     fetchGenerationRef.current += 1;
@@ -227,6 +239,7 @@ export function useProducts(options: UseProductsOptions = {}) {
     isRefreshing,
     error,
     loadMore,
+    retry,
     hasMore,
     total,
   };

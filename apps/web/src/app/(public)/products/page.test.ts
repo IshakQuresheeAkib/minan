@@ -1,7 +1,4 @@
-import {
-  renderToReadableStream,
-  renderToStaticMarkup,
-} from "react-dom/server";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -9,10 +6,10 @@ const {
   getCachedProductsMock,
   preloadMock,
 } = vi.hoisted(() => ({
-    getCachedProductFilterOptionsMock: vi.fn(),
-    getCachedProductsMock: vi.fn(),
-    preloadMock: vi.fn(),
-  }));
+  getCachedProductFilterOptionsMock: vi.fn(),
+  getCachedProductsMock: vi.fn(),
+  preloadMock: vi.fn(),
+}));
 
 vi.mock("react-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-dom")>()),
@@ -76,14 +73,14 @@ describe("products metadata", () => {
       url: "/products",
       images: [
         expect.objectContaining({
-          url: "/hero/limited-offer.webp",
+          url: "/hero/desktop-fallback.webp",
           alt: expect.stringContaining("MINAN"),
         }),
       ],
     });
     expect(metadata.twitter).toMatchObject({
       card: "summary_large_image",
-      images: ["/hero/limited-offer.webp"],
+      images: ["/hero/desktop-fallback.webp"],
     });
   });
 });

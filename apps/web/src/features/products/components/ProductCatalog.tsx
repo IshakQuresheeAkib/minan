@@ -97,18 +97,26 @@ export function ProductCatalog({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
 
-  const { products, isLoading, isRefreshing, error, loadMore, hasMore, total } =
-    useProducts({
-      category: filters.categories,
-      subcategories: filters.subcategories,
-      colors: filters.colors,
-      sizes: filters.sizes,
-      minPrice: filters.minPrice,
-      maxPrice: filters.maxPrice,
-      search: filters.search,
-      sort: filters.sort,
-      initialData,
-    });
+  const {
+    products,
+    isLoading,
+    isRefreshing,
+    error,
+    loadMore,
+    retry,
+    hasMore,
+    total,
+  } = useProducts({
+    category: filters.categories,
+    subcategories: filters.subcategories,
+    colors: filters.colors,
+    sizes: filters.sizes,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    search: filters.search,
+    sort: filters.sort,
+    initialData,
+  });
 
   useEffect(() => {
     if (!hasMore) {
@@ -526,7 +534,7 @@ export function ProductCatalog({
           {showInitialSkeleton ? (
             <ProductGridSkeleton />
           ) : error && !hasCards ? (
-            <CatalogErrorState error={error} onRetry={() => router.refresh()} />
+            <CatalogErrorState error={error} onRetry={retry} />
           ) : cards.length === 0 ? (
             <EmptyProductsState onReset={resetFilters} />
           ) : (
@@ -543,7 +551,7 @@ export function ProductCatalog({
             <div className="mt-4">
               <CatalogErrorState
                 error={error}
-                onRetry={() => router.refresh()}
+                onRetry={retry}
               />
             </div>
           )}

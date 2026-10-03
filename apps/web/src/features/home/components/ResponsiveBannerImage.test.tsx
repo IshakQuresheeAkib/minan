@@ -8,8 +8,8 @@ describe("ResponsiveBannerImage", () => {
     const markup = renderToStaticMarkup(
       <ResponsiveBannerImage
         alt="Two models wearing maroon embroidered MINAN panjabi"
-        desktopSrc="/hero/limited-offer.webp"
-        mobileSrc="/hero/new-arrivals.jpg"
+        desktopSrc="/hero/desktop-fallback.webp"
+        mobileSrc="/hero/mobile-fallback.webp"
       />,
     );
 

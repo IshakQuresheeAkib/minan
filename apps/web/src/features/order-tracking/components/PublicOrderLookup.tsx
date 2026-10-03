@@ -2,33 +2,66 @@
 
 import Link from "next/link";
 import { Loader2, Search } from "lucide-react";
-import { useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { publicRoutes } from "@/constants/routes";
 import { OrderTrackingDetails } from "@/features/order-tracking/components/OrderTrackingDetails";
 import { OrderTrackingApiError, searchPublicOrders } from "@/features/order-tracking/lib/orderTrackingApi";
+import {
+  getPublicOrderSearchHref,
+  normalizePublicOrderNumber,
+} from "@/features/order-tracking/lib/trackingPresentation";
 import type { CustomerOrderSummary, CustomerOrderTracking, PublicOrderSearchResult } from "@/features/order-tracking/lib/types";
 
 function orderSummaryLabel(order: CustomerOrderSummary): string {
   return `${order.order_id} · ${order.current_stage.label}`;
 }
 
-export function PublicOrderLookup() {
+export function PublicOrderLookup({
+  initialOrderNumber,
+  clearInvalidOrderQuery = false,
+}: {
+  initialOrderNumber?: string | null;
+  clearInvalidOrderQuery?: boolean;
+}) {
+  const router = useRouter();
   const requestVersion = useRef(0);
-  const [query, setQuery] = useState("");
+  const autoSearchedOrderNumber = useRef<string | null>(null);
+  const previousOrderNumber = useRef(initialOrderNumber ?? null);
+  const preserveLookupOnQueryClear = useRef(false);
+  const [query, setQuery] = useState(initialOrderNumber ?? "");
   const [phoneResult, setPhoneResult] = useState<Extract<PublicOrderSearchResult, { kind: "phone" }> | null>(null);
   const [order, setOrder] = useState<CustomerOrderTracking | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function runSearch(nextQuery: string, cursor?: string, append = false): Promise<void> {
+  const runSearch = useCallback(async (
+    nextQuery: string,
+    cursor?: string,
+    append = false,
+  ): Promise<void> => {
+    const orderNumber = normalizePublicOrderNumber(nextQuery);
+    const searchQuery = orderNumber ?? nextQuery.trim();
+    const href = getPublicOrderSearchHref(searchQuery);
+    const currentHref = `${window.location.pathname}${window.location.search}`;
+    if (currentHref !== href) {
+      preserveLookupOnQueryClear.current = !orderNumber && Boolean(
+        normalizePublicOrderNumber(
+          new URLSearchParams(window.location.search).get("order") ?? "",
+        ),
+      );
+      router.replace(href, { scroll: false });
+    }
+    if (orderNumber) autoSearchedOrderNumber.current = orderNumber;
+
     const version = ++requestVersion.current;
     setLoading(true); setError(null);
     if (!append) { setOrder(null); setPhoneResult(null); }
     try {
-      const result = await searchPublicOrders(nextQuery, cursor);
+      const result = await searchPublicOrders(searchQuery, cursor);
       if (version !== requestVersion.current) return;
       if (result.kind === "order") { setOrder(result.order); return; }
       setPhoneResult((previous) => append && previous
@@ -42,7 +75,44 @@ export function PublicOrderLookup() {
     } finally {
       if (version === requestVersion.current) setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    if (!clearInvalidOrderQuery) return;
+    window.history.replaceState(null, "", publicRoutes.orderTracking);
+  }, [clearInvalidOrderQuery]);
+
+  useEffect(() => {
+    const nextOrderNumber = initialOrderNumber ?? null;
+    const hadOrderNumber = previousOrderNumber.current !== null;
+    previousOrderNumber.current = nextOrderNumber;
+
+    if (!hadOrderNumber || nextOrderNumber) return;
+
+    autoSearchedOrderNumber.current = null;
+    if (preserveLookupOnQueryClear.current) {
+      preserveLookupOnQueryClear.current = false;
+      return;
+    }
+
+    requestVersion.current += 1;
+    setQuery("");
+    setOrder(null);
+    setPhoneResult(null);
+    setError(null);
+    setLoading(false);
+  }, [initialOrderNumber]);
+
+  useEffect(() => {
+    const orderNumber = initialOrderNumber
+      ? normalizePublicOrderNumber(initialOrderNumber)
+      : null;
+    if (!orderNumber || autoSearchedOrderNumber.current === orderNumber) return;
+
+    setQuery(orderNumber);
+    autoSearchedOrderNumber.current = orderNumber;
+    void runSearch(orderNumber);
+  }, [initialOrderNumber, runSearch]);
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
