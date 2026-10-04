@@ -1,246 +1,122 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { unstable_serialize as serialize, useSWRConfig } from "swr";
+import useSWRInfinite, { unstable_serialize } from "swr/infinite";
 
-import {
-  getProducts,
-  type CatalogProduct,
-  type ProductSortOption,
-} from "@/features/products/services/product.service";
+import { getProducts, type CatalogProduct, type GetProductsOptions } from "@/features/products/services/product.service";
 
 const PAGE_SIZE = 20;
+const FRESH_TIME = 5 * 60 * 1000;
 
-type InitialProductsData = {
+export type ProductsPage = {
   data: CatalogProduct[];
   total: number;
   page: number;
   limit: number;
   hasMore: boolean;
 };
-
-type UseProductsOptions = {
-  category?: string | readonly string[];
-  subcategories?: readonly string[];
-  search?: string;
-  colors?: readonly string[];
-  sizes?: readonly string[];
-  minPrice?: number;
-  maxPrice?: number;
-  sort?: ProductSortOption;
-  initialData?: InitialProductsData;
+export type CachedPage = ProductsPage & { fetchedAt: number };
+type PageKey = readonly ["catalog-page", GetProductsOptions, number];
+type UseProductsOptions = Omit<GetProductsOptions, "page" | "limit" | "exclude"> & {
+  initialData?: ProductsPage;
 };
 
 function normalizeValues(value: string | readonly string[] | undefined) {
-  if (!value) {
-    return [];
-  }
-
-  const values = Array.isArray(value) ? value : [value];
-  return [...new Set(values.map((item) => item.trim()).filter(Boolean))].sort();
+  return [...new Set((typeof value === "string" ? [value] : value ?? [])
+    .map((item) => item.trim()).filter(Boolean))].sort();
 }
 
-function toKey(values: readonly string[]) {
-  return values.join("\u001f");
+export function catalogQuery(filters: GetProductsOptions): GetProductsOptions {
+  return {
+    category: normalizeValues(filters.category),
+    subcategories: normalizeValues(filters.subcategories),
+    colors: normalizeValues(filters.colors),
+    sizes: normalizeValues(filters.sizes),
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    sort: filters.sort ?? "newest",
+    search: filters.search?.trim() || undefined,
+    limit: PAGE_SIZE,
+  };
 }
 
-function fromKey(key: string) {
-  return key ? key.split("\u001f") : [];
-}
-
-export function useProducts(options: UseProductsOptions = {}) {
-  const { initialData, maxPrice, minPrice, search, sort = "newest" } = options;
-  const categoryKey = toKey(normalizeValues(options.category));
-  const subcategoryKey = toKey(normalizeValues(options.subcategories));
-  const colorKey = toKey(normalizeValues(options.colors));
-  const sizeKey = toKey(normalizeValues(options.sizes));
-  const [isLoading, setIsLoading] = useState(!initialData);
-  const [isRefreshing, setIsRefreshing] = useState(!initialData);
-  const [errorState, setErrorState] = useState<{
-    key: string;
-    message: string;
-  } | null>(null);
-  const [clientState, setClientState] = useState<{
-    hasMore: boolean;
-    key: string;
-    page: number;
-    products: CatalogProduct[];
-    total: number;
-  }>({
-    hasMore: initialData?.hasMore ?? false,
-    key: "",
-    page: initialData?.page ?? 0,
-    products: [],
-    total: initialData?.total ?? 0,
-  });
-  const loadingRef = useRef(false);
-  const fetchGenerationRef = useRef(0);
-  const filtersKey = [
-    categoryKey,
-    subcategoryKey,
-    colorKey,
-    sizeKey,
-    minPrice ?? "",
-    maxPrice ?? "",
-    sort,
-    search ?? "",
-  ].join("|");
-  const initialDataKey = initialData
-    ? [
-        filtersKey,
-        initialData.page,
-        initialData.limit,
-        initialData.total,
-        initialData.hasMore ? "1" : "0",
-        initialData.data.map((product) => product._id).join("\u001f"),
-      ].join("|")
-    : "";
-  const dataKey = initialData ? initialDataKey : filtersKey;
-  const hasClientState = clientState.key === dataKey;
-  const products = hasClientState
-    ? clientState.products
-    : (initialData?.data ?? []);
-  const page = hasClientState ? clientState.page : (initialData?.page ?? 0);
-  const total = hasClientState ? clientState.total : (initialData?.total ?? 0);
-  const hasMore = hasClientState
-    ? clientState.hasMore
-    : (initialData?.hasMore ?? false);
-  const error = errorState?.key === dataKey ? errorState.message : null;
-
-  const fetchPage = useCallback(
-    async (pageToFetch: number) => {
-      if (loadingRef.current) {
-        return;
-      }
-
-      loadingRef.current = true;
-      const generation = fetchGenerationRef.current;
-      const isFirstPage = pageToFetch === 1;
-
-      if (isFirstPage) {
-        setIsRefreshing(true);
-      }
-      setErrorState(null);
-      setIsLoading(true);
-
-      try {
-        const result = await getProducts({
-          page: pageToFetch,
-          limit: PAGE_SIZE,
-          category: fromKey(categoryKey),
-          subcategories: fromKey(subcategoryKey),
-          colors: fromKey(colorKey),
-          sizes: fromKey(sizeKey),
-          minPrice,
-          maxPrice,
-          search,
-          sort,
-        });
-
-        if (generation !== fetchGenerationRef.current) {
-          return;
-        }
-
-        setClientState((current) => {
-          const existingProducts =
-            current.key === dataKey
-              ? current.products
-              : (initialData?.data ?? []);
-
-          return {
-            hasMore: result.hasMore,
-            key: dataKey,
-            page: pageToFetch,
-            products:
-              pageToFetch === 1
-                ? result.data
-                : [...existingProducts, ...result.data],
-            total: result.total,
-          };
-        });
-      } catch (err) {
-        if (generation !== fetchGenerationRef.current) {
-          return;
-        }
-
-        setErrorState({
-          key: dataKey,
-          message:
-            err instanceof Error ? err.message : "Failed to load products",
-        });
-      } finally {
-        if (generation !== fetchGenerationRef.current) {
-          return;
-        }
-
-        loadingRef.current = false;
-        if (isFirstPage) {
-          setIsRefreshing(false);
-        }
-        setIsLoading(false);
-      }
+export function useProducts({ initialData, ...filters }: UseProductsOptions = {}) {
+  const { cache, mutate: mutateCache } = useSWRConfig();
+  const loadingMore = useRef(false);
+  const filtersKey = JSON.stringify(catalogQuery(filters));
+  const query = useMemo<GetProductsOptions>(() => JSON.parse(filtersKey), [filtersKey]);
+  const getKey = useCallback((index: number, previous: CachedPage | null): PageKey | null => {
+    if (previous && !previous.hasMore) return null;
+    return ["catalog-page", query, index + 1];
+  }, [query]);
+  const { data, error, isValidating, size, setSize, mutate } = useSWRInfinite<CachedPage>(
+    getKey,
+    async ([, options, page]: PageKey) => ({
+      ...await getProducts({ ...options, page, limit: PAGE_SIZE }),
+      fetchedAt: Date.now(),
+    }),
+    {
+      fallbackData: initialData ? [{ ...initialData, fetchedAt: 0 }] : undefined,
+      revalidateOnMount: false,
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateFirstPage: false,
+      shouldRetryOnError: false,
     },
-    [
-      categoryKey,
-      colorKey,
-      dataKey,
-      initialData,
-      maxPrice,
-      minPrice,
-      search,
-      sizeKey,
-      sort,
-      subcategoryKey,
-    ],
   );
 
-  const loadMore = useCallback(() => {
-    if (loadingRef.current) {
-      return;
-    }
-
-    if (error) {
-      return;
-    }
-
-    if (page > 0 && !hasMore) {
-      return;
-    }
-
-    void fetchPage(page === 0 ? 1 : page + 1);
-  }, [error, fetchPage, hasMore, page]);
-
-  const retry = useCallback(() => {
-    if (loadingRef.current) {
-      return;
-    }
-
-    void fetchPage(page === 0 ? 1 : page + 1);
-  }, [fetchPage, page]);
-
   useEffect(() => {
-    fetchGenerationRef.current += 1;
-    loadingRef.current = false;
-
-    if (initialData) return;
-
-    async function refreshProducts() {
-      loadingRef.current = false;
-      setIsRefreshing(true);
-      setIsLoading(true);
-      await fetchPage(1);
+    const cacheKey = unstable_serialize(getKey);
+    const refreshIfStale = () => {
+      const pages = cache.get(cacheKey)?.data as CachedPage[] | undefined;
+      if (!pages?.[0] || Date.now() - pages[0].fetchedAt >= FRESH_TIME) {
+        void mutate().catch(() => undefined);
+      }
+    };
+    const pages = cache.get(cacheKey)?.data as CachedPage[] | undefined;
+    if (!pages && initialData) {
+      const firstPage = { ...initialData, fetchedAt: Date.now() };
+      const firstKey = getKey(0, null);
+      // Seed both caches so loading page two does not refetch page one.
+      void mutateCache(serialize(firstKey), firstPage, { revalidate: false });
+      void mutate([firstPage], { revalidate: false });
+    } else {
+      refreshIfStale();
     }
+    window.addEventListener("focus", refreshIfStale);
+    window.addEventListener("online", refreshIfStale);
+    return () => {
+      window.removeEventListener("focus", refreshIfStale);
+      window.removeEventListener("online", refreshIfStale);
+    };
+  }, [cache, getKey, initialData, mutate, mutateCache]);
 
-    void refreshProducts();
-  }, [fetchPage, filtersKey, initialData]);
+  const lastPage = data?.at(-1);
+  const hasMore = lastPage?.hasMore ?? false;
+  const loadMore = useCallback(() => {
+    if (!hasMore || error || isValidating || loadingMore.current) return;
+    loadingMore.current = true;
+    void setSize(size + 1).catch(() => undefined).finally(() => {
+      loadingMore.current = false;
+    });
+  }, [error, hasMore, isValidating, setSize, size]);
+  const retry = useCallback(() => {
+    if (!isValidating) void mutate().catch(() => undefined);
+  }, [isValidating, mutate]);
+  const products = [...new Map((data ?? []).flatMap((page) => page.data)
+    .map((product) => [product._id, product])).values()];
+  const paginating = isValidating && size > (data?.length ?? 0);
 
   return {
     products,
-    isLoading,
-    isRefreshing,
-    error,
+    isLoading: (!data && !error) || isValidating,
+    isRefreshing: (!data && !error) || (isValidating && !paginating),
+    error: error instanceof Error ? error.message : error ? "Failed to load products" : null,
     loadMore,
     retry,
     hasMore,
-    total,
+    total: data?.[0]?.total ?? 0,
   };
 }

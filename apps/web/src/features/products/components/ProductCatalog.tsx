@@ -2,6 +2,7 @@
 
 import { Filter, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useSWRConfig } from "swr";
 import {
   useEffect,
   useMemo,
@@ -92,6 +93,10 @@ export function ProductCatalog({
   fixedCategorySlug,
   initialData,
 }: ProductCatalogProps) {
+  const { mutate: mutateCache } = useSWRConfig();
+  useEffect(() => {
+    void mutateCache("catalog-filter-options", filterOptions, { revalidate: false });
+  }, [filterOptions, mutateCache]);
   const router = useRouter();
   const pathname = usePathname();
   const sentinelRef = useRef<HTMLDivElement>(null);

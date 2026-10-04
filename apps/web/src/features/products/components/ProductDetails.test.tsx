@@ -1,11 +1,16 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ReactNode } from "react";
+import { Suspense, use, type ReactNode } from "react";
+import { SWRConfig, unstable_serialize } from "swr";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ProductDetail } from "@/features/products/schemas/product.schema";
 import { createProductShareData, ProductDetails } from "./ProductDetails";
+import { ProductDetailsPending } from "./ProductDetailsPending";
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/products/linen-shirt",
   useRouter: () => ({
     back: vi.fn(),
     push: vi.fn(),
@@ -39,9 +44,19 @@ vi.mock("@/features/products/components/SizeGuideModal", () => ({
 }));
 
 vi.mock("@/features/products/components/SizeColorSelector", () => ({
-  SizeColorSelector: ({ selectedSize }: { selectedSize: string | null }) => (
-    <div data-selected-size={selectedSize ?? ""} />
+  SizeColorSelector: ({ selectedSize, onSizeChange }: {
+    selectedSize: string | null;
+    onSizeChange: (size: string) => void;
+  }) => (
+    <button type="button" data-selected-size={selectedSize ?? ""} onClick={() => onSizeChange("M")}>
+      Select M
+    </button>
   ),
+}));
+
+vi.mock("@/lib/analytics/ga4", () => ({
+  toGa4Item: vi.fn(),
+  trackGa4CommerceEvent: vi.fn(),
 }));
 
 vi.mock("@/features/products/components/TrustBadges", () => ({
@@ -82,6 +97,45 @@ const discountedProduct: ProductDetail = {
 };
 
 describe("ProductDetails", () => {
+  it("keeps cached fallback controls inert until the requested product resolves", async () => {
+    let resolveProduct!: (product: ProductDetail) => void;
+    const requestedProduct = new Promise<ProductDetail>((resolve) => {
+      resolveProduct = resolve;
+    });
+    function RequestedProduct() {
+      return <ProductDetails product={use(requestedProduct)} />;
+    }
+    const cache = new Map([
+      [unstable_serialize(["product-detail", discountedProduct.slug]), { data: discountedProduct }],
+    ]);
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    try {
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(
+          <SWRConfig value={{ provider: () => cache }}>
+            <Suspense fallback={<ProductDetailsPending />}>
+              <RequestedProduct />
+            </Suspense>
+          </SWRConfig>,
+        );
+      });
+      expect(screen.getByRole("heading", { name: "Linen Shirt" })).toBeTruthy();
+      expect(screen.getByText("Loading product details.").getAttribute("role")).toBe("status");
+      for (const control of view.container.querySelectorAll("button, a, input, select, textarea")) {
+        expect(control.closest("[inert]")).not.toBeNull();
+      }
+
+      await act(async () => resolveProduct(discountedProduct));
+      expect(view.container.querySelector("[inert]")).toBeNull();
+      fireEvent.click(screen.getByText("Select M"));
+      expect(screen.getByText("Select M").getAttribute("data-selected-size")).toBe("M");
+    } finally {
+      cleanup();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("does not preselect a size for the shopper", () => {
     const productWithSizes: ProductDetail = {
       ...discountedProduct,

@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToReadableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 const routerMocks = vi.hoisted(() => ({ replace: vi.fn() }));
@@ -17,7 +17,9 @@ describe("OrderTrackingPage", () => {
       }),
     });
 
-    const markup = renderToStaticMarkup(page);
+    const stream = await renderToReadableStream(page);
+    await stream.allReady;
+    const markup = await new Response(stream).text();
 
     expect(markup).toContain("Find an order update");
     expect(markup).toContain('value="MN-20260910-0001"');
@@ -29,7 +31,9 @@ describe("OrderTrackingPage", () => {
       searchParams: Promise.resolve({ order: "01712345678" }),
     });
 
-    const markup = renderToStaticMarkup(page);
+    const stream = await renderToReadableStream(page);
+    await stream.allReady;
+    const markup = await new Response(stream).text();
 
     expect(markup).toContain("Find an order update");
     expect(markup).not.toContain("01712345678");
