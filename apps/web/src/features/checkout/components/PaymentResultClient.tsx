@@ -1,7 +1,8 @@
 "use client";
 
 import { CircleCheck, CircleX, Clock3, RotateCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -43,10 +44,18 @@ function heading(state: PaymentResult["state"]): string {
 }
 
 export function PaymentResultClient({ result }: { result: PaymentResult }) {
+  const router = useRouter();
+  const [refreshing, startTransition] = useTransition();
   const trackedOrder = useRef<string | null>(null);
   const clearCart = useCartStore((state) => state.clearCart);
   const clearBuyNow = useBuyNowStore((state) => state.clearItem);
-  const [retryToken, setRetryToken] = useState(result.retry_token ?? null);
+  const [replacementRetry, setReplacementRetry] = useState<{
+    result: PaymentResult;
+    token: string;
+  } | null>(null);
+  const retryToken = replacementRetry?.result === result
+    ? replacementRetry.token
+    : result.retry_token;
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
@@ -69,15 +78,15 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
     })) trackedOrder.current = result.order_number;
   }, [result.state, result.order_number, result.ecommerce]);
 
-  function continuePayment(next: PaymentStartResult): void {
+  function continuePayment(next: PaymentStartResult, originatingResult: PaymentResult): void {
     if (
-      result.payment_method &&
-      result.pay_now_amount !== undefined &&
+      originatingResult.payment_method &&
+      originatingResult.pay_now_amount !== undefined &&
       !paymentResponseMatchesContract(
         next,
         { version: 2, methods: ["bkash_full", "cod"] },
-        result.payment_method,
-        result.pay_now_amount,
+        originatingResult.payment_method,
+        originatingResult.pay_now_amount,
       )
     ) {
       toast.error("The retry payment details did not match this Order. Return to checkout and review the payment method.");
@@ -94,7 +103,7 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
       return;
     }
     if (next.state === "failed") {
-      setRetryToken(next.retry_token);
+      setReplacementRetry({ result: originatingResult, token: next.retry_token });
       toast.error(next.message);
       return;
     }
@@ -102,11 +111,12 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
   }
 
   async function retry() {
-    if (!retryToken) return;
+    if (!retryToken || retrying || refreshing) return;
+    const originatingResult = result;
     setRetrying(true);
     try {
       const response = await retryCheckoutPayment(retryToken);
-      continuePayment(response.data);
+      continuePayment(response.data, originatingResult);
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : "Payment retry failed.",
@@ -122,6 +132,11 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
       : publicRoutes.checkout;
   const canRecheck =
     result.state === "verification_pending" || result.state === "initiated";
+
+  function recheck() {
+    if (!canRecheck || refreshing || retrying) return;
+    startTransition(() => router.refresh());
+  }
 
   return (
     <section className="mx-auto flex min-h-[65dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-12 text-center sm:px-6">
@@ -226,7 +241,11 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
           <Button
             type="button"
             leftIcon={<RotateCw className="size-4" aria-hidden="true" />}
-            onClick={() => window.location.reload()}
+            loading={refreshing}
+            loadingText="Checking..."
+            aria-busy={refreshing}
+            disabled={retrying}
+            onClick={recheck}
           >
             Check again
           </Button>
@@ -237,6 +256,8 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
             leftIcon={<RotateCw className="size-4" aria-hidden="true" />}
             loading={retrying}
             loadingText="Retrying..."
+            disabled={refreshing}
+            aria-busy={retrying}
             onClick={() => void retry()}
           >
             Retry {result.payment_method === "bkash_full" ? "full" : "delivery-fee"} payment
