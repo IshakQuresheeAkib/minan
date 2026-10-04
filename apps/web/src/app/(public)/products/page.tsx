@@ -4,7 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { preload } from "react-dom";
 
 import { ProductCatalog } from "@/features/products/components/ProductCatalog";
-import { ProductCatalogSkeleton } from "@/features/products/components/ProductCatalogSkeleton";
+import { ProductCatalogPending } from "@/features/products/components/CachedProductCatalog";
 import { productCardImageSizes } from "@/features/products/components/ProductCard";
 import {
   hasCatalogQuery,
@@ -20,6 +20,7 @@ import {
   type GetProductsOptions,
 } from "@/features/products/services/product.service";
 import { filteredCatalogRobots } from "@/lib/seo/metadata";
+import ProductsLoading from "./loading";
 
 const productsSocialImage = {
   url: "/hero/desktop-fallback.webp",
@@ -61,14 +62,22 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductsPage({
+export default function ProductsPage(props: ProductsPageProps) {
+  return (
+    <Suspense fallback={<ProductsLoading />}>
+      <RequestedProductsRoute {...props} />
+    </Suspense>
+  );
+}
+
+async function RequestedProductsRoute({
   searchParams,
 }: ProductsPageProps) {
   const filters = parseCatalogFilters(await searchParams);
 
   return (
     <ProductsPageFrame filters={filters}>
-      <Suspense fallback={<ProductCatalogSkeleton />}>
+      <Suspense fallback={<ProductCatalogPending />}>
         <RequestedProductsPage filters={filters} />
       </Suspense>
     </ProductsPageFrame>

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import { CheckoutClient } from "@/features/checkout/components/CheckoutClient";
-import { getCheckoutConfig } from "@/lib/api/server";
 import { privatePageRobots } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
@@ -9,7 +8,6 @@ export const metadata: Metadata = {
   robots: privatePageRobots,
 };
 
-export default async function CheckoutPage() {
-  const config = await getCheckoutConfig().catch(() => null);
-  return <CheckoutClient config={config} />;
+export default function CheckoutPage() {
+  return <CheckoutClient />;
 }

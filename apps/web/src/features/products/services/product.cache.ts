@@ -52,7 +52,7 @@ async function getCachedProductsByNormalizedOptions(
 ) {
   "use cache";
   cacheTag(CATALOG_TAG);
-  cacheLife("days");
+  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
 
   return getProducts(options);
 }
@@ -66,7 +66,7 @@ export async function getCachedProducts(options: GetProductsOptions = {}) {
 export async function getCachedProductBySlug(slug: string) {
   "use cache";
   cacheTag(CATALOG_TAG);
-  cacheLife("days");
+  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
 
   return getProductBySlug(slug);
 }
@@ -74,7 +74,7 @@ export async function getCachedProductBySlug(slug: string) {
 export async function getCachedProductFilterOptions() {
   "use cache";
   cacheTag(CATALOG_TAG);
-  cacheLife("days");
+  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
 
   return getProductFilterOptions();
 }
@@ -82,7 +82,7 @@ export async function getCachedProductFilterOptions() {
 export async function getCachedHomeCatalog() {
   "use cache";
   cacheTag(CATALOG_TAG);
-  cacheLife("days");
+  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
 
   return getHomeCatalog();
 }

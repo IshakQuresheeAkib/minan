@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect } from "react";
+import useSWR, { useSWRConfig, unstable_serialize } from "swr";
 
 import { CategoryProductGrid } from "@/features/home/components/ProductsSection";
 import { ProductCardSkeleton } from "@/features/products/components/ProductCardSkeleton";
@@ -20,66 +21,41 @@ type SelectedCategoryProductsProps = {
   initialContent: ReactNode;
 };
 
-type SelectedCategoryRequestState = {
-  error: string | null;
-  products: HomeCatalogProductGroup["products"] | null;
-  requestKey: number;
-  slug: string;
-};
+type CachedCategory = { products: HomeCatalogProductGroup["products"]; fetchedAt: number };
 
 export function SelectedCategoryProducts({
   category,
   initialContent,
 }: SelectedCategoryProductsProps) {
-  const [requestKey, setRequestKey] = useState(0);
-  const [requestState, setRequestState] =
-    useState<SelectedCategoryRequestState | null>(null);
+  const { cache } = useSWRConfig();
+  const { data, error, mutate } = useSWR<CachedCategory>(
+    ["home-category", category.slug],
+    async ([, slug]: readonly [string, string]) => ({
+      products: await getProducts({ category: slug }),
+      fetchedAt: Date.now(),
+    }),
+    { revalidateIfStale: false, revalidateOnFocus: false, revalidateOnReconnect: false, shouldRetryOnError: false },
+  );
 
   useEffect(() => {
-    let isCurrentRequest = true;
-
-    void getProducts({ category: category.slug })
-      .then((products) => {
-        if (!isCurrentRequest) {
-          return;
-        }
-
-        setRequestState({
-          error: null,
-          products,
-          requestKey,
-          slug: category.slug,
-        });
-      })
-      .catch((error: unknown) => {
-        if (!isCurrentRequest) {
-          return;
-        }
-
-        setRequestState({
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to load all products",
-          products: null,
-          requestKey,
-          slug: category.slug,
-        });
-      });
-
-    return () => {
-      isCurrentRequest = false;
+    const refreshIfStale = () => {
+      const cached = cache.get(unstable_serialize(["home-category", category.slug]))?.data as CachedCategory | undefined;
+      if (cached && Date.now() - cached.fetchedAt >= 300_000) {
+        void mutate().catch(() => undefined);
+      }
     };
-  }, [category.slug, requestKey]);
+    refreshIfStale();
+    window.addEventListener("focus", refreshIfStale);
+    window.addEventListener("online", refreshIfStale);
+    return () => {
+      window.removeEventListener("focus", refreshIfStale);
+      window.removeEventListener("online", refreshIfStale);
+    };
+  }, [cache, category.slug, mutate]);
 
-  const currentRequest =
-    requestState?.slug === category.slug &&
-    requestState.requestKey === requestKey
-      ? requestState
-      : null;
-
-  if (currentRequest?.products) {
-    return (
+  return (
+    <div className="space-y-4">
+      {data?.products ? (
       <CategoryProductGrid
         group={{
           category: {
@@ -87,35 +63,30 @@ export function SelectedCategoryProducts({
             name: category.name,
             slug: category.slug,
           },
-          products: currentRequest.products,
+          products: data.products,
         }}
         showViewMore={false}
       />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {initialContent}
-      {currentRequest?.error ? (
+      ) : initialContent}
+      {error ? (
         <div
           className="min-h-5 text-center text-sm text-foreground/70"
           aria-live="polite"
         >
           <p>
-            {currentRequest.error}.{" "}
+            {error instanceof Error ? error.message : "Failed to load all products"}.{" "}
             <button
               type="button"
               className="cursor-pointer font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-foreground/75 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
-              onClick={() => setRequestKey((current) => current + 1)}
+              onClick={() => { void mutate().catch(() => undefined); }}
             >
               Try again
             </button>
           </p>
         </div>
-      ) : (
+      ) : !data ? (
         <SelectedCategoryProductSkeletons categoryName={category.name} />
-      )}
+      ) : null}
     </div>
   );
 }

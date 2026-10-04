@@ -110,7 +110,7 @@ describe("products catalog image preload", () => {
 });
 
 describe("products loading frame", () => {
-  it("streams the requested search heading while catalog data is pending", async () => {
+  it("renders a real page heading before request parameters resolve", async () => {
     getCachedProductsMock.mockReturnValue(new Promise(() => undefined));
     getCachedProductFilterOptionsMock.mockResolvedValue({
       categories: [],
@@ -120,11 +120,11 @@ describe("products loading frame", () => {
     });
 
     const page = await ProductsPage({
-      searchParams: Promise.resolve({ search: "linen" }),
+      searchParams: new Promise(() => undefined),
     });
     const initialMarkup = renderToStaticMarkup(page);
 
-    expect(initialMarkup).toContain("Search results for &quot;linen&quot;");
-    expect(initialMarkup).not.toContain(">Products</h1>");
+    expect(initialMarkup).toContain(">Products</h1>");
+    expect(initialMarkup).toContain('aria-label="Loading product catalog"');
   });
 });

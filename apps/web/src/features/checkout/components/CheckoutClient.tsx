@@ -1,15 +1,16 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
+import { CheckoutConfigStatus } from "@/features/checkout/components/CheckoutConfigStatus";
+import { useCheckoutConfig } from "@/features/checkout/hooks/useCheckoutConfig";
 import { getPaymentSplit } from "@/features/checkout/lib/paymentContract";
 import type {
   CartSnapshot,
-  CheckoutConfig,
   PaymentMethod,
   ShippingZone,
 } from "@/features/checkout/types";
@@ -22,17 +23,20 @@ function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
-export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
+export function CheckoutClient() {
+  const { config, configLoading, configValidating, configError, retryConfig } = useCheckoutConfig();
   const trackedCheckout = useRef(false);
-  useCartPricingSync(() => {
-    if (trackedCheckout.current || !config) return;
+  const [pricesSettled, setPricesSettled] = useState(false);
+  useCartPricingSync(() => setPricesSettled(true));
+  useEffect(() => {
+    if (trackedCheckout.current || !config || !pricesSettled) return;
     const currentItems = useCartStore.getState().items;
     if (currentItems.length === 0 || currentItems.some((item) => !item.isAvailable)) return;
     trackedCheckout.current = trackGa4CommerceEvent(
       "begin_checkout",
       currentItems.map(toGa4Item),
     );
-  });
+  }, [config, pricesSettled]);
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const [shippingZone, setShippingZone] = useState<ShippingZone>();
@@ -89,12 +93,19 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
             Share your delivery details, then complete payment securely with
             bKash.
           </p>
-          <div className="mt-8 grid gap-5">
-            {[0, 1, 2, 3].map((item) => (
-              <div key={item} className="minan-skeleton h-12 rounded-md" />
-            ))}
-            <div className="minan-skeleton h-28 rounded-md" />
-          </div>
+          <CheckoutForm
+            cartSnapshot={cartSnapshot}
+            checkoutSource="cart"
+            deliveryFee={config?.delivery_fee ?? 0}
+            disabled
+            pricingPending={configLoading}
+            merchandiseTotal={total}
+            onPaymentMethodChange={setPaymentMethod}
+            onShippingZoneChange={setShippingZone}
+            paymentContract={config?.payment_contract}
+            selectedShippingZone={shippingZone}
+            shippingOptions={config?.shipping_options ?? []}
+          />
         </div>
 
         <aside className="hidden h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm lg:block">
@@ -146,7 +157,8 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
           cartSnapshot={cartSnapshot}
           checkoutSource="cart"
           deliveryFee={config?.delivery_fee ?? 0}
-          disabled={hasUnavailableItems || !config}
+          disabled={hasUnavailableItems || !config || configValidating || Boolean(configError)}
+          pricingPending={configLoading}
           merchandiseTotal={total}
           onPaymentMethodChange={setPaymentMethod}
           onShippingZoneChange={setShippingZone}
@@ -154,15 +166,7 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
           selectedShippingZone={shippingZone}
           shippingOptions={config?.shipping_options ?? []}
         />
-        {!config ? (
-          <p
-            className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-            role="alert"
-          >
-            Checkout pricing is temporarily unavailable. Please reload and try
-            again.
-          </p>
-        ) : null}
+        <CheckoutConfigStatus loading={configLoading} error={configError} onRetry={retryConfig} />
         {hasUnavailableItems ? (
           <p className="mt-3 text-sm font-medium text-destructive">
             Remove unavailable products from your cart before submitting.
@@ -209,7 +213,7 @@ export function CheckoutClient({ config }: { config: CheckoutConfig | null }) {
             <span>Delivery fee</span>
             <span>
               {!config
-                ? "Unavailable"
+                ? configLoading ? "Loading…" : "Unavailable"
                 : payableDeliveryFee
                   ? formatCurrency(payableDeliveryFee)
                   : "Select shipping method"}

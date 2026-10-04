@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
@@ -30,6 +31,7 @@ import { useCartStore, type CartItemInput } from "@/store/cart.store";
 type ProductDetailsProps = {
   children?: ReactNode;
   product: ProductDetail;
+  routePending?: boolean;
 };
 
 type ProductShareData = {
@@ -47,15 +49,19 @@ export function createProductShareData(
   };
 }
 
-export function ProductDetails({ children, product }: ProductDetailsProps) {
+export function ProductDetails({ children, product, routePending = false }: ProductDetailsProps) {
+  const { mutate } = useSWRConfig();
+  useEffect(() => {
+    if (!routePending) void mutate(["product-detail", product.slug], product, { revalidate: false });
+  }, [mutate, product, routePending]);
   return (
-    <ProductDetailsContent key={product._id} product={product}>
+    <ProductDetailsContent key={product._id} product={product} routePending={routePending}>
       {children}
     </ProductDetailsContent>
   );
 }
 
-function ProductDetailsContent({ children, product }: ProductDetailsProps) {
+function ProductDetailsContent({ children, product, routePending }: ProductDetailsProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const setBuyNowItem = useBuyNowStore((state) => state.setItem);
@@ -76,16 +82,17 @@ function ProductDetailsContent({ children, product }: ProductDetailsProps) {
   const hasDiscount = discount > 0 && discounted_price < originalPrice;
 
   useEffect(() => {
-    if (trackedProduct.current === product._id) return;
+    if (routePending || trackedProduct.current === product._id) return;
     if (trackGa4CommerceEvent("view_item", [toGa4Item({
       productId: product._id,
       name: product.name,
       price: product.discounted_price,
       quantity: 1,
     })])) trackedProduct.current = product._id;
-  }, [product._id, product.name, product.discounted_price]);
+  }, [product._id, product.name, product.discounted_price, routePending]);
 
   useEffect(() => {
+    if (routePending) return;
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -136,7 +143,7 @@ function ProductDetailsContent({ children, product }: ProductDetailsProps) {
       cancelled = true;
       cleanup?.();
     };
-  }, []);
+  }, [routePending]);
 
   const handleShare = async () => {
     const shareData = createProductShareData(product, window.location.href);
@@ -213,7 +220,11 @@ function ProductDetailsContent({ children, product }: ProductDetailsProps) {
   };
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-x-hidden font-sans text-foreground lg:min-h-0">
+    <div
+      inert={routePending}
+      aria-busy={routePending || undefined}
+      className="relative flex min-h-dvh flex-col overflow-x-hidden font-sans text-foreground lg:min-h-0"
+    >
       <header className="sticky top-0 z-40 flex items-center justify-between bg-background/95 px-4 pb-3 pt-3 backdrop-blur-md lg:hidden">
         <button
           type="button"

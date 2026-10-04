@@ -1,5 +1,5 @@
-import { ProductDetailsSkeleton } from "@/features/products/components/ProductDetailsSkeleton";
+import { ProductDetailsPending } from "@/features/products/components/ProductDetailsPending";
 
 export default function ProductDetailLoading() {
-  return <ProductDetailsSkeleton />;
+  return <ProductDetailsPending />;
 }

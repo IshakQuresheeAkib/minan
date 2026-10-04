@@ -2,15 +2,16 @@
 
 import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { publicRoutes } from "@/constants/routes";
 import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
+import { CheckoutConfigStatus } from "@/features/checkout/components/CheckoutConfigStatus";
+import { useCheckoutConfig } from "@/features/checkout/hooks/useCheckoutConfig";
 import { getPaymentSplit } from "@/features/checkout/lib/paymentContract";
 import type {
   CartSnapshot,
-  CheckoutConfig,
   PaymentMethod,
   ShippingZone,
 } from "@/features/checkout/types";
@@ -23,21 +24,20 @@ function formatCurrency(value: number): string {
   return `Tk ${value.toLocaleString("en-BD")}`;
 }
 
-export function BuyNowCheckoutClient({
-  config,
-}: {
-  config: CheckoutConfig | null;
-}) {
+export function BuyNowCheckoutClient() {
+  const { config, configLoading, configValidating, configError, retryConfig } =
+    useCheckoutConfig();
   const trackedCheckout = useRef(false);
-  useBuyNowPricingSync(() => {
-    if (trackedCheckout.current || !config) return;
+  const [pricesSettled, setPricesSettled] = useState(false);
+  useBuyNowPricingSync(() => setPricesSettled(true));
+  useEffect(() => {
+    if (trackedCheckout.current || !config || !pricesSettled) return;
     const currentItem = useBuyNowStore.getState().item;
     if (!currentItem?.isAvailable) return;
-    trackedCheckout.current = trackGa4CommerceEvent(
-      "begin_checkout",
-      [toGa4Item(currentItem)],
-    );
-  });
+    trackedCheckout.current = trackGa4CommerceEvent("begin_checkout", [
+      toGa4Item(currentItem),
+    ]);
+  }, [config, pricesSettled]);
   const item = useBuyNowStore((state) => state.item);
   const hasHydrated = useBuyNowStore((state) => state.hasHydrated);
   const [shippingZone, setShippingZone] = useState<ShippingZone>();
@@ -48,16 +48,18 @@ export function BuyNowCheckoutClient({
   const selectedShippingOption = config?.shipping_options?.find(
     (option) => option.id === shippingZone,
   );
-  const payableDeliveryFee = selectedShippingOption?.delivery_fee ??
+  const payableDeliveryFee =
+    selectedShippingOption?.delivery_fee ??
     (config?.shipping_options ? undefined : config?.delivery_fee);
   const summaryPaymentMethod = config?.payment_contract
     ? paymentMethod
     : config
       ? "cod"
       : undefined;
-  const paymentSplit = summaryPaymentMethod && payableDeliveryFee !== undefined
-    ? getPaymentSplit(summaryPaymentMethod, total, payableDeliveryFee)
-    : undefined;
+  const paymentSplit =
+    summaryPaymentMethod && payableDeliveryFee !== undefined
+      ? getPaymentSplit(summaryPaymentMethod, total, payableDeliveryFee)
+      : undefined;
   const cartSnapshot = useMemo<CartSnapshot | null>(() => {
     if (!item) {
       return null;
@@ -88,12 +90,19 @@ export function BuyNowCheckoutClient({
           <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/70">
             Complete checkout for this selected item. Your cart stays unchanged.
           </p>
-          <div className="mt-8 grid gap-5">
-            {[0, 1, 2, 3].map((field) => (
-              <div key={field} className="minan-skeleton h-12 rounded-md" />
-            ))}
-            <div className="minan-skeleton h-28 rounded-md" />
-          </div>
+          <CheckoutForm
+            cartSnapshot={cartSnapshot ?? { items: [], total: 0 }}
+            checkoutSource="buy_now"
+            deliveryFee={config?.delivery_fee ?? 0}
+            disabled
+            pricingPending={configLoading}
+            merchandiseTotal={total}
+            onPaymentMethodChange={setPaymentMethod}
+            onShippingZoneChange={setShippingZone}
+            paymentContract={config?.payment_contract}
+            selectedShippingZone={shippingZone}
+            shippingOptions={config?.shipping_options ?? []}
+          />
         </div>
 
         <aside className="hidden h-fit rounded-lg border border-foreground/10 bg-background p-5 shadow-sm lg:block">
@@ -139,7 +148,13 @@ export function BuyNowCheckoutClient({
           cartSnapshot={cartSnapshot}
           checkoutSource="buy_now"
           deliveryFee={config?.delivery_fee ?? 0}
-          disabled={!item.isAvailable || !config}
+          disabled={
+            !item.isAvailable ||
+            !config ||
+            configValidating ||
+            Boolean(configError)
+          }
+          pricingPending={configLoading}
           merchandiseTotal={total}
           onPaymentMethodChange={setPaymentMethod}
           onShippingZoneChange={setShippingZone}
@@ -147,15 +162,11 @@ export function BuyNowCheckoutClient({
           selectedShippingZone={shippingZone}
           shippingOptions={config?.shipping_options ?? []}
         />
-        {!config ? (
-          <p
-            className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-            role="alert"
-          >
-            Checkout pricing is temporarily unavailable. Please reload and try
-            again.
-          </p>
-        ) : null}
+        <CheckoutConfigStatus
+          loading={configLoading}
+          error={configError}
+          onRetry={retryConfig}
+        />
         {!item.isAvailable ? (
           <p className="mt-3 text-sm font-medium text-destructive">
             This product is currently unavailable. Choose another product to
@@ -198,7 +209,10 @@ export function BuyNowCheckoutClient({
             <span>{formatCurrency(savings)}</span>
           </div>
         ) : null}
-        <div className="mt-5 grid gap-2 border-t pt-4 text-sm" aria-live="polite">
+        <div
+          className="mt-5 grid gap-2 border-t pt-4 text-sm"
+          aria-live="polite"
+        >
           <div className="flex justify-between">
             <span>Subtotal</span>
             <span>{formatCurrency(total)}</span>
@@ -207,7 +221,9 @@ export function BuyNowCheckoutClient({
             <span>Delivery fee</span>
             <span>
               {!config
-                ? "Unavailable"
+                ? configLoading
+                  ? "Loading…"
+                  : "Unavailable"
                 : payableDeliveryFee
                   ? formatCurrency(payableDeliveryFee)
                   : "Select shipping method"}
@@ -232,9 +248,7 @@ export function BuyNowCheckoutClient({
           <div className="flex justify-between font-medium">
             <span>Due on delivery</span>
             <span>
-              {paymentSplit
-                ? formatCurrency(paymentSplit.dueOnDelivery)
-                : "—"}
+              {paymentSplit ? formatCurrency(paymentSplit.dueOnDelivery) : "—"}
             </span>
           </div>
         </div>

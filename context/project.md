@@ -508,7 +508,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `features/<domain>/actions/*.actions.ts` are plain async functions calling Express. No `"use server"`.
 - `components/ui/` is shadcn/ui output.
 - `lib/api/client.ts` is the fetch wrapper. Do not use axios.
-- `features/products/services/product.cache.ts` owns the storefront Cache Component functions. They use `"use cache"`, the shared `catalog` tag, and the `days` cache-life profile.
+- `features/products/services/product.cache.ts` owns the storefront Cache Component functions. They use `"use cache"`, the shared `catalog` tag, and explicit lifetimes: 300-second client reuse, 300-second server revalidation, and 3600-second expiry.
 - `next.config.ts` rewrites `/api/:path*` to `API_PROXY_TARGET`, defaulting to `http://localhost:3001`.
 - `components/analytics/MetaPixel.tsx` is mounted by the root layout. It initializes the client-side Pixel when configured and sends `PageView` on allowed pathname changes. `lib/analytics/pixel.ts` contains the Pixel helpers. CAPI is Express-only.
 - `components/analytics/Ga4Analytics.tsx` loads the configured GA4 tag on allowed routes. `lib/analytics/ga4.ts` sends storefront commerce events and queues events until the tag is ready. `lib/analytics/routes.ts` excludes admin, account, and payment routes except a completed payment result after its reference has been removed from the URL.
@@ -604,7 +604,10 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 ## 15. Performance
 
 - Mobile-first, optimized for Bangladesh 3G/4G users
-- Public home/catalog/product pages use explicit `"use cache"` Cache Component functions with `cacheLife("days")` and the shared `catalog` cache tag.
+- Public home/catalog/product data uses explicit `"use cache"` Cache Component functions with the shared `catalog` tag. Client reuse and server revalidation are both 300 seconds; expiry is 3600 seconds. Admin mutations still invalidate the server tag immediately; already-open browsers can reuse their existing catalog for up to five minutes before checking for updates.
+- Storefront navigation has no root or public full-screen loading boundary. Route shells stay visible, and local Suspense boundaries show placeholders only for pending content. Catalog pending regions reuse matching browser-cached results when available.
+- `useProducts` uses SWR Infinite with normalized filter keys, 20-item pages, server-data seeding, and cached page-count restoration. Catalog/category results refresh after five minutes on remount, focus, or reconnect while keeping existing content visible. These browser caches last for the current document session, not across browser reloads.
+- Checkout and buy-now checkout render delivery fields before configuration resolves. Their shared, validated SWR configuration deduplicates requests for 60 seconds; pending options show local skeletons, failures offer an in-place retry, and submission is blocked during configuration loading, revalidation, or failure. Express still verifies checkout products and payment amounts; order/session caches and uncached payment-result resolution retain their separate policies.
 - Homepage banners use the separate `home-banners` cache tag with a short cache life and bundled local fallback assets.
 - Product, category, and subcategory admin writes trigger Express-to-Next revalidation with `revalidateTag("catalog", { expire: 0 })`.
 - Catalog page server-renders the first page and filter options, then the client hook loads more pages with a page size of 20

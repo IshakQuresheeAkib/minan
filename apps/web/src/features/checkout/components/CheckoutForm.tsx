@@ -43,6 +43,7 @@ type CheckoutFormProps = {
   checkoutSource: CheckoutSource;
   deliveryFee: number;
   disabled?: boolean;
+  pricingPending?: boolean;
   merchandiseTotal: number;
   onPaymentMethodChange: (method?: PaymentMethod) => void;
   onShippingZoneChange: (zone: ShippingZone) => void;
@@ -56,6 +57,7 @@ export function CheckoutForm({
   checkoutSource,
   deliveryFee,
   disabled = false,
+  pricingPending = false,
   merchandiseTotal,
   onPaymentMethodChange,
   onShippingZoneChange,
@@ -64,11 +66,14 @@ export function CheckoutForm({
   shippingOptions,
 }: CheckoutFormProps) {
   const formId = useId();
-  const [retryContext, setRetryContext] = useState<{
+  const [retryState, setRetryContext] = useState<{
     token: string;
     method: PaymentMethod;
     payNow: number;
+    pricingKey: string;
   } | null>(null);
+  const pricingKey = JSON.stringify([paymentContract, shippingOptions, deliveryFee, cartSnapshot]);
+  const retryContext = retryState?.pricingKey === pricingKey ? retryState : null;
   const [retrying, setRetrying] = useState(false);
   const [forceGuest, setForceGuest] = useState(false);
   const usesShippingZones = shippingOptions.length > 0;
@@ -130,7 +135,7 @@ export function CheckoutForm({
       return;
     }
     if (result.state === "failed") {
-      setRetryContext({ token: result.retry_token, method, payNow });
+      setRetryContext({ token: result.retry_token, method, payNow, pricingKey });
       toast.error(result.message);
       return;
     }
@@ -138,6 +143,7 @@ export function CheckoutForm({
   }
 
   async function onSubmit(values: LeadInput) {
+    if (disabled || retrying) return;
     const paymentMethod = supportsPaymentChoice
       ? values.payment_method
       : "cod";
@@ -184,7 +190,7 @@ export function CheckoutForm({
   }
 
   async function onRetry() {
-    if (!retryContext) return;
+    if (!retryContext || disabled || retrying) return;
     setRetrying(true);
     try {
       const response = await retryCheckoutPayment(retryContext.token);
@@ -240,6 +246,7 @@ export function CheckoutForm({
         Email
         <Input
           type="email"
+          spellCheck={false}
           aria-describedby={errors.email ? errorIds.email : undefined}
           aria-invalid={Boolean(errors.email)}
           autoComplete="email"
@@ -258,6 +265,12 @@ export function CheckoutForm({
         />
         {errors.address ? <span id={errorIds.address} className="text-xs text-destructive" role="alert">{errors.address.message}</span> : null}
       </label>
+      {pricingPending ? (
+        <div aria-busy="true" aria-label="Loading delivery and payment options" className="grid gap-4">
+          <div aria-hidden="true" className="minan-skeleton h-28 rounded-md" />
+          <div aria-hidden="true" className="minan-skeleton h-28 rounded-md" />
+        </div>
+      ) : null}
       {usesShippingZones ? (
         <Controller
           control={form.control}
@@ -351,6 +364,7 @@ export function CheckoutForm({
             type="button"
             variant="secondary"
             loading={retrying}
+            disabled={disabled}
             loadingText="Retrying..."
             onClick={() => void onRetry()}
           >
@@ -362,7 +376,7 @@ export function CheckoutForm({
         <div className="rounded-xl border border-primary/35 bg-primary/10 p-4 text-sm leading-6 text-foreground" role="status">
           <p className="font-semibold">Continue checkout as a guest</p>
           <p className="mt-1 text-foreground/70">Your form and cart are still here. This Order will not be added to an account automatically.</p>
-          <Button className="mt-3" type="button" onClick={() => void form.handleSubmit(onSubmit)()}>
+          <Button className="mt-3" type="button" disabled={disabled || retrying} onClick={() => void form.handleSubmit(onSubmit)()}>
             Continue as guest
           </Button>
         </div>

@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getProductPath } from "@/constants/routes";
 import { ProductDetails } from "@/features/products/components/ProductDetails";
-import { ProductDetailsSkeleton } from "@/features/products/components/ProductDetailsSkeleton";
+import { ProductDetailsPending } from "@/features/products/components/ProductDetailsPending";
 import { RelatedProducts } from "@/features/products/components/RelatedProducts";
 import { RelatedProductsSkeleton } from "@/features/products/components/RelatedProductsSkeleton";
 import {
@@ -76,13 +76,21 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductDetailPage({
+export default function ProductDetailPage(props: ProductDetailPageProps) {
+  return (
+    <Suspense fallback={<ProductDetailsPending />}>
+      <RequestedProductDetail {...props} />
+    </Suspense>
+  );
+}
+
+async function RequestedProductDetail({
   params,
 }: ProductDetailPageProps) {
   const { slug } = await params;
 
   return (
-    <Suspense fallback={<ProductDetailsSkeleton />}>
+    <Suspense fallback={<ProductDetailsPending />}>
       <ProductDetailContent slug={slug} />
     </Suspense>
   );

@@ -3,10 +3,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { Suspense } from "react";
 
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCollectionPath, publicRoutes } from "@/constants/routes";
 import { ProductCatalog } from "@/features/products/components/ProductCatalog";
+import { ProductCatalogPending } from "@/features/products/components/CachedProductCatalog";
+import { RouteDataSkeleton } from "@/components/shared/RouteDataSkeleton";
 import {
   hasCatalogQuery,
   parseCatalogFilters,
@@ -92,7 +95,15 @@ export async function generateMetadata({
   };
 }
 
-export default async function CollectionPage({
+export default function CollectionPage(props: CollectionPageProps) {
+  return (
+    <Suspense fallback={<RouteDataSkeleton title="Collections"><ProductCatalogPending /></RouteDataSkeleton>}>
+      <RequestedCollection {...props} />
+    </Suspense>
+  );
+}
+
+async function RequestedCollection({
   params,
   searchParams,
 }: CollectionPageProps) {
@@ -110,18 +121,6 @@ export default async function CollectionPage({
   }
 
   const filters = parseCatalogFilters(query, category.slug);
-  const products = await getCachedProducts({
-    category: filters.categories,
-    subcategories: filters.subcategories,
-    colors: filters.colors,
-    sizes: filters.sizes,
-    search: filters.search,
-    minPrice: filters.minPrice,
-    maxPrice: filters.maxPrice,
-    sort: filters.sort,
-    page: 1,
-    limit: 20,
-  });
 
   return (
     <>
@@ -153,13 +152,30 @@ export default async function CollectionPage({
           </p>
         </div>
 
-        <ProductCatalog
-          filters={filters}
-          filterOptions={filterOptions}
-          fixedCategorySlug={category.slug}
-          initialData={toCatalogProductList(products)}
-        />
+        <Suspense fallback={<ProductCatalogPending categorySlug={category.slug} />}>
+          <CollectionProducts filters={filters} filterOptions={filterOptions} categorySlug={category.slug} />
+        </Suspense>
       </section>
     </>
   );
+}
+
+async function CollectionProducts({ filters, filterOptions, categorySlug }: {
+  filters: ReturnType<typeof parseCatalogFilters>;
+  filterOptions: ProductFilterOptions;
+  categorySlug: string;
+}) {
+  const products = await getCachedProducts({
+    category: filters.categories,
+    subcategories: filters.subcategories,
+    colors: filters.colors,
+    sizes: filters.sizes,
+    search: filters.search,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    sort: filters.sort,
+    page: 1,
+    limit: 20,
+  });
+  return <ProductCatalog filters={filters} filterOptions={filterOptions} fixedCategorySlug={categorySlug} initialData={toCatalogProductList(products)} />;
 }

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { RouteDataSkeleton } from "@/components/shared/RouteDataSkeleton";
 
 import { PaymentResultClient } from "@/features/checkout/components/PaymentResultClient";
 import type { PaymentResult } from "@/features/checkout/types";
@@ -14,7 +16,11 @@ type PaymentResultPageProps = {
   searchParams: Promise<{ reference?: string | string[] }>;
 };
 
-export default async function PaymentResultPage({ searchParams }: PaymentResultPageProps) {
+export default function PaymentResultPage(props: PaymentResultPageProps) {
+  return <Suspense fallback={<RouteDataSkeleton title="Payment result" />}><RequestedPaymentResult {...props} /></Suspense>;
+}
+
+async function RequestedPaymentResult({ searchParams }: PaymentResultPageProps) {
   const params = await searchParams;
   const reference = Array.isArray(params.reference) ? params.reference[0] : params.reference;
   let result: PaymentResult = {

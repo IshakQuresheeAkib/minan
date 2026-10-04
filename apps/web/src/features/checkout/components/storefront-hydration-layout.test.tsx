@@ -1,6 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/features/checkout/hooks/useCheckoutConfig", () => ({
+  useCheckoutConfig: () => ({ config: null, configLoading: true, configValidating: true, configError: undefined, retryConfig: vi.fn() }),
+}));
+
 const cartState = vi.hoisted(() => ({
   hasHydrated: false,
   items: [],
@@ -69,9 +73,9 @@ describe("persisted storefront page hydration", () => {
   });
 
   it("keeps the checkout footer below the viewport before and after empty-state hydration", () => {
-    const pendingMarkup = renderToStaticMarkup(<CheckoutClient config={null} />);
+    const pendingMarkup = renderToStaticMarkup(<CheckoutClient />);
     cartState.hasHydrated = true;
-    const emptyMarkup = renderToStaticMarkup(<CheckoutClient config={null} />);
+    const emptyMarkup = renderToStaticMarkup(<CheckoutClient />);
 
     expectStableViewportFrame(pendingMarkup);
     expectStableViewportFrame(emptyMarkup);
@@ -81,11 +85,11 @@ describe("persisted storefront page hydration", () => {
 
   it("keeps the buy-now footer below the viewport before and after empty-state hydration", () => {
     const pendingMarkup = renderToStaticMarkup(
-      <BuyNowCheckoutClient config={null} />,
+      <BuyNowCheckoutClient />,
     );
     buyNowState.hasHydrated = true;
     const emptyMarkup = renderToStaticMarkup(
-      <BuyNowCheckoutClient config={null} />,
+      <BuyNowCheckoutClient />,
     );
 
     expectStableViewportFrame(pendingMarkup);

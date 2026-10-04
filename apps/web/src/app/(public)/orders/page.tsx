@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { RouteDataSkeleton } from "@/components/shared/RouteDataSkeleton";
 
 import { OrderTrackingExperience } from "@/features/order-tracking/components/OrderTrackingExperience";
 import { privatePageRobots } from "@/lib/seo/metadata";
@@ -14,7 +16,11 @@ type OrderTrackingPageProps = {
   }>;
 };
 
-export default async function OrderTrackingPage({
+export default function OrderTrackingPage(props: OrderTrackingPageProps) {
+  return <Suspense fallback={<RouteDataSkeleton title="Order tracking" />}><RequestedOrderTracking {...props} /></Suspense>;
+}
+
+async function RequestedOrderTracking({
   searchParams,
 }: OrderTrackingPageProps) {
   const params = await searchParams;
