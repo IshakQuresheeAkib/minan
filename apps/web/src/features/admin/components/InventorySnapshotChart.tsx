@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { AlertCircle, Layers } from "lucide-react";
 import { adminRoutes } from "@/constants/routes";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/Button";
 import type { InventorySnapshotData } from "@/features/admin/types";
 
 export function InventorySnapshotChart({
@@ -68,34 +70,43 @@ export function InventorySnapshotChart({
   const peakPoint = trendPoints.find((p) => p.isPeak) || trendPoints[0];
 
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-[28px] border border-[#E8E1D5]/70 bg-white/95 p-6 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)]">
+    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E1D5]/80 bg-white/95 p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)]">
       {/* Header */}
       <div>
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-bold tracking-tight text-[#1A1715]">
-            Inventory Snapshot
-          </h2>
-          <div className="flex size-7 items-center justify-center rounded-full bg-[#FAF5EE] text-[#8C7A6B]">
-            <Layers className="size-3.5" />
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-display text-lg sm:text-xl font-bold tracking-tight text-[#1A1715]">
+              Inventory Snapshot
+            </h2>
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[#FAF5EE] text-[#8C7A6B]">
+              <Layers className="size-3.5" />
+            </div>
           </div>
+
+          {lowStockCount > 0 ? (
+            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[11px] font-semibold text-amber-800 gap-1">
+              <AlertCircle className="size-3" />
+              <span>{lowStockCount} low stock</span>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[11px] font-semibold text-emerald-700">
+              Catalog Healthy
+            </Badge>
+          )}
         </div>
-        <div className="mt-1 flex items-center justify-between text-xs">
+
+        <div className="mt-2 flex items-center justify-between text-xs">
           <span className="text-neutral-500 font-medium">
             {totalProducts} Total Item{totalProducts === 1 ? "" : "s"}
           </span>
-          {lowStockCount > 0 ? (
-            <div className="flex items-center gap-1 text-amber-700 font-semibold">
-              <AlertCircle className="size-3.5" />
-              <span>{lowStockCount} inactive/low stock</span>
-            </div>
-          ) : (
-            <span className="text-emerald-600 font-semibold">All items active</span>
-          )}
+          <span className="text-[11px] text-neutral-400">
+            {categories.length} active categories
+          </span>
         </div>
       </div>
 
       {/* Combo SVG Chart */}
-      <div className="relative my-3 flex items-center justify-center">
+      <div className="relative my-4 flex items-center justify-center">
         {bars.length > 0 ? (
           <svg
             viewBox={`0 0 ${width} ${height}`}
@@ -167,14 +178,18 @@ export function InventorySnapshotChart({
       {/* Footer Restock Action */}
       <div className="flex items-center justify-between border-t border-[#EFE8DC] pt-3 text-xs">
         <span className="font-medium text-neutral-500">
-          {categories.length} active categories
+          Catalog distribution
         </span>
-        <Link
-          href={adminRoutes.products}
-          className="font-semibold text-neutral-900 underline underline-offset-4 hover:text-amber-700 transition-colors"
+        <Button
+          variant="secondary"
+          size="sm"
+          asChild
+          className="h-8 rounded-full border-[#E4DDD1] bg-transparent text-xs font-semibold text-neutral-700 shadow-none hover:bg-[#FAF7F2] hover:text-neutral-900"
         >
-          Manage Catalog
-        </Link>
+          <Link href={adminRoutes.products}>
+            Manage Catalog
+          </Link>
+        </Button>
       </div>
     </div>
   );

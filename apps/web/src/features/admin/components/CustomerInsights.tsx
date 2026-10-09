@@ -3,20 +3,38 @@
 import { Info, MapPin, Users } from "lucide-react";
 import type { DemographicInsight, LocationInsight } from "@/features/admin/types";
 
-function RetentionRing({ percentage = 0 }: { percentage?: number }) {
-  const size = 64;
-  const strokeWidth = 5.5;
+function formatRegionName(city: string): string {
+  const lower = city.toLowerCase().trim();
+  if (lower.includes("outside sylhet")) return "Outside Sylhet";
+  if (lower.includes("inside sylhet")) return "Inside Sylhet";
+  return city;
+}
+
+function RetentionRing({
+  percentage = 0,
+  size = 46,
+  strokeWidth = 4,
+}: {
+  percentage?: number;
+  size?: number;
+  strokeWidth?: number;
+}) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (Math.min(percentage, 100) / 100) * circumference;
+  const strokeDashoffset =
+    circumference - (Math.min(Math.max(percentage, 0), 100) / 100) * circumference;
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div
+      className="relative flex shrink-0 items-center justify-center"
+      style={{ width: size, height: size }}
+      aria-label={`Retention rate ${percentage}%`}
+    >
       <svg
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="rotate-[-90deg] overflow-visible"
+        className="-rotate-90"
       >
         <circle
           cx={size / 2}
@@ -30,7 +48,7 @@ function RetentionRing({ percentage = 0 }: { percentage?: number }) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          className="stroke-[#1C1917] transition-all duration-1000 ease-out"
+          className="stroke-[#1C1917] transition-all duration-700 ease-out"
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -38,7 +56,7 @@ function RetentionRing({ percentage = 0 }: { percentage?: number }) {
           fill="none"
         />
       </svg>
-      <span className="absolute font-sans text-xs font-bold text-[#1C1917]">
+      <span className="absolute font-sans text-[11px] font-bold text-[#1C1917]">
         {percentage}%
       </span>
     </div>
@@ -57,33 +75,121 @@ export function CustomerInsights({
   topLocations?: LocationInsight[];
 }) {
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-[28px] border border-[#E8E1D5]/70 bg-white/95 p-6 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)]">
+    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E1D5]/80 bg-white/95 p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)]">
       {/* Title */}
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold tracking-tight text-[#1A1715]">
-          Customer Insights
-        </h2>
-        <div className="flex size-7 items-center justify-center rounded-full bg-[#FAF5EE] text-[#8C7A6B]">
-          <Users className="size-3.5" />
+        <div className="flex items-center gap-2.5">
+          <h2 className="font-display text-lg font-bold tracking-tight text-[#1A1715] sm:text-xl">
+            Customer Insights
+          </h2>
+          <div className="flex size-7 items-center justify-center rounded-lg bg-[#FAF5EE] text-[#8C7A6B]">
+            <Users className="size-3.5" />
+          </div>
         </div>
       </div>
 
-      {/* Demographics / Category Share Section */}
-      <div className="mt-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+      <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        {/* Retention Rate Box */}
+        <div className="flex flex-col justify-between overflow-hidden rounded-xl border border-[#EBE3D7]/70 bg-[#FAF7F2]/60 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <span>Retention Rate</span>
+                <Info className="size-3 text-neutral-400" />
+              </div>
+              <p className="mt-1 font-display text-2xl font-bold tracking-tight text-[#1A1715] sm:text-3xl">
+                {retentionRate}%
+              </p>
+            </div>
+            <RetentionRing percentage={retentionRate} size={46} strokeWidth={4} />
+          </div>
+
+          <div className="mt-3 flex items-center gap-1.5 border-t border-[#EFE8DC]/80 pt-2.5 text-xs">
+            <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
+            <span className="truncate font-medium text-emerald-800">
+              {repeatCustomersCount > 0 ? (
+                <>
+                  <span className="font-semibold">{repeatCustomersCount}</span> returning{" "}
+                  {repeatCustomersCount === 1 ? "buyer" : "buyers"}
+                </>
+              ) : (
+                "Total customer loyalty"
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Top Delivery Locations */}
+        <div className="flex flex-col justify-between overflow-hidden rounded-xl border border-[#EBE3D7]/70 bg-[#FAF7F2]/60 p-4">
+          <div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                Delivery Regions
+              </h3>
+              <MapPin className="size-3.5 text-[#8C7A6B]" />
+            </div>
+
+            <ul className="mt-2.5 space-y-2 text-xs">
+              {topLocations.length > 0 ? (
+                topLocations.map((loc) => {
+                  const displayName = formatRegionName(loc.city);
+                  const shareValue = parseInt(loc.share.replace("%", ""), 10) || 0;
+                  return (
+                    <li key={loc.city} className="space-y-1">
+                      <div className="flex items-center justify-between gap-1.5 font-medium text-neutral-700">
+                        <span className="flex items-center gap-1.5 min-w-0 truncate">
+                          <span className="size-1.5 shrink-0 rounded-full bg-[#8C7A6B]" />
+                          <span className="truncate" title={loc.city}>
+                            {displayName}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-[11px] font-bold text-neutral-900">
+                          {loc.share}
+                        </span>
+                      </div>
+                      <div className="h-1 w-full overflow-hidden rounded-full bg-[#EFE9E0]">
+                        <div
+                          className="h-full rounded-full bg-[#8C7A6B] transition-all duration-700 ease-out"
+                          style={{ width: `${Math.min(shareValue, 100)}%` }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })
+              ) : (
+                <li className="text-xs italic text-neutral-400">No regional data yet</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-[#EFE8DC]/80 pt-2.5 text-[11px] text-neutral-500">
+            <span>Primary Hub</span>
+            <span className="font-semibold text-neutral-700">Sylhet, BD</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Demand Section */}
+      <div className="mt-4 border-t border-[#F2ECE1]/80 pt-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
           Category Demand
         </h3>
-        <div className="mt-2.5 space-y-2.5">
+        <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {demographics.length > 0 ? (
             demographics.map((item) => (
               <div key={item.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="truncate font-medium text-neutral-700" title={item.label}>
+                  <span
+                    className="truncate font-medium text-neutral-700"
+                    title={item.label}
+                  >
                     {item.label}
                   </span>
-                  <span className="font-semibold text-neutral-900">{item.percentage}%</span>
+                  <span className="font-semibold text-neutral-900">
+                    {item.percentage}%
+                  </span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-[#EFE9E0]">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFE9E0]">
                   <div
                     className="h-full rounded-full bg-[#1C1917] transition-all duration-700 ease-out"
                     style={{ width: `${Math.min(item.percentage, 100)}%` }}
@@ -92,68 +198,10 @@ export function CustomerInsights({
               </div>
             ))
           ) : (
-            <p className="text-xs text-neutral-400 italic">No category data available yet</p>
-          )}
-        </div>
-      </div>
-
-      {/* Retention Rate */}
-      <div className="mt-5 rounded-2xl border border-[#EBE3D7]/60 bg-[#FAF7F2]/60 p-3.5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1 text-xs font-medium text-neutral-500">
-              <span>Retention Rate</span>
-              <Info className="size-3 text-neutral-400" />
-            </div>
-            <p className="mt-1 font-display text-2xl font-bold tracking-tight text-[#1A1715]">
-              {retentionRate}%
+            <p className="text-xs italic text-neutral-400">
+              No category data available yet
             </p>
-            {repeatCustomersCount > 0 ? (
-              <span className="text-[10px] text-emerald-700 font-medium">
-                {repeatCustomersCount} returning buyer{repeatCustomersCount === 1 ? "" : "s"}
-              </span>
-            ) : null}
-          </div>
-          <RetentionRing percentage={retentionRate} />
-        </div>
-      </div>
-
-      {/* Top Locations & Map Graphic */}
-      <div className="mt-5">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-          Geographic Distribution
-        </h3>
-
-        <div className="mt-2.5 flex items-center justify-between gap-3">
-          <ul className="min-w-0 flex-1 space-y-1.5 text-xs">
-            {topLocations.map((loc) => (
-              <li key={loc.city} className="flex items-center justify-between gap-1.5 font-medium text-neutral-700">
-                <span className="flex items-center gap-1.5 truncate">
-                  <MapPin className="size-3 text-neutral-400 shrink-0" />
-                  <span className="truncate" title={loc.city}>{loc.city}</span>
-                </span>
-                <span className="shrink-0 text-[11px] font-bold text-neutral-900">{loc.share}</span>
-              </li>
-            ))}
-          </ul>
-
-          {/* Minimalist World / Region Map SVG */}
-          <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[#FAF7F2] p-1 border border-[#EAE2D5]/50">
-            <svg
-              viewBox="0 0 100 60"
-              className="size-full fill-[#DCD3C5] opacity-70"
-              aria-hidden="true"
-            >
-              {/* Stylized region map */}
-              <path d="M10,20 Q15,10 25,15 Q35,12 40,25 Q35,35 25,32 Q15,30 10,20 Z" />
-              <path d="M50,15 Q65,10 75,18 Q85,25 80,40 Q65,45 55,35 Q45,28 50,15 Z" />
-              <path d="M60,42 Q70,40 75,48 Q70,55 62,52 Z" />
-              {/* Glowing location indicators */}
-              <circle cx="28" cy="22" r="2.5" className="fill-[#F5B836] animate-pulse" />
-              <circle cx="68" cy="28" r="3" className="fill-[#1C1917]" />
-              <circle cx="72" cy="22" r="2" className="fill-[#10B981]" />
-            </svg>
-          </div>
+          )}
         </div>
       </div>
     </div>

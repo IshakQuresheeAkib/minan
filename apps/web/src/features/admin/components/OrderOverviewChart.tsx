@@ -1,8 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import type { DailyChartPoint, OrderOverviewData } from "@/features/admin/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function OrderOverviewChart({
   overview,
@@ -106,31 +113,40 @@ export function OrderOverviewChart({
   const activePoint = points[activeIndex] ?? points[0];
 
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-[28px] border border-[#E8E1D5]/70 bg-white/95 p-6 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)]">
+    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E1D5]/80 bg-white/95 p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)]">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-xl font-bold tracking-tight text-[#1A1715]">
+            <h2 className="font-display text-lg sm:text-xl font-bold tracking-tight text-[#1A1715]">
               Order Overview
             </h2>
-            <TrendingUp className="size-4 text-emerald-600" />
+            <div className="flex size-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">
+              <TrendingUp className="size-3.5 stroke-[2.2]" />
+            </div>
           </div>
-          <p className="text-xs text-neutral-500">
+          <p className="mt-0.5 text-xs text-neutral-500 font-medium">
             ৳{totalPeriodSales.toLocaleString("en-BD")} total • {totalPeriodOrders} order{totalPeriodOrders === 1 ? "" : "s"}
           </p>
         </div>
 
-        {/* Filter Dropdown Toggle */}
+        {/* Filter Select Dropdown using reusable component */}
         <div className="relative">
-          <button
-            type="button"
-            onClick={() => setTimeRange(timeRange === "7d" ? "30d" : "7d")}
-            className="flex items-center gap-1.5 rounded-full border border-[#E4DDD1] bg-[#FAF8F5] px-3 py-1 text-xs font-medium text-neutral-700 transition-colors hover:bg-[#F3EDE3]"
+          <Select
+            value={timeRange}
+            onValueChange={(val) => setTimeRange(val as "7d" | "30d")}
           >
-            <span>{timeRange === "7d" ? "Last 7 Days" : "Last 30 Days"}</span>
-            <ChevronDown className="size-3 text-neutral-500" />
-          </button>
+            <SelectTrigger
+              size="sm"
+              className="w-[125px] rounded-full border-[#E4DDD1] bg-[#FAF8F5] text-xs font-semibold text-neutral-700 hover:bg-[#F3EDE3]"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
