@@ -64,15 +64,6 @@ export function AdminDashboard() {
             Here&apos;s an overview of your store performance, orders, and inventory.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-[#E2D9CD] bg-white/80 px-3 py-1 text-xs font-semibold text-neutral-700"
-          >
-            <Sparkles className="size-3 text-amber-600" />
-            <span>Sylhet Hub • Live</span>
-          </Badge>
-        </div>
       </div>
 
       {error ? (
