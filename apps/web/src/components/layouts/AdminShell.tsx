@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -87,17 +88,20 @@ export function AdminShell({ children }: AdminShellProps) {
       {/* ================= DESKTOP SIDEBAR ================= */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-28 flex-col items-center justify-between border-r border-[#E8E1D5]/70 bg-[#F6F1EB] py-6 lg:flex">
         {/* Top: Brand Logo */}
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center px-3">
           <Link
             href={adminRoutes.dashboard}
-            className="group flex flex-col items-center text-center focus:outline-none"
+            className="group flex items-center justify-center focus:outline-none"
           >
-            <span className="font-display text-sm font-bold tracking-[0.25em] text-[#1C1917] transition-opacity group-hover:opacity-75">
-              MINAN
-            </span>
-            <span className="text-[9px] font-medium tracking-[0.2em] text-neutral-400">
-              &amp; CO.
-            </span>
+            <Image
+              src="/logo.png"
+              alt="MINAN"
+              width={364}
+              height={353}
+              sizes="(min-width: 2560px) 72px, (min-width: 1536px) 64px, 56px"
+              className="h-14 w-auto 2xl:h-16 min-[2560px]:h-[4.5rem] transition-opacity duration-200 group-hover:opacity-75"
+              priority
+            />
           </Link>
         </div>
 
@@ -211,10 +215,15 @@ export function AdminShell({ children }: AdminShellProps) {
           <div className="fixed inset-y-0 left-0 w-72 bg-[#F6F1EB] p-6 shadow-2xl flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-display text-lg font-bold tracking-[0.2em] text-[#1C1917]">
-                    MINAN &amp; CO.
-                  </span>
+                <div className="flex flex-col items-start gap-1">
+                  <Image
+                    src="/logo.png"
+                    alt="MINAN"
+                    width={364}
+                    height={353}
+                    sizes="(min-width: 640px) 48px, 40px"
+                    className="h-10 w-auto sm:h-12"
+                  />
                   <p className="text-[10px] text-neutral-400 uppercase tracking-widest">
                     Admin Portal
                   </p>

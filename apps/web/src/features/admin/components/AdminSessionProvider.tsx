@@ -18,7 +18,7 @@ function getLoginRedirectUrl(): string {
   const nextPath = `${window.location.pathname}${window.location.search}`;
 
   if (nextPath.startsWith("/admin") && nextPath !== publicRoutes.adminLogin) {
-    return `${publicRoutes.adminLogin}?next=${encodeURIComponent(nextPath)}`;
+    return `${publicRoutes.adminLogin}?next=${encodeURIComponent(nextPath)}&reauth=1`;
   }
 
   return publicRoutes.adminLogin;
