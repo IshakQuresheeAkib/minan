@@ -2,7 +2,7 @@
 
 import { Banknote, ShoppingBag, Sparkles, TrendingUp, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminDashboardSkeleton } from "@/features/admin/components/AdminSkeleton";
 import { StatCard } from "@/features/admin/components/StatCardOrganic";
 import { BestSellingProducts } from "@/features/admin/components/BestSellingProducts";
 import { CustomerInsights } from "@/features/admin/components/CustomerInsights";
@@ -49,40 +49,7 @@ export function AdminDashboard() {
   const conversionGrowthPositive = (summary?.conversionRateGrowth ?? 0) >= 0;
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        {/* Header Skeleton */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-56 rounded-lg" />
-            <Skeleton className="h-4 w-40 rounded-md" />
-          </div>
-          <Skeleton className="h-8 w-28 rounded-full" />
-        </div>
-
-        {/* 4 Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-2xl" />
-          ))}
-        </div>
-
-        {/* Chart + Recent Orders Skeleton */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <Skeleton className="h-80 rounded-2xl lg:col-span-8" />
-          <Skeleton className="h-80 rounded-2xl lg:col-span-4" />
-        </div>
-
-        {/* Best Selling Skeleton */}
-        <Skeleton className="h-72 rounded-2xl" />
-
-        {/* Bottom Insights Skeleton */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <Skeleton className="h-72 rounded-2xl lg:col-span-6" />
-          <Skeleton className="h-72 rounded-2xl lg:col-span-6" />
-        </div>
-      </div>
-    );
+    return <AdminDashboardSkeleton />;
   }
 
   return (
@@ -122,7 +89,9 @@ export function AdminDashboard() {
           change={salesGrowthText}
           isPositive={salesGrowthPositive}
           subtitle={summary?.totalSalesMonth ? "This month" : "All time"}
-          shapeVariant={1}
+          colorVariant="green"
+          progressPercent={salesGrowthPositive ? 92 : 68}
+          countdownText="Live Sales"
           icon={<Banknote className="size-4" />}
         />
         <StatCard
@@ -131,14 +100,18 @@ export function AdminDashboard() {
           change={customersGrowthText}
           isPositive={customersGrowthPositive}
           subtitle={summary?.newCustomersMonth ? "This month" : "Total unique"}
-          shapeVariant={2}
+          colorVariant="blue"
+          progressPercent={customersGrowthPositive ? 78 : 45}
+          countdownText="Active"
           icon={<Users className="size-4" />}
         />
         <StatCard
           title="Open Orders"
           value={openOrdersCount}
           subtitle="Awaiting fulfillment"
-          shapeVariant={3}
+          colorVariant="orange"
+          progressPercent={openOrdersCount > 0 ? Math.min(100, openOrdersCount * 8) : 25}
+          countdownText="Fulfill"
           icon={<ShoppingBag className="size-4" />}
         />
         <StatCard
@@ -147,7 +120,9 @@ export function AdminDashboard() {
           change={conversionGrowthText}
           isPositive={conversionGrowthPositive}
           subtitle="Storefront visits"
-          shapeVariant={4}
+          colorVariant="red"
+          progressPercent={Math.min(100, Math.round(conversionRateVal * 20))}
+          countdownText="30d Traffic"
           icon={<TrendingUp className="size-4" />}
         />
       </div>

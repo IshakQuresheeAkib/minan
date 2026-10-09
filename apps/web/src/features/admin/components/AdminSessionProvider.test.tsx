@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { render, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refreshSession } from "@/features/admin/actions/auth.actions";
 import { AdminSessionProvider } from "./AdminSessionProvider";
@@ -13,6 +13,10 @@ vi.mock("@/features/admin/actions/auth.actions", () => ({
 }));
 
 describe("AdminSessionProvider", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     replace.mockReset();
     vi.mocked(refreshSession).mockRejectedValue(new Error("Refresh failed"));
@@ -31,5 +35,18 @@ describe("AdminSessionProvider", () => {
         "/admin/login?next=%2Fadmin%3Ftab%3Dorders&reauth=1",
       );
     });
+  });
+
+  it("renders the admin skeleton instead of legacy text while bootstrapping session", () => {
+    vi.mocked(refreshSession).mockReturnValue(new Promise(() => {}));
+
+    const { getByRole, queryByText } = render(
+      <AdminSessionProvider>
+        <div>Protected admin</div>
+      </AdminSessionProvider>,
+    );
+
+    expect(getByRole("status", { name: "Loading admin portal" })).toBeDefined();
+    expect(queryByText(/loading admin session/i)).toBeNull();
   });
 });

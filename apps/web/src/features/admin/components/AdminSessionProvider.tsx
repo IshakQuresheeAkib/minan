@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { refreshSession } from "@/features/admin/actions/auth.actions";
 import type { AuthSessionResponse } from "@/features/admin/types";
+import { AdminShellSkeleton } from "@/features/admin/components/AdminSkeleton";
 import { publicRoutes } from "@/constants/routes";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth.store";
@@ -95,11 +96,7 @@ export function AdminSessionProvider({ children }: AdminSessionProviderProps) {
   }, [accessToken, ready, router]);
 
   if (!ready) {
-    return (
-      <div className="flex min-h-[50dvh] items-center justify-center">
-        <p className="text-sm text-foreground/70">Loading admin session...</p>
-      </div>
-    );
+    return <AdminShellSkeleton />;
   }
 
   return children;
