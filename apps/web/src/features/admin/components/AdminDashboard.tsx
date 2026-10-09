@@ -1,62 +1,145 @@
 "use client";
 
-import { MetricsCard } from "@/features/admin/components/MetricsCard";
-import { TrafficPanel } from "@/features/admin/components/TrafficPanel";
+import { Banknote, ShoppingBag, Sparkles, TrendingUp, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { AdminDashboardSkeleton } from "@/features/admin/components/AdminSkeleton";
+import { StatCard } from "@/features/admin/components/StatCardOrganic";
+import { BestSellingProducts } from "@/features/admin/components/BestSellingProducts";
+import { CustomerInsights } from "@/features/admin/components/CustomerInsights";
+import { OrderOverviewChart } from "@/features/admin/components/OrderOverviewChart";
+import { RecentOrdersList } from "@/features/admin/components/RecentOrdersList";
+import { InventorySnapshotChart } from "@/features/admin/components/InventorySnapshotChart";
 import { useDashboard } from "@/features/admin/hooks/useDashboard";
 
 export function AdminDashboard() {
   const { metrics, loading, error } = useDashboard();
+
+  const summary = metrics.summary;
+  const adminName = metrics.adminProfile?.displayName || "Admin";
+
+  // Total Sales calculation & formatting
+  const totalSalesAmount = summary
+    ? (summary.totalSalesMonth || summary.totalSalesOverall)
+    : (metrics.ordersThisMonth ? metrics.ordersThisMonth * 2150 : 0);
+  const totalSalesFormatted = `৳${totalSalesAmount.toLocaleString("en-BD")}`;
+
+  const salesGrowthText = summary?.salesGrowthPercent !== undefined && summary.salesGrowthPercent !== 0
+    ? `${summary.salesGrowthPercent > 0 ? "+" : ""}${summary.salesGrowthPercent}%`
+    : undefined;
+  const salesGrowthPositive = (summary?.salesGrowthPercent ?? 0) >= 0;
+
+  // New Customers calculation
+  const newCustomersCount = summary
+    ? (summary.newCustomersMonth || summary.totalCustomers)
+    : (metrics.ordersToday ? metrics.ordersToday * 12 : 0);
+  const customersGrowthText = summary?.customersGrowthPercent !== undefined && summary.customersGrowthPercent !== 0
+    ? `${summary.customersGrowthPercent > 0 ? "+" : ""}${summary.customersGrowthPercent}%`
+    : undefined;
+  const customersGrowthPositive = (summary?.customersGrowthPercent ?? 0) >= 0;
+
+  // Open Orders requiring fulfillment
+  const openOrdersCount = summary?.openOrdersCount ?? ((metrics.newOrders || 0) + (metrics.processing || 0));
+
+  // Conversion rate
+  const conversionRateVal = summary?.conversionRate ?? 0;
+  const conversionRateFormatted = `${conversionRateVal.toFixed(1)}%`;
+  const conversionGrowthText = summary?.conversionRateGrowth !== undefined && summary.conversionRateGrowth !== 0
+    ? `${summary.conversionRateGrowth > 0 ? "+" : ""}${summary.conversionRateGrowth}%`
+    : undefined;
+  const conversionGrowthPositive = (summary?.conversionRateGrowth ?? 0) >= 0;
+
   if (loading) {
-    return (
-      <section className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal">Dashboard</h1>
-          <p className="mt-1 text-sm leading-6 text-foreground/70">
-            Loading metrics...
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="minan-skeleton h-28 rounded-lg border border-foreground/10"
-            />
-          ))}
-        </div>
-      </section>
-    );
+    return <AdminDashboardSkeleton />;
   }
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal">Dashboard</h1>
-        <p className="mt-1 text-sm leading-6 text-foreground/70">
-          Order fulfillment and traffic metrics for admin operations.
-        </p>
+    <div className="space-y-6">
+      {/* ================= GREETING HEADER ================= */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-[#1A1715] sm:text-3xl">
+            Welcome back, {adminName}!
+          </h1>
+          <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
+            Here&apos;s an overview of your store performance, orders, and inventory.
+          </p>
+        </div>
       </div>
 
       {error ? (
-        <p className="text-sm text-destructive" role="alert">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-xs font-medium text-rose-700" role="alert">
           {error}
-        </p>
+        </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricsCard label="Orders Today" value={String(metrics.ordersToday)} />
-        <MetricsCard label="Orders This Month" value={String(metrics.ordersThisMonth)} />
-        <MetricsCard label="New Orders" value={String(metrics.newOrders)} />
-        <MetricsCard label="Awaiting Fee" value={String(metrics.awaitingFee)} />
-        <MetricsCard label="Processing" value={String(metrics.processing)} />
-        <MetricsCard label="Shipped" value={String(metrics.shipped)} />
-        <MetricsCard label="Returns / Exceptions" value={String(metrics.returnsExceptions)} />
-        <MetricsCard
-          label="Top Product"
-          value={metrics.topProduct ?? "No data"}
+      {/* ================= 1. KEY PERFORMANCE METRICS ROW ================= */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Sales"
+          value={totalSalesFormatted}
+          change={salesGrowthText}
+          isPositive={salesGrowthPositive}
+          subtitle={summary?.totalSalesMonth ? "This month" : "All time"}
+          colorVariant="green"
+          icon={<Banknote className="size-4" />}
+        />
+        <StatCard
+          title="New Customers"
+          value={newCustomersCount}
+          change={customersGrowthText}
+          isPositive={customersGrowthPositive}
+          subtitle={summary?.newCustomersMonth ? "This month" : "Total unique"}
+          colorVariant="blue"
+          icon={<Users className="size-4" />}
+        />
+        <StatCard
+          title="Open Orders"
+          value={openOrdersCount}
+          subtitle="Awaiting fulfillment"
+          colorVariant="orange"
+          icon={<ShoppingBag className="size-4" />}
+        />
+        <StatCard
+          title="Conversion Rate"
+          value={conversionRateFormatted}
+          change={conversionGrowthText}
+          isPositive={conversionGrowthPositive}
+          subtitle="Storefront visits"
+          colorVariant="red"
+          icon={<TrendingUp className="size-4" />}
         />
       </div>
 
-      <TrafficPanel trafficSources={metrics.trafficSources} />
-    </section>
+      {/* ================= 2. SALES CHART & RECENT ORDERS ROW ================= */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <OrderOverviewChart overview={metrics.orderOverview} />
+        </div>
+        <div className="lg:col-span-4">
+          <RecentOrdersList orders={metrics.recentOrders} />
+        </div>
+      </div>
+
+      {/* ================= 3. BEST-SELLING PRODUCTS SHOWCASE ================= */}
+      <div>
+        <BestSellingProducts items={metrics.bestSellingProducts} />
+      </div>
+
+      {/* ================= 4. INVENTORY & CUSTOMER INSIGHTS ROW ================= */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-6">
+          <InventorySnapshotChart inventory={metrics.inventorySnapshot} />
+        </div>
+        <div className="lg:col-span-6">
+          <CustomerInsights
+            demographics={metrics.customerInsights?.demographics}
+            retentionRate={metrics.customerInsights?.retentionRate}
+            repeatCustomersCount={metrics.customerInsights?.repeatCustomersCount}
+            topLocations={metrics.customerInsights?.topLocations}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
+

@@ -31,5 +31,6 @@ export function useDashboard() {
     metrics: result.data ?? emptyMetrics,
     loading: Boolean(accessToken) && !result.data && !result.error,
     error: result.error instanceof ApiError ? result.error.message : result.error ? "Failed to load dashboard metrics." : null,
+    mutate: result.mutate,
   };
 }

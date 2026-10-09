@@ -57,18 +57,20 @@
 
 ### Frontend
 
-| Technology      | Version / Rule                         |
-| --------------- | -------------------------------------- |
-| Next.js         | 16.3.4 (App Router, `proxy.ts`)        |
-| React           | 19.2.7 (Compiler enabled)              |
-| TypeScript      | 6.0.3, strict                          |
-| Tailwind CSS    | 4.3.0                                  |
-| shadcn/ui       | via `shadcn` package                   |
-| Zustand         | 5.x                                    |
-| React Hook Form | 7.x                                    |
-| Zod             | 4.x                                    |
-| GSAP            | 3.x                                    |
-| Cloudinary      | via signed uploads + `next/image`      |
+| Technology      | Version / Rule                                                   |
+| --------------- | ---------------------------------------------------------------- |
+| Next.js         | 16.3.4 (App Router, `proxy.ts`)                                  |
+| React           | 19.2.7 (Compiler enabled)                                        |
+| TypeScript      | 6.0.3, strict                                                    |
+| Tailwind CSS    | 4.3.0                                                            |
+| shadcn/ui       | via `shadcn` package                                             |
+| Zustand         | 5.x                                                              |
+| React Hook Form | 7.x                                                              |
+| Zod             | 4.x                                                              |
+| GSAP            | 3.x                                                              |
+| SWR             | 2.x for catalog, checkout configuration, and customer Order history |
+| Vitest          | 4.x with Testing Library for frontend tests                     |
+| Cloudinary      | via signed uploads + `next/image`                                |
 
 ### Backend
 
@@ -87,6 +89,8 @@
 | helmet             | 8.x                            |
 | Zod                | 4.x                            |
 | Vitest             | 4.x, API test runner           |
+
+`npm run test` runs the web and API Vitest suites through the root workspace script.
 
 ### Infrastructure
 
@@ -184,8 +188,8 @@ MINAN keeps admin and customer identity systems separate. Each has its own model
 | ---------- | -------------------------------------------------------- |
 | `httpOnly` | `true`                                                   |
 | `secure`   | `true`                                                   |
-| `sameSite` | `none` (cross-origin: `app.minan.com` <-> `api.minan.com`) |
-| `domain`   | `.minan.com`                                             |
+| `sameSite` | `none`                                                   |
+| `domain`   | Unset by default; `.minan.com` only for shared subdomains |
 | `path`     | `/`                                                      |
 
 Local development uses `secure: false`, `sameSite: "lax"`, and no cookie domain.
@@ -209,6 +213,8 @@ Only a refresh token whose hash matches `refresh_token_hash` is accepted. A narr
 - Customer JWTs carry the `customer` actor and `minan-customer` audience, plus customer ID, email, session ID, and session version. Customer auth has separate identities, credentials, cookies, routes, and middleware from admin auth.
 - `/api/customer-orders` lists Orders owned by the authenticated customer. `/api/customer-orders/:orderNumber` returns one Order only when its `customer_id` matches that customer. `/account/orders` shows the account history, and `/account/login` signs existing customers in.
 - `/api/order-tracking/search` accepts an Order number or Bangladesh phone number without a customer session. An Order number returns one customer-safe Order view. A phone number returns paginated customer-safe summaries. The former guest OTP and claim routes are absent. Public lookup does not assign `customer_id`.
+- `/orders?order=MN-YYYYMMDD-####` auto-searches a valid Order number. Phone searches stay off the URL and are lost on reload. Removing an Order deep link through navigation clears its result and invalidates an in-flight lookup; switching to a phone search preserves the new lookup while clearing the old URL parameter.
+- `/account/orders` uses cursor-based SWR pagination. Its cache keys include the customer ID, and the account layout resets the cache when that identity changes. A stale 401 clears the session only if it came from the current customer's current access token. Failed load-more requests retain already loaded Orders and offer a retry.
 
 ### CSRF Mitigation
 
@@ -373,6 +379,8 @@ This private singleton cache holds the bKash token grant. It survives Render col
 
 The storefront uses one generic, screen-reader-only promotional heading for the hero carousel. Banner records do not store or manage headlines.
 
+The single bundled fallback banner uses `/hero/desktop-fallback.webp` and `/hero/mobile-fallback.webp` when the API returns no banners or fails. `seed:home-banners` inserts that default only when the singleton does not exist; rerunning it does not change saved banners. The former `/hero/limited-offer.webp` asset is no longer bundled, so update any existing banner record that still points to it through the admin banner editor.
+
 ### Mongoose Patterns
 
 - `timestamps: true` on all schemas except `analytics_events`
@@ -397,10 +405,10 @@ The storefront uses one generic, screen-reader-only promotional heading for the 
 | GET    | `/api/products/:slug` | Single active product by slug |
 | GET    | `/api/home-banners`   | Ordered homepage banners with responsive images and image descriptions. Empty until the singleton seed exists |
 | GET    | `/api/checkout/config` | Cacheable backend-authoritative ordered shipping options, BDT fees, and non-refundable policy |
-| POST   | `/api/bkash/payments` | Create/idempotently retrieve an Order and start its frozen delivery-fee attempt |
+| POST   | `/api/bkash/payments` | Create/idempotently retrieve an Order and start its frozen full-Order or delivery-fee attempt, according to the payment method |
 | GET    | `/api/bkash/callback` | Verify and reconcile the provider redirect, including valid late completions |
 | POST   | `/api/bkash/results/resolve` | Resolve an opaque result reference to Order number, fee, COD, and transaction details |
-| POST   | `/api/bkash/payments/retry` | Create another fee attempt from an opaque retry token without repricing |
+| POST   | `/api/bkash/payments/retry` | Create another attempt for the same frozen payment purpose and amount from an opaque retry token |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/whatsapp-click` | Log WhatsApp click and forward to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
 | POST   | `/api/order-tracking/search` | Public Order-number detail or paginated phone-number summaries, customer-safe responses, CSRF-header protected and rate-limited |
@@ -472,6 +480,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | ------------------- | ------------------- | ----------------- |
 | `/`                 | Home                | Public            |
 | `/products`         | Product Listing     | Public            |
+| `/collections/[slug]` | Category Collection | Public; fixed category with catalog filters |
 | `/products/[slug]`  | Product Detail      | Public            |
 | `/cart`             | Cart                | Public            |
 | `/checkout`         | Checkout            | Public            |
@@ -532,7 +541,9 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
 `GET /api/checkout/config` returns `inside_sylhet` and `outside_sylhet` in display order. The backend sets positive-integer fees, BDT currency, the non-refundable policy, payment contract v2 (`bkash_full`, `cod`), and ETag/revalidation metadata. During the compatibility release it also returns the legacy `delivery_fee`. Without `payment_contract`, the storefront keeps its previous fee-only COD behavior. Checkout stays disabled when the relevant fee contract is unavailable or invalid. Shipping and v2 payment choices begin unselected.
 
-`POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. It accepts `payment_method: bkash_full | cod`. Missing values temporarily use `cod` for the previous storefront. The server verifies products, variants, and prices, creates one frozen Order per idempotency key, and charges `overall_order_value` for full payment or `delivery_fee` for COD. The payment method is outside the browser idempotency fingerprint. A confirmed-terminal switch reuses the Order, while active or uncertain attempts block switching. Full payment sets online-paid merchandise to the frozen merchandise total and COD due to zero. COD completion pays the fee only. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Retries keep the original purpose and exact amount. The first completion wins atomically. A late second completion triggers financial review without replacing settled balances. Callback Execute/query recovery, signature checks, amount, currency, invoice verification, result tokens, rate limits, and late-completion reconciliation are mandatory. The cart clears only after a completed result resolves.
+`POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. It accepts `payment_method: bkash_full | cod`. Missing values temporarily use `cod` for the previous storefront. The server verifies products, variants, and prices, creates one frozen Order per idempotency key, and charges `overall_order_value` for full payment or `delivery_fee` for COD. The payment method is outside the browser idempotency fingerprint. A confirmed-terminal switch reuses the Order, while active or uncertain attempts block switching. Full payment sets online-paid merchandise to the frozen merchandise total and COD due to zero. COD completion pays the fee only. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Retries keep the original purpose and exact amount. The first completion wins atomically. A late second completion triggers financial review without replacing settled balances. Callback Execute/query recovery, signature checks, amount, currency, invoice verification, result tokens, rate limits, and late-completion reconciliation are mandatory.
+
+The payment-result page resolves its opaque reference through the Express API on the server. For initiated or verification-pending attempts, **Check again** refreshes the route without a full page reload. For payment-contract-v2 results, retry checks the returned payment method and amount against the original result; a failed retry can provide a replacement token for that same result. Recheck and retry disable each other while active. Only a completed result clears the cart or buy-now selection and checkout idempotency key.
 
 ---
 
@@ -605,8 +616,9 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 
 - Mobile-first, optimized for Bangladesh 3G/4G users
 - Public home/catalog/product data uses explicit `"use cache"` Cache Component functions with the shared `catalog` tag. Client reuse and server revalidation are both 300 seconds; expiry is 3600 seconds. Admin mutations still invalidate the server tag immediately; already-open browsers can reuse their existing catalog for up to five minutes before checking for updates.
-- Storefront navigation has no root or public full-screen loading boundary. Route shells stay visible, and local Suspense boundaries show placeholders only for pending content. Catalog pending regions reuse matching browser-cached results when available.
+- Storefront navigation has no root or public full-screen loading boundary. Route shells stay visible, and local Suspense boundaries show placeholders only for pending content. Catalog and product-detail pending regions reuse matching browser-cached results when available; `/orders` and `/payment/result` use the shared `RouteDataSkeleton` for pending request data.
 - `useProducts` uses SWR Infinite with normalized filter keys, 20-item pages, server-data seeding, and cached page-count restoration. Catalog/category results refresh after five minutes on remount, focus, or reconnect while keeping existing content visible. These browser caches last for the current document session, not across browser reloads.
+- The homepage category strip uses native horizontal scrolling. Selected-category product groups keep their current content visible while SWR refreshes a stale group and provide an in-place retry on failure.
 - Checkout and buy-now checkout render delivery fields before configuration resolves. Their shared, validated SWR configuration deduplicates requests for 60 seconds; pending options show local skeletons, failures offer an in-place retry, and submission is blocked during configuration loading, revalidation, or failure. Express still verifies checkout products and payment amounts; order/session caches and uncached payment-result resolution retain their separate policies.
 - Homepage banners use the separate `home-banners` cache tag with a short cache life and bundled local fallback assets.
 - Product, category, and subcategory admin writes trigger Express-to-Next revalidation with `revalidateTag("catalog", { expire: 0 })`.
@@ -772,6 +784,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
+- API startup validates configuration and connects to MongoDB before listening. A listen error, including `EADDRINUSE`, is logged; startup disconnects from MongoDB and exits.
 - Non-admin router mounts include products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, admin auth, customer auth, public Order tracking, and customer-owned Order reads.
 - Admin router is mounted at `/api/admin`.
 - All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh. The system does not query the database on every request.

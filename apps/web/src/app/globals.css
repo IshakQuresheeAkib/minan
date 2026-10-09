@@ -31,6 +31,15 @@
   --skeleton-highlight: rgba(255, 255, 255, 0.72);
   --z-dropdown: 200;
   --z-popover: 300;
+
+  /* Course Card & Multi-Color Themed Card Variables */
+  --clr-blue: #1890ff;
+  --clr-green: #01c3a8;
+  --clr-orange: #ffb741;
+  --clr-red: #a63d2a;
+  --bg-dark: #232228;
+  --bg-footer: #151419;
+  --color-white: #fff;
 }
 
 .dark {
@@ -181,6 +190,339 @@
     transform: translateX(-100%);
     will-change: transform;
     animation: minan-skeleton-shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* ================= COURSE DESIGN CARDS & MULTI-COLOR THEMED CARDS ================= */
+  .card {
+    position: relative;
+    z-index: 10;
+    max-width: 22rem;
+    min-height: 20rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0.063em 0.75em 1.563em rgba(0, 0, 0, 0.78);
+    border-radius: 2.25rem;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0.063em 1em 2em rgba(0, 0, 0, 0.85);
+  }
+
+  .card::before {
+    position: absolute;
+    content: "";
+    inset: 0;
+    border-radius: 2.25rem;
+    z-index: 1;
+    border: 0.155rem solid transparent;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .card-header {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 0.5rem 1.5rem;
+  }
+
+  .card-header .date {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .card-header svg {
+    color: var(--color-white, #fff);
+    width: 1.5rem;
+    height: 1.5rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .card-header svg:hover {
+    opacity: 0.8;
+  }
+
+  .card-body {
+    position: relative;
+    width: 100%;
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    text-align: left;
+  }
+
+  .card-body h3 {
+    color: var(--color-white, #fff);
+    font-size: 1.375rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+    text-transform: capitalize;
+    font-weight: 700;
+  }
+
+  .card-body p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9375rem;
+    letter-spacing: 0.02rem;
+  }
+
+  .card-body .progress {
+    margin-top: 1.25rem;
+  }
+
+  .card-body .progress span:first-of-type {
+    color: var(--color-white, #fff);
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    width: 100%;
+    display: block;
+    margin-bottom: 0.375rem;
+  }
+
+  .card-body .progress .progress-bar {
+    position: relative;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    height: 0.375rem;
+    display: block;
+    border-radius: 3.125rem;
+    overflow: hidden;
+  }
+
+  .card-body .progress .progress-bar::after {
+    position: absolute;
+    content: "";
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100%;
+    display: block;
+    border-radius: 3.125rem;
+    width: 50%;
+    transition: width 0.5s ease;
+  }
+
+  .card-body .progress span:last-of-type {
+    margin-top: 0.375rem;
+    text-align: right;
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .card-footer {
+    position: relative;
+    width: 100%;
+    border-top: 0.063rem solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1.5rem;
+    background: var(--bg-footer, #151419);
+    border-bottom-left-radius: 2.25rem;
+    border-bottom-right-radius: 2.25rem;
+  }
+
+  .card-footer ul {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .card-footer ul li {
+    display: flex;
+    margin-right: -0.625rem;
+  }
+
+  .card-footer ul li img {
+    border-radius: 50%;
+    width: 1.875rem;
+    height: 1.875rem;
+    object-fit: cover;
+    border: 2px solid var(--bg-footer, #151419);
+  }
+
+  .card-footer .btn-add {
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 50%;
+    color: var(--color-white, #fff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    text-decoration: none;
+    border: 2px solid var(--bg-footer, #151419);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .card-footer .btn-add:hover {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+
+  .card-footer .btn-add svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .card-footer .btn-countdown {
+    background: var(--bg-dark, #232228);
+    color: var(--color-white, #fff);
+    border-radius: 2rem;
+    padding: 0.45rem 1.15rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+  }
+
+  .card-footer .btn-countdown:hover {
+    transform: scale(1.02);
+  }
+
+  /* Green Theme */
+  .card.green {
+    background: radial-gradient(
+      ellipse at right top,
+      rgba(16, 118, 103, 0.93) 0%,
+      var(--bg-footer, #151419) 47%,
+      var(--bg-footer, #151419) 100%
+    );
+  }
+  .card.green::before {
+    background: linear-gradient(
+      45deg,
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--clr-green, #01c3a8)
+    ) border-box;
+  }
+  .card.green .btn-add {
+    background: var(--clr-green, #01c3a8);
+  }
+  .card.green .progress-bar::after {
+    width: 90%;
+    background: var(--clr-green, #01c3a8);
+    box-shadow: 0 0 12px rgba(1, 195, 168, 0.5);
+  }
+  .card.green .btn-countdown:hover {
+    background: var(--clr-green, #01c3a8);
+    color: #000;
+  }
+
+  /* Blue Theme */
+  .card.blue {
+    background: radial-gradient(
+      ellipse at right top,
+      rgba(0, 69, 143, 0.56) 0%,
+      var(--bg-footer, #151419) 45%,
+      var(--bg-footer, #151419) 100%
+    );
+  }
+  .card.blue::before {
+    background: linear-gradient(
+      45deg,
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--clr-blue, #1890ff)
+    ) border-box;
+  }
+  .card.blue .btn-add {
+    background: var(--clr-blue, #1890ff);
+  }
+  .card.blue .progress-bar::after {
+    width: 65%;
+    background: var(--clr-blue, #1890ff);
+    box-shadow: 0 0 12px rgba(24, 144, 255, 0.5);
+  }
+  .card.blue .btn-countdown:hover {
+    background: var(--clr-blue, #1890ff);
+    color: #fff;
+  }
+
+  /* Orange Theme */
+  .card.orange {
+    background: radial-gradient(
+      ellipse at right top,
+      rgba(255, 183, 65, 0.58) 0%,
+      var(--bg-footer, #151419) 47%,
+      var(--bg-footer, #151419) 100%
+    );
+  }
+  .card.orange::before {
+    background: linear-gradient(
+      45deg,
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--clr-orange, #ffb741)
+    ) border-box;
+  }
+  .card.orange .btn-add {
+    background: var(--clr-orange, #ffb741);
+    color: #000;
+  }
+  .card.orange .progress-bar::after {
+    width: 40%;
+    background: var(--clr-orange, #ffb741);
+    box-shadow: 0 0 12px rgba(255, 183, 65, 0.5);
+  }
+  .card.orange .btn-countdown:hover {
+    background: var(--clr-orange, #ffb741);
+    color: #000;
+  }
+
+  /* Red Theme */
+  .card.red {
+    background: radial-gradient(
+      ellipse at right top,
+      rgba(166, 61, 42, 0.51) 0%,
+      var(--bg-footer, #151419) 47%,
+      var(--bg-footer, #151419) 100%
+    );
+  }
+  .card.red::before {
+    background: linear-gradient(
+      45deg,
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--bg-dark, #232228),
+      var(--clr-red, #a63d2a)
+    ) border-box;
+  }
+  .card.red .btn-add {
+    background: var(--clr-red, #a63d2a);
+  }
+  .card.red .progress-bar::after {
+    width: 50%;
+    background: var(--clr-red, #a63d2a);
+    box-shadow: 0 0 12px rgba(166, 61, 42, 0.5);
+  }
+  .card.red .btn-countdown:hover {
+    background: var(--clr-red, #a63d2a);
+    color: #fff;
   }
 }
 
