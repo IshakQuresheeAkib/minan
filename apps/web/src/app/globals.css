@@ -40,10 +40,6 @@
   --bg-dark: #232228;
   --bg-footer: #151419;
   --color-white: #fff;
-  --color-gray-light: #ddd;
-  --color-gray-medium: #363636;
-  --color-gray-dark: #292929;
-  --color-gray-very-dark: #222127;
 }
 
 .dark {
@@ -240,7 +236,7 @@
   }
 
   .card-header .date {
-    color: var(--color-gray-light, #ddd);
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.875rem;
     font-weight: 500;
   }
@@ -274,7 +270,7 @@
   }
 
   .card-body p {
-    color: var(--color-gray-light, #ddd);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 0.9375rem;
     letter-spacing: 0.02rem;
   }
@@ -296,7 +292,7 @@
   .card-body .progress .progress-bar {
     position: relative;
     width: 100%;
-    background: var(--color-gray-medium, #363636);
+    background: rgba(255, 255, 255, 0.15);
     height: 0.375rem;
     display: block;
     border-radius: 3.125rem;
@@ -322,13 +318,13 @@
     display: block;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--color-gray-light, #ddd);
+    color: rgba(255, 255, 255, 0.7);
   }
 
   .card-footer {
     position: relative;
     width: 100%;
-    border-top: 0.063rem solid var(--color-gray-dark, #292929);
+    border-top: 0.063rem solid rgba(255, 255, 255, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -384,7 +380,7 @@
   }
 
   .card-footer .btn-countdown {
-    background: var(--color-gray-very-dark, #222127);
+    background: var(--bg-dark, #232228);
     color: var(--color-white, #fff);
     border-radius: 2rem;
     padding: 0.45rem 1.15rem;

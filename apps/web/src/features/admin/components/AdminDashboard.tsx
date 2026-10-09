@@ -90,8 +90,6 @@ export function AdminDashboard() {
           isPositive={salesGrowthPositive}
           subtitle={summary?.totalSalesMonth ? "This month" : "All time"}
           colorVariant="green"
-          progressPercent={salesGrowthPositive ? 92 : 68}
-          countdownText="Live Sales"
           icon={<Banknote className="size-4" />}
         />
         <StatCard
@@ -101,8 +99,6 @@ export function AdminDashboard() {
           isPositive={customersGrowthPositive}
           subtitle={summary?.newCustomersMonth ? "This month" : "Total unique"}
           colorVariant="blue"
-          progressPercent={customersGrowthPositive ? 78 : 45}
-          countdownText="Active"
           icon={<Users className="size-4" />}
         />
         <StatCard
@@ -110,8 +106,6 @@ export function AdminDashboard() {
           value={openOrdersCount}
           subtitle="Awaiting fulfillment"
           colorVariant="orange"
-          progressPercent={openOrdersCount > 0 ? Math.min(100, openOrdersCount * 8) : 25}
-          countdownText="Fulfill"
           icon={<ShoppingBag className="size-4" />}
         />
         <StatCard
@@ -121,8 +115,6 @@ export function AdminDashboard() {
           isPositive={conversionGrowthPositive}
           subtitle="Storefront visits"
           colorVariant="red"
-          progressPercent={Math.min(100, Math.round(conversionRateVal * 20))}
-          countdownText="30d Traffic"
           icon={<TrendingUp className="size-4" />}
         />
       </div>
