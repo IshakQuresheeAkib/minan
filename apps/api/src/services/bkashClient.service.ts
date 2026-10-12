@@ -5,12 +5,13 @@ import { AppError } from "../lib/errors.js";
 import { BkashToken } from "../models/BkashToken.js";
 
 const tokenResponseSchema = z.object({
-  id_token: z.string().min(1),
+  id_token: z.string().min(1).optional(),
   refresh_token: z.string().min(1).optional(),
   expires_in: z.coerce.number().positive().optional(),
   token_type: z.string().optional(),
   statusCode: z.coerce.string().optional(),
   statusMessage: z.string().optional(),
+  errorMessageEn: z.string().optional(),
 });
 
 const createResponseSchema = z.object({
@@ -236,9 +237,6 @@ async function requestToken(): Promise<string> {
 
   const refreshToken = tokenCache?.refreshToken ?? stored?.refresh_token;
   const isRefreshAttempt = Boolean(refreshToken);
-  const endpointPath = isRefreshAttempt
-    ? "/tokenized-checkout/auth/refresh-token"
-    : "/tokenized-checkout/auth/grant-token";
 
   const tokenRequest = (path: string, token?: string) => {
     const fullUrl = resolveEndpoint(config.baseUrl, path);
@@ -259,46 +257,57 @@ async function requestToken(): Promise<string> {
     });
   };
 
-  if (!isRefreshAttempt && !canCallGrantToken()) {
-    throw new AppError(
-      "bKash Grant Token rate limit protection reached (max 2 requests per hour). Please retry in a few moments.",
-      429,
-    );
-  }
-
-  let response: Response;
-  if (isRefreshAttempt) {
-    response = await tokenRequest(endpointPath, refreshToken);
-    if (!response.ok) {
-      // If refresh failed, fall back to grant token if rate limit permits
-      if (!canCallGrantToken()) {
-        throw new AppError("bKash authentication refresh failed and rate limit prohibits grant token", 502);
-      }
-      recordGrantTokenCall();
-      response = await tokenRequest("/tokenized-checkout/auth/grant-token");
+  const executeGrantToken = async (): Promise<z.infer<typeof tokenResponseSchema> & { id_token: string }> => {
+    if (!canCallGrantToken()) {
+      throw new AppError(
+        "bKash Grant Token rate limit protection reached (max 2 requests per hour). Please retry in a few moments.",
+        429,
+      );
     }
-  } else {
     recordGrantTokenCall();
-    response = await tokenRequest(endpointPath);
-  }
+    const grantResponse = await tokenRequest("/tokenized-checkout/auth/grant-token");
+    if (!grantResponse.ok) {
+      throw new AppError("Unable to authenticate with bKash", 502);
+    }
+    const raw = await parseJson(grantResponse);
+    const parsed = tokenResponseSchema.safeParse(raw);
+    if (!parsed.success || (parsed.data.statusCode && parsed.data.statusCode !== "0000") || !parsed.data.id_token) {
+      const errorMsg = (parsed.success && (parsed.data.statusMessage || parsed.data.errorMessageEn))
+        || "bKash token response was incomplete";
+      throw new AppError(errorMsg, 502);
+    }
+    return parsed.data as z.infer<typeof tokenResponseSchema> & { id_token: string };
+  };
 
-  if (!response.ok) {
-    throw new AppError("Unable to authenticate with bKash", 502);
-  }
+  const executeRefreshToken = async (token: string): Promise<(z.infer<typeof tokenResponseSchema> & { id_token: string }) | null> => {
+    try {
+      const refreshResponse = await tokenRequest("/tokenized-checkout/auth/refresh-token", token);
+      if (refreshResponse.ok) {
+        const raw = await parseJson(refreshResponse);
+        const parsed = tokenResponseSchema.safeParse(raw);
+        if (parsed.success && (!parsed.data.statusCode || parsed.data.statusCode === "0000") && parsed.data.id_token) {
+          return parsed.data as z.infer<typeof tokenResponseSchema> & { id_token: string };
+        }
+      }
+    } catch {
+      // Refresh request timed out or errored; fallback to grant-token
+    }
+    return null;
+  };
 
-  const parsed = tokenResponseSchema.safeParse(await parseJson(response));
-  if (!parsed.success) {
-    throw new AppError("bKash token response was incomplete", 502);
-  }
+  const refreshedData = isRefreshAttempt && refreshToken
+    ? await executeRefreshToken(refreshToken)
+    : null;
+  const tokenData = refreshedData ?? (await executeGrantToken());
 
-  const expiresAt = new Date(now + (parsed.data.expires_in ?? 3600) * 1000);
-  const nextRefreshToken = parsed.data.refresh_token ?? refreshToken;
+  const expiresAt = new Date(now + (tokenData.expires_in ?? 3600) * 1000);
+  const nextRefreshToken = tokenData.refresh_token ?? refreshToken;
 
   await BkashToken.findOneAndUpdate(
     { key: "checkout-url" },
     {
       $set: {
-        id_token: parsed.data.id_token,
+        id_token: tokenData.id_token,
         expires_at: expiresAt,
         ...(nextRefreshToken ? { refresh_token: nextRefreshToken } : {}),
       },
@@ -306,8 +315,8 @@ async function requestToken(): Promise<string> {
     { upsert: true, new: true },
   );
 
-  tokenCache = { idToken: parsed.data.id_token, refreshToken: nextRefreshToken, expiresAt };
-  return parsed.data.id_token;
+  tokenCache = { idToken: tokenData.id_token, refreshToken: nextRefreshToken, expiresAt };
+  return tokenData.id_token;
 }
 
 async function getToken(): Promise<string> {

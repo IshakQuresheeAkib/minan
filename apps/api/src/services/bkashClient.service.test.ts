@@ -221,4 +221,95 @@ describe("bkashClient.service (Tokenized V2)", () => {
     expect(statusResult.refundTransactions?.length).toBe(1);
     expect(statusResult.statusCode).toBe("0000");
   });
+
+  it("recovers via Grant Token when Refresh Token returns HTTP 200 with error statusCode", async () => {
+    mockBkashToken.findOne.mockReturnValue({
+      select: vi.fn().mockResolvedValue({
+        id_token: "old-id-token",
+        refresh_token: "stale-refresh-token",
+        expires_at: new Date(Date.now() - 1000),
+      }),
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    // 1st call: refresh-token returns 200 with error
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ statusCode: "9999", statusMessage: "System error" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    // 2nd call: grant-token returns 200 with new token
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          statusCode: "0000",
+          statusMessage: "Successful",
+          id_token: "fresh-id-token-123",
+          refresh_token: "fresh-refresh-token-456",
+          expires_in: 3600,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    // 3rd call: payment create
+    fetchSpy.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          paymentId: "TR001",
+          bkashURL: "https://sandbox.payment.bkash.com/pay",
+          amount: "100.00",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await createBkashPayment({
+      amount: "100.00",
+      payerReference: "01770618575",
+      callbackURL: "https://api.example.com/api/bkash/callback",
+      merchantInvoiceNumber: "INV-002",
+    });
+
+    expect(result.paymentId).toBe("TR001");
+    expect(mockBkashToken.findOneAndUpdate).toHaveBeenCalledWith(
+      { key: "checkout-url" },
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          id_token: "fresh-id-token-123",
+          refresh_token: "fresh-refresh-token-456",
+        }),
+      }),
+      { upsert: true, new: true },
+    );
+  });
+
+  it("propagates bKash statusMessage when Grant Token fails", async () => {
+    mockBkashToken.findOne.mockReturnValue({
+      select: vi.fn().mockResolvedValue(null),
+    });
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          statusCode: "9999",
+          statusMessage: "Invalid or unrecognized access credentials.",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(
+      createBkashPayment({
+        amount: "100.00",
+        payerReference: "01770618575",
+        callbackURL: "https://api.example.com/api/bkash/callback",
+        merchantInvoiceNumber: "INV-003",
+      }),
+    ).rejects.toThrow("Invalid or unrecognized access credentials.");
+  });
 });
+

@@ -142,16 +142,16 @@ In that arrangement, Express sets `AUTH_COOKIE_DOMAIN=.minan.com`. The browser c
 
 ### `proxy.ts`
 
-`proxy.ts` lives at `apps/web/src/proxy.ts` and exports the standard Next.js proxy function and static `config.matcher`. It needs no registration in `next.config.ts`. When the access token is missing, expired, or invalid, the proxy lets the request through only if a refresh-token cookie exists. `AdminSessionProvider` attempts recovery before protected admin content renders. Otherwise, the proxy redirects to `/admin/login`.
+`proxy.ts` lives at `apps/web/src/proxy.ts` and exports the standard Next.js proxy function and static `config.matcher`. It needs no registration in `next.config.ts`. When the access token is missing, expired, or invalid, the proxy lets the request through only if a refresh-token cookie exists. `AdminSessionProvider` attempts recovery before protected admin content renders. Otherwise, the proxy redirects to `/admin/login` (with `next=<path>` and `reauth=1` when re-authenticating). The `reauth=1` parameter bypasses the proxy's login-to-dashboard redirect, ensuring expired sessions can display the login form cleanly.
 
 ### Admin Boot Flow
 
-`app/(admin)/admin/layout.tsx` wraps protected admin routes in `AdminSessionProvider`. On mount, `AdminSessionProvider` calls `POST /api/auth/refresh` to:
+`app/(admin)/admin/layout.tsx` wraps protected admin routes in `AdminSessionProvider`. While session bootstrapping is in progress and no access token is available, `AdminSessionProvider` renders `<AdminShellSkeleton />` to prevent layout shifts. On mount, `AdminSessionProvider` calls `POST /api/auth/refresh` to:
 
 1. Exchange a valid refresh token cookie for new tokens
 2. Repopulate `auth.store.ts` with the new access token
 
-If refresh fails, the client clears Zustand and redirects to `/admin/login`.
+When concurrent refresh encounters a 409 conflict, it retries once. If refresh fails, the client clears Zustand and redirects to `/admin/login?next=...&reauth=1`.
 
 ### CORS
 
@@ -436,7 +436,7 @@ The `subcategory` product filter is applied only when at least one `category` fi
 
 | Method | Route                                  | Role              | Description |
 | ------ | -------------------------------------- | ----------------- | ----------- |
-| GET    | `/api/admin/dashboard`                 | admin | Order workflow plus product/category view and traffic metrics |
+| GET    | `/api/admin/dashboard`                 | admin | Real-time sales summary, 7D/30D chart series, inventory snapshot, best-selling products with sparklines, customer insights, recent orders, admin profile, and workflow metrics |
 | GET    | `/api/admin/orders`                    | admin | Paginated search/filter summaries |
 | GET    | `/api/admin/orders/changes`            | admin | Opaque-cursor new-Order polling |
 | GET    | `/api/admin/orders/export`             | admin | Filtered, injection-safe UTF-8 CSV. 10,000-row cap |
@@ -512,7 +512,7 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `app/(admin)/admin/` contains protected admin routes and the admin shell layout.
 - `app/(public)/admin/login/page.tsx` is public so unauthenticated admins can reach it.
 - Public layout chrome is `components/layouts/PublicChrome.tsx`.
-- Admin layout chrome is `components/layouts/AdminShell.tsx`.
+- Admin layout chrome is `components/layouts/AdminShell.tsx`, featuring desktop sidebar branding with the MINAN logo, mobile header with a slide-out navigation drawer, and `features/admin/components/AdminTopBar.tsx` (dynamic section title, real-time Asia/Dhaka clock, product search, unread order notifications, and admin profile pill). Dedicated admin skeletons live in `features/admin/components/AdminSkeleton.tsx` (`AdminShellSkeleton` during session bootstrapping, `AdminDashboardSkeleton` during metrics hydration).
 - `features/<domain>/` colocates domain components, hooks, actions, services, schemas, and types.
 - `features/<domain>/actions/*.actions.ts` are plain async functions calling Express. No `"use server"`.
 - `components/ui/` is shadcn/ui output.
@@ -543,6 +543,13 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 
 `POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. It accepts `payment_method: bkash_full | cod`. Missing values temporarily use `cod` for the previous storefront. The server verifies products, variants, and prices, creates one frozen Order per idempotency key, and charges `overall_order_value` for full payment or `delivery_fee` for COD. The payment method is outside the browser idempotency fingerprint. A confirmed-terminal switch reuses the Order, while active or uncertain attempts block switching. Full payment sets online-paid merchandise to the frozen merchandise total and COD due to zero. COD completion pays the fee only. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Retries keep the original purpose and exact amount. The first completion wins atomically. A late second completion triggers financial review without replacing settled balances. Callback Execute/query recovery, signature checks, amount, currency, invoice verification, result tokens, rate limits, and late-completion reconciliation are mandatory.
 
+Backend integration uses the bKash Tokenized Checkout v2 API (`https://tokenized.sandbox.bka.sh/v2`):
+- Payment creation calls `/tokenized-checkout/payment/create` (mode `0011`).
+- Payment execution calls `/tokenized-checkout/payment/execute` (sending both `paymentId` and `paymentID`).
+- Query status calls `/tokenized-checkout/query/payment`.
+- Authentication uses `/tokenized-checkout/auth/grant-token` and `/tokenized-checkout/auth/refresh-token`. Grant Token calls are protected by an in-memory rate-limit guard adhering to bKash's maximum 2 calls per hour restriction. On 401 responses, the client sets `expires_at` to past in `bkash_tokens` rather than destroying the record, prioritizing refresh-token rotation before attempting a rate-limited grant token.
+- Operational client methods in `bkashClient.service.ts` also support transaction lookup (`/tokenized-checkout/general/search-transaction`) and transaction refunds (`/tokenized-checkout/refund/payment/transaction`, `/tokenized-checkout/refund/payment/status`).
+
 The payment-result page resolves its opaque reference through the Express API on the server. For initiated or verification-pending attempts, **Check again** refreshes the route without a full page reload. For payment-contract-v2 results, retry checks the returned payment method and amount against the original result; a failed retry can provide a replacement token for that same result. Recheck and retry disable each other while active. Only a completed result clears the cart or buy-now selection and checkout idempotency key.
 
 ---
@@ -560,7 +567,8 @@ The payment-result page resolves its opaque reference through the Express API on
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the frozen Order snapshot
 - Authenticated admin management for products, categories, ordered subcategories, Orders, admins, and managed uploads
 - Versioned homepage banner management with 16:9 desktop and 4:5 mobile Cloudinary assets, atomic ordering, and deferred cleanup
-- Dashboard aggregates Bangladesh-local Order workflow metrics, top viewed product/category, and traffic sources
+- Admin dashboard aggregates live Bangladesh-local Order workflow metrics, monthly/total revenue with growth rates, conversion rates, interactive 7-day and 30-day sales/orders chart series, catalog inventory distribution with low-stock alerts, best-selling products with 7-day sparklines, customer insights (collection demographics, retention, repeat buyers, delivery locations), recent orders showcase, and traffic sources
+- Polished admin UX with modular organic stat cards, topbar product search, live Dhaka time, unread order notifications, and dedicated loading skeletons (`AdminDashboardSkeleton`, `AdminShellSkeleton`) eliminating layout shifts
 - Vercel Speed Insights is mounted in the root frontend layout
 - Public and customer order tracking use the customer-safe Order serializer.
 
@@ -644,7 +652,8 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 | Brute force      | Rate-limit admin and customer login routes |
 | Checkout spam    | layered IP and idempotency-key limits on `/api/bkash/payments` |
 | Proxy spoofing   | In production trust only `loopback`, `linklocal`, and `uniquelocal` address ranges, stopping at the first public hop. Never use blanket `trust proxy: true` |
-| HTTP headers     | `helmet` |
+| HTTP headers     | `helmet` on Express API; `next.config.ts` enforces strict CSP (`form-action 'self' https://www.facebook.com` for Facebook plugin) |
+| bKash auth limit | In-memory timestamp tracking enforces bKash's max 2 Grant Token calls/hour limit; 401 recovery prioritizes refresh token rotation |
 | CORS             | specific `ALLOWED_ORIGINS`, credentials enabled, never `*` |
 | Password leak    | Mongoose `toJSON` strips `password` |
 | Privilege escalation | Single admin access model. Never accept role or privilege values from request body |
@@ -714,7 +723,7 @@ ADMIN_PASSWORD=
 NODE_ENV=
 STOREFRONT_REVALIDATE_URL=https://app.minan.com/api/revalidate
 STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
-BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v1.2.0-beta
+BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v2
 BKASH_APP_KEY=
 BKASH_APP_SECRET=
 BKASH_USERNAME=
@@ -736,27 +745,66 @@ FRONTEND_URL=https://app.minan.com
 - `DELIVERY_FEE_INSIDE_SYLHET_BDT=60`, `DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120`, and compatibility fallback `DELIVERY_FEE_BDT=100` are required positive integers for this release. Do not add frontend public fee variables. Remove the fallback in a later cleanup release, once the previous storefront can no longer send traffic.
 - `CHECKOUT_MAINTENANCE_MODE=true` blocks payment creation and retry during migration while preserving callbacks, result resolution, and admin recheck.
 - The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL. It does not depend on the browser rewrite.
-- Use bKash sandbox credentials until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Replace the base URL and credentials together for production.
+- Use bKash sandbox credentials (`https://tokenized.sandbox.bka.sh/v2`) until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Tokenized Checkout v2 enforces strict Grant Token rate limits (max 2 calls/hr), handled automatically via in-memory rate-limit tracking and refresh-token caching. Replace the base URL and credentials together for production.
 - `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
 
 ---
 
 ## 18. Admin Dashboard Metrics
 
-`GET /api/admin/dashboard` returns live MongoDB aggregations. Day and month boundaries use Bangladesh time (UTC+6).
+`GET /api/admin/dashboard` returns comprehensive, live MongoDB aggregations calculated in Bangladesh time (UTC+6). When an authenticated admin session is present, the handler passes `req.admin?.email` to retrieve personalized admin profile details.
 
-| Metric              | Implemented Query |
-| ------------------- | -------------- |
-| Orders Today        | `orders` count by current day |
-| Orders This Month   | `orders` count by current month |
-| New Orders          | `orders` with workflow `new` |
-| Awaiting Fee        | Orders awaiting/failed/pending/expired fee verification |
-| Processing | active fulfillment count |
-| Shipped             | shipped Orders |
-| Returns / Exceptions | returned, exchanged, held, or financial-review Orders |
-| Most Viewed Product | `analytics_events` product_view aggregation by `product_id` |
-| Top Category        | `analytics_events` product_view aggregation by `category_id` |
-| Traffic Source      | `analytics_events` aggregation by `utm_source` |
+### Response Payload Structure
+
+The endpoint returns both enriched real-time operational datasets and top-level compatibility fields:
+
+```typescript
+type DashboardMetrics = {
+  // Enhanced real-data fields
+  summary: DashboardSummary;
+  orderOverview: OrderOverviewData;
+  inventorySnapshot: InventorySnapshotData;
+  bestSellingProducts: BestSellingItem[];
+  customerInsights: CustomerInsightsData;
+  recentOrders: RecentOrderSummary[];
+  adminProfile?: { email: string; displayName: string };
+
+  // Top-level legacy compatibility fields
+  ordersToday: number;
+  ordersThisMonth: number;
+  newOrders: number;
+  awaitingFee: number;
+  processing: number;
+  shipped: number;
+  returnsExceptions: number;
+  topProduct: string | null;
+  topCategory: string | null;
+  trafficSources: { source: string; count: number }[];
+};
+```
+
+### Metrics & Aggregation Details
+
+| Section | Field / Dataset | Aggregation & Business Rules |
+| ------- | --------------- | ---------------------------- |
+| **Summary** | `totalSalesMonth` / `totalSalesOverall` | Merchandise and fulfilled order sales for the current BD calendar month and all time |
+| | `salesGrowthPercent` | Percentage revenue change compared to previous calendar month |
+| | `newCustomersMonth` / `totalCustomers` | Count of first-time buying customer emails in the month vs all-time unique customer emails |
+| | `openOrdersCount` | Orders requiring active fulfillment (`new` + `processing`) |
+| | `ordersToday` / `ordersThisMonth` | Orders placed during current Bangladesh date and current month |
+| | `conversionRate` | Rolling 30-day conversion percentage (`orders30d / sessions30d * 100`), evaluates to `0` when sessions are 0 (no synthetic placeholders) |
+| | `conversionRateGrowth` | Percentage-point shift compared to the previous 30-day rolling window |
+| | `awaitingFee`, `processing`, `shipped`, `returnsExceptions` | Real-time counts across order workflow stages and exception queues |
+| **Order Overview** | `last7Days` & `last30Days` | Daily timeline points (`day`, `date`, `isoDate`, `sales`, `orders`) formatted for interactive chart scrubbing |
+| **Inventory** | `totalProducts`, `activeProducts` | Total and published catalog counts |
+| | `lowStockCount` | Published products with total variant stock ≤ 1 or unstocked variants |
+| | `categories` | Category distribution array (`id`, `name`, `count`, `percentage` of catalog) |
+| **Best Sellers** | `bestSellingProducts` | Top products by units sold, including prices, discounted prices, sales volume, revenue, and 7-day sparkline arrays |
+| **Customer Insights**| `demographics` | Collection and category popularity percentages (`label`, `percentage`, `count`), empty array when no data |
+| | `retentionRate` / `repeatCustomersCount` | Repeat buyer percentage and unique repeat customer count |
+| | `topLocations` | Geographic distribution (`city`, `share`, `count`) derived from delivery addresses and shipping zones |
+| **Recent Orders** | `recentOrders` | 8 most recent orders with numbers, customer contacts, item counts, totals, workflow/fee status, and product thumbnails |
+| **Admin Profile** | `adminProfile` | Displays logged-in admin email and display name (derived from email prefix or name) |
 
 Top product and category IDs are resolved to their current names. Missing view data returns `null`, and missing/blank `utm_source` values are labeled `direct`. Traffic sources are sorted by event count and limited to eight rows.
 
@@ -764,9 +812,9 @@ Top product and category IDs are resolved to their current names. Missing view d
 
 ## 19. Future Roadmap
 
-- Automated merchandise refunds and optional additional payment rails
+- Automated merchandise refunds and return credits (underlying bKash Tokenized Checkout v2 search and refund APIs implemented in `bkashClient.service.ts`)
 - Inventory per SKU with atomic reservation/decrement
-- Courier API integration
+- Courier API integration (Pathao / Steadfast)
 - Customer self-service signup after mailbox-ownership verification
 - Coupons, Reviews, Recommendations
 - Marketing Automation (email/SMS)
@@ -785,6 +833,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
 - API startup validates configuration and connects to MongoDB before listening. A listen error, including `EADDRINUSE`, is logged; startup disconnects from MongoDB and exits.
+- Dashboard metrics logic in `services/dashboard.service.ts` calculates real-time metrics across orders and analytics using Bangladesh timezone boundaries without synthetic placeholders. bKash payment client integration in `services/bkashClient.service.ts` enforces Tokenized Checkout v2 contracts, Grant Token rate limits (max 2/hr), and refresh-first retry recovery.
 - Non-admin router mounts include products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, admin auth, customer auth, public Order tracking, and customer-owned Order reads.
 - Admin router is mounted at `/api/admin`.
 - All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh. The system does not query the database on every request.

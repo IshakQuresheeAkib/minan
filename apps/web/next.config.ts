@@ -5,7 +5,7 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "base-uri 'self'",
-      "form-action 'self'",
+      "form-action 'self' https://www.facebook.com",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "upgrade-insecure-requests",
