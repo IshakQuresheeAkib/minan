@@ -1,3 +1,98 @@
+export type DashboardSummary = {
+  totalSalesMonth: number;
+  totalSalesOverall: number;
+  salesGrowthPercent: number;
+  newCustomersMonth: number;
+  customersGrowthPercent: number;
+  totalCustomers: number;
+  openOrdersCount: number;
+  ordersToday: number;
+  ordersThisMonth: number;
+  ordersGrowthPercent: number;
+  conversionRate: number;
+  conversionRateGrowth: number;
+  awaitingFee: number;
+  processing: number;
+  shipped: number;
+  returnsExceptions: number;
+};
+
+export type BestSellingItem = {
+  id: string;
+  name: string;
+  price: number;
+  discountedPrice: number;
+  salesCount: number;
+  revenue: number;
+  image: string;
+  sparkline: number[];
+};
+
+export type DemographicInsight = {
+  label: string;
+  percentage: number;
+  count: number;
+};
+
+export type LocationInsight = {
+  city: string;
+  share: string;
+  count: number;
+};
+
+export type CustomerInsightsData = {
+  demographics: DemographicInsight[];
+  retentionRate: number;
+  repeatCustomersCount: number;
+  topLocations: LocationInsight[];
+};
+
+export type DailyChartPoint = {
+  day: string;
+  date: string;
+  isoDate: string;
+  sales: number;
+  orders: number;
+};
+
+export type OrderOverviewData = {
+  last7Days: DailyChartPoint[];
+  last30Days: DailyChartPoint[];
+};
+
+export type RecentOrderSummary = {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  productName: string;
+  productImage: string;
+  itemCount: number;
+  total: number;
+  status: string;
+  deliveryFeeStatus: string;
+  createdAt: string;
+};
+
+export type CategoryInventoryBar = {
+  id: string;
+  name: string;
+  count: number;
+  percentage: number;
+};
+
+export type InventorySnapshotData = {
+  totalProducts: number;
+  activeProducts: number;
+  lowStockCount: number;
+  categories: CategoryInventoryBar[];
+};
+
+export type AdminProfileSummary = {
+  email: string;
+  displayName: string;
+};
+
 export type DashboardMetrics = {
   ordersToday: number;
   ordersThisMonth: number;
@@ -12,6 +107,13 @@ export type DashboardMetrics = {
     source: string;
     count: number;
   }[];
+  summary?: DashboardSummary;
+  bestSellingProducts?: BestSellingItem[];
+  customerInsights?: CustomerInsightsData;
+  orderOverview?: OrderOverviewData;
+  recentOrders?: RecentOrderSummary[];
+  inventorySnapshot?: InventorySnapshotData;
+  adminProfile?: AdminProfileSummary;
 };
 
 export type OrderStatus = "new" | "confirmed" | "processing" | "shipped" | "delivered" | "on_hold" | "cancelled" | "returned" | "exchanged";

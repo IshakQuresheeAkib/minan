@@ -1,0 +1,52 @@
+// @vitest-environment jsdom
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { refreshSession } from "@/features/admin/actions/auth.actions";
+import { AdminSessionProvider } from "./AdminSessionProvider";
+
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+vi.mock("@/features/admin/actions/auth.actions", () => ({
+  refreshSession: vi.fn(),
+}));
+
+describe("AdminSessionProvider", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  beforeEach(() => {
+    replace.mockReset();
+    vi.mocked(refreshSession).mockRejectedValue(new Error("Refresh failed"));
+    window.history.replaceState({}, "", "/admin?tab=orders");
+  });
+
+  it("marks the login redirect so a valid stale access cookie cannot send it back", async () => {
+    render(
+      <AdminSessionProvider>
+        <div>Protected admin</div>
+      </AdminSessionProvider>,
+    );
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith(
+        "/admin/login?next=%2Fadmin%3Ftab%3Dorders&reauth=1",
+      );
+    });
+  });
+
+  it("renders the admin skeleton instead of legacy text while bootstrapping session", () => {
+    vi.mocked(refreshSession).mockReturnValue(new Promise(() => {}));
+
+    const { getByRole, queryByText } = render(
+      <AdminSessionProvider>
+        <div>Protected admin</div>
+      </AdminSessionProvider>,
+    );
+
+    expect(getByRole("status", { name: "Loading admin portal" })).toBeDefined();
+    expect(queryByText(/loading admin session/i)).toBeNull();
+  });
+});

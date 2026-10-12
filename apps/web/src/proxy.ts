@@ -30,6 +30,10 @@ export async function proxy(request: NextRequest) {
   const secret = process.env.JWT_ACCESS_SECRET;
 
   if (pathname === loginPath) {
+    if (request.nextUrl.searchParams.get("reauth") === "1") {
+      return NextResponse.next();
+    }
+
     if (!token || !secret) {
       return NextResponse.next();
     }

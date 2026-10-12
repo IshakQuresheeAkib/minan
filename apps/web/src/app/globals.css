@@ -50,7 +50,7 @@
   }
 
   html {
-    scroll-behavior: smooth;
+    @apply scroll-smooth;
   }
 
   body {
@@ -59,13 +59,13 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 
@@ -75,112 +75,99 @@
       color-mix(in srgb, var(--secondary) 18%, transparent);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-  }
 
-  .minan-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
 
-  .minan-scrollbar::-webkit-scrollbar-track {
-    border-radius: 9999px;
-    background: color-mix(in srgb, var(--secondary) 18%, transparent);
-  }
+    &::-webkit-scrollbar-track {
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--secondary) 18%, transparent);
+    }
 
-  .minan-scrollbar::-webkit-scrollbar-thumb {
-    min-height: 40px;
-    border: 2px solid transparent;
-    border-radius: 9999px;
-    background: var(--primary);
-    background-clip: padding-box;
-  }
+    &::-webkit-scrollbar-thumb {
+      min-height: 40px;
+      border: 2px solid transparent;
+      border-radius: 9999px;
+      background: var(--primary);
+      background-clip: padding-box;
 
-  .minan-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--primary) 82%, var(--foreground));
-    background-clip: padding-box;
+      &:hover {
+        background: color-mix(in srgb, var(--primary) 82%, var(--foreground));
+        background-clip: padding-box;
+      }
+    }
   }
 
   .minan-rich-text {
     overflow-wrap: anywhere;
-  }
 
-  .minan-rich-text p {
-    min-height: 1.625em;
-  }
+    & p {
+      min-height: 1.625em;
 
-  .minan-rich-text p + p {
-    margin-top: 0.75rem;
-  }
+      & + p {
+        @apply mt-3;
+      }
+    }
 
-  .minan-rich-text ul,
-  .minan-rich-text ol {
-    margin-block: 0.75rem;
-    padding-inline-start: 1.4rem;
-  }
+    & ul,
+    & ol {
+      @apply my-3 ps-[1.4rem];
+    }
 
-  .minan-rich-text ul {
-    list-style-type: disc;
-  }
+    & ul {
+      @apply list-disc;
+    }
 
-  .minan-rich-text ol {
-    list-style-type: decimal;
-  }
+    & ol {
+      @apply list-decimal;
+    }
 
-  .minan-rich-text li + li {
-    margin-top: 0.3rem;
-  }
+    & li + li {
+      @apply mt-[0.3rem];
+    }
 
-  .minan-rich-text li > p {
-    min-height: 0;
-  }
+    & li > p {
+      min-height: 0;
+    }
 
-  .minan-rich-text li > ul,
-  .minan-rich-text li > ol {
-    margin-block: 0.35rem 0;
-  }
+    & li > ul,
+    & li > ol {
+      @apply mt-[0.35rem] mb-0;
+    }
 
-  .minan-rich-text strong {
-    font-weight: 700;
-  }
+    & strong {
+      @apply font-bold;
+    }
 
-  .minan-rich-text em {
-    font-style: italic;
+    & em {
+      @apply italic;
+    }
   }
 
   .minan-rich-text-editor {
-    min-height: 10rem;
-    padding: 0.875rem;
-    outline: none;
-    font-size: 0.875rem;
-    line-height: 1.625;
-  }
+    @apply min-h-40 p-3.5 text-sm leading-[1.625] outline-none;
 
-  .minan-rich-text-editor[contenteditable="false"] {
-    cursor: not-allowed;
+    &[contenteditable="false"] {
+      @apply cursor-not-allowed;
+    }
   }
 
   .minan-skeleton {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    background-color: var(--skeleton);
-  }
+    @apply relative isolate overflow-hidden bg-[var(--skeleton)];
 
-  .minan-skeleton::after {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--skeleton-highlight) 50%,
-      transparent 100%
-    );
-    content: "";
-    pointer-events: none;
-    transform: translateX(-100%);
-    will-change: transform;
-    animation: minan-skeleton-shimmer 1.8s ease-in-out infinite;
+    &::after {
+      @apply pointer-events-none absolute inset-0 z-1 -translate-x-full will-change-transform;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--skeleton-highlight) 50%,
+        transparent 100%
+      );
+      content: "";
+      animation: minan-skeleton-shimmer 1.8s ease-in-out infinite;
+    }
   }
 }
 
