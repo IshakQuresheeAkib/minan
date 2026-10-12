@@ -11,7 +11,7 @@ export function AdminSidebarSkeleton({ className }: AdminSkeletonProps) {
     <aside
       aria-label="Sidebar loading"
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden w-28 flex-col items-center justify-between border-r border-[#E8E1D5]/70 bg-[#F6F1EB] py-6 lg:flex",
+        "fixed inset-y-0 left-0 z-40 hidden w-28 flex-col items-center justify-between border-r border-[#E8E1D5]/70 bg-[#F6F1EB] py-6 print:hidden lg:flex",
         className,
       )}
     >
@@ -53,7 +53,7 @@ export function AdminTopBarSkeleton({ className }: AdminSkeletonProps) {
     <header
       aria-label="Top navigation loading"
       className={cn(
-        "sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[#EBE3D7]/80 bg-[#F6F1EB]/90 px-4 py-3.5 backdrop-blur-md transition-all sm:px-6 lg:px-8",
+        "sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[#EBE3D7]/80 bg-[#F6F1EB]/90 px-4 py-3.5 backdrop-blur-md transition-all print:hidden sm:px-6 lg:px-8",
         className,
       )}
     >
@@ -108,8 +108,8 @@ export function AdminDashboardSkeleton({ className }: AdminSkeletonProps) {
 
       {/* Bottom Insights Skeleton */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <Skeleton className="h-72 rounded-2xl lg:col-span-6" />
-        <Skeleton className="h-72 rounded-2xl lg:col-span-6" />
+        <Skeleton className="h-80 rounded-2xl lg:col-span-6 sm:h-96" />
+        <Skeleton className="h-80 rounded-2xl lg:col-span-6 sm:h-96" />
       </div>
     </div>
   );

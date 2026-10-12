@@ -1,26 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, Search, Clock, LogOut, Menu } from "lucide-react";
-import { adminRoutes, publicRoutes } from "@/constants/routes";
+import { adminRoutes } from "@/constants/routes";
 import { useOrdersNotifications } from "@/features/admin/components/OrdersNotificationProvider";
-import { useAuthStore } from "@/store/auth.store";
-import { logoutAdmin } from "@/features/admin/actions/auth.actions";
+
+const SECTION_TITLES: { prefix: string; label: string }[] = [
+  { prefix: adminRoutes.orders, label: "Orders" },
+  { prefix: adminRoutes.products, label: "Products" },
+  { prefix: adminRoutes.categories, label: "Categories" },
+  { prefix: adminRoutes.homeBanners, label: "Banners" },
+  { prefix: adminRoutes.admins, label: "Admins" },
+];
 
 export function AdminTopBar({
   onOpenMobileNav,
+  onLogout,
+  loggingOut = false,
 }: {
   onOpenMobileNav?: () => void;
+  onLogout?: () => void;
+  loggingOut?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { unreadCount } = useOrdersNotifications();
-  const clearSession = useAuthStore((state) => state.clearSession);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTime, setCurrentTime] = useState("");
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const title = useMemo(() => {
+    if (pathname === adminRoutes.dashboard) return "Dashboard";
+    return SECTION_TITLES.find((section) => pathname.startsWith(section.prefix))?.label ?? "Admin";
+  }, [pathname]);
 
   // Live real-time clock
   useEffect(() => {
@@ -31,6 +44,7 @@ export function AdminTopBar({
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
+          timeZone: "Asia/Dhaka",
         }),
       );
     }
@@ -45,21 +59,9 @@ export function AdminTopBar({
     router.push(`${adminRoutes.products}?search=${encodeURIComponent(searchQuery.trim())}`);
   }
 
-  async function handleLogout() {
-    setIsLoggingOut(true);
-    try {
-      await logoutAdmin();
-    } finally {
-      clearSession();
-      router.replace(publicRoutes.adminLogin);
-      router.refresh();
-      setIsLoggingOut(false);
-    }
-  }
-
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[#EBE3D7]/80 bg-[#F6F1EB]/90 px-4 py-3.5 backdrop-blur-md transition-all sm:px-6 lg:px-8">
-      {/* Mobile Menu Button & Overview Title */}
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[#EBE3D7]/80 bg-[#F6F1EB]/90 px-4 py-3.5 backdrop-blur-md transition-all print:hidden sm:px-6 lg:px-8">
+      {/* Mobile Menu Button & Section Title */}
       <div className="flex items-center gap-3">
         {onOpenMobileNav ? (
           <button
@@ -73,7 +75,7 @@ export function AdminTopBar({
         ) : null}
 
         <h1 className="font-display text-2xl font-bold tracking-tight text-[#1A1715] sm:text-3xl">
-          Dashboard
+          {title}
         </h1>
       </div>
 
@@ -85,7 +87,7 @@ export function AdminTopBar({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search products, orders, categories..."
+            placeholder="Search catalog products..."
             className="w-full rounded-full border border-[#DFD6C8] bg-white/80 py-2 pl-10 pr-4 text-xs font-medium text-neutral-800 placeholder:text-neutral-400 shadow-xs transition-all focus:border-[#C4B5A0] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C4B5A0]/20"
           />
         </form>
@@ -117,26 +119,21 @@ export function AdminTopBar({
 
         {/* Admin Avatar & Profile */}
         <div className="group relative flex items-center gap-2">
-          <div className="relative size-9 overflow-hidden rounded-full border-2 border-white bg-[#E5DCD0] shadow-sm">
-            <Image
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-              alt="Admin Profile"
-              fill
-              sizes="36px"
-              className="object-cover"
-              unoptimized
-            />
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-[#EAE2D5] font-display text-xs font-bold text-[#4A3E31] shadow-sm">
+            A
           </div>
 
-          <button
-            type="button"
-            disabled={isLoggingOut}
-            onClick={() => void handleLogout()}
-            title="Logout"
-            className="hidden items-center justify-center rounded-full border border-[#E0D7C9] bg-white p-2 text-neutral-500 shadow-xs transition-colors hover:bg-rose-50 hover:text-rose-600 lg:flex"
-          >
-            <LogOut className="size-3.5" />
-          </button>
+          {onLogout ? (
+            <button
+              type="button"
+              disabled={loggingOut}
+              onClick={onLogout}
+              title="Logout"
+              className="hidden items-center justify-center rounded-full border border-[#E0D7C9] bg-white p-2 text-neutral-500 shadow-xs transition-colors hover:bg-rose-50 hover:text-rose-600 lg:flex"
+            >
+              <LogOut className="size-3.5" />
+            </button>
+          ) : null}
         </div>
       </div>
     </header>

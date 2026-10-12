@@ -456,12 +456,12 @@ export async function getDashboardMetrics(adminEmail?: string): Promise<Dashboar
   const orders30d = daily30DaysAgg.reduce((acc, curr) => acc + curr.orders, 0);
   const conversionRate = totalSessions30d > 0
     ? Math.round((orders30d / totalSessions30d) * 1000) / 10
-    : (orders30d > 0 ? 3.5 : 0);
+    : 0;
 
   const prevSessions30d = sessionCountPrev30DaysAgg[0]?.count ?? 0;
   const conversionRateGrowth = prevSessions30d > 0 && totalSessions30d > 0
     ? Math.round(((conversionRate - (ordersLastMonth / prevSessions30d * 100)) * 10)) / 10
-    : 0.4;
+    : 0;
 
   const summary: DashboardSummary = {
     totalSalesMonth,
@@ -650,18 +650,8 @@ export async function getDashboardMetrics(adminEmail?: string): Promise<Dashboar
     };
   });
 
-  if (topLocations.length === 0) {
-    topLocations.push(
-      { city: "Inside Sylhet Metropolitan", share: "55%", count: 0 },
-      { city: "Dhaka, Chittagong & Nationwide", share: "45%", count: 0 },
-    );
-  }
-
   const customerInsights: CustomerInsightsData = {
-    demographics: demographics.length > 0 ? demographics : [
-      { label: "Men's Collection", percentage: 50, count: 0 },
-      { label: "Women's Collection", percentage: 50, count: 0 },
-    ],
+    demographics,
     retentionRate,
     repeatCustomersCount,
     topLocations,
@@ -674,7 +664,7 @@ export async function getDashboardMetrics(adminEmail?: string): Promise<Dashboar
     const productName = firstLine
       ? (totalItems > 1 ? `${firstLine.name} (+${totalItems - 1} more)` : firstLine.name)
       : "Order items";
-    const productImage = firstLine?.image_url || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=120&auto=format&fit=crop&q=80";
+    const productImage = firstLine?.image_url ?? "";
 
     return {
       id: ord._id.toString(),

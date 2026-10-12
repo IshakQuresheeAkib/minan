@@ -86,7 +86,7 @@ export function AdminShell({ children }: AdminShellProps) {
   return (
     <div className="min-h-screen bg-[#F6F1EB] text-[#1C1917] antialiased selection:bg-[#EBDDC8]">
       {/* ================= DESKTOP SIDEBAR ================= */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-28 flex-col items-center justify-between border-r border-[#E8E1D5]/70 bg-[#F6F1EB] py-6 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-28 flex-col items-center justify-between border-r border-[#E8E1D5]/70 bg-[#F6F1EB] py-6 print:hidden lg:flex">
         {/* Top: Brand Logo */}
         <div className="flex flex-col items-center px-3">
           <Link
@@ -293,9 +293,12 @@ export function AdminShell({ children }: AdminShellProps) {
         </div>
       ) : null}
 
-      {/* ================= MAIN CONTENT WRAPPER ================= */}
       <div className="lg:pl-28 flex flex-col min-h-screen">
-        <AdminTopBar onOpenMobileNav={() => setMobileNavOpen(true)} />
+        <AdminTopBar
+          onOpenMobileNav={() => setMobileNavOpen(true)}
+          onLogout={() => void handleLogout()}
+          loggingOut={loggingOut}
+        />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
           {children}
         </main>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Info, MapPin, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { DemographicInsight, LocationInsight } from "@/features/admin/types";
 
 function formatRegionName(city: string): string {
@@ -68,14 +69,21 @@ export function CustomerInsights({
   retentionRate = 0,
   repeatCustomersCount = 0,
   topLocations = [],
+  className,
 }: {
   demographics?: DemographicInsight[];
   retentionRate?: number;
   repeatCustomersCount?: number;
   topLocations?: LocationInsight[];
+  className?: string;
 }) {
   return (
-    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E1D5]/80 bg-white/95 p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)]">
+    <div
+      className={cn(
+        "relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-[#E8E1D5]/80 bg-white/95 p-5 shadow-[0_4px_20px_-4px_rgba(40,30,20,0.04)] sm:p-6",
+        className,
+      )}
+    >
       {/* Title */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">

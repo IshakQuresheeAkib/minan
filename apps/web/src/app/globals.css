@@ -13,6 +13,10 @@
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-destructive: var(--destructive);
+  --color-card-blue: var(--clr-blue);
+  --color-card-green: var(--clr-green);
+  --color-card-orange: var(--clr-orange);
+  --color-card-red: var(--clr-red);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -37,8 +41,6 @@
   --clr-green: #01c3a8;
   --clr-orange: #ffb741;
   --clr-red: #a63d2a;
-  --bg-dark: #232228;
-  --bg-footer: #151419;
   --color-white: #fff;
 }
 
@@ -59,7 +61,7 @@
   }
 
   html {
-    scroll-behavior: smooth;
+    @apply scroll-smooth;
   }
 
   body {
@@ -68,13 +70,13 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 
@@ -84,445 +86,261 @@
       color-mix(in srgb, var(--secondary) 18%, transparent);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-  }
 
-  .minan-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
 
-  .minan-scrollbar::-webkit-scrollbar-track {
-    border-radius: 9999px;
-    background: color-mix(in srgb, var(--secondary) 18%, transparent);
-  }
+    &::-webkit-scrollbar-track {
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--secondary) 18%, transparent);
+    }
 
-  .minan-scrollbar::-webkit-scrollbar-thumb {
-    min-height: 40px;
-    border: 2px solid transparent;
-    border-radius: 9999px;
-    background: var(--primary);
-    background-clip: padding-box;
-  }
+    &::-webkit-scrollbar-thumb {
+      min-height: 40px;
+      border: 2px solid transparent;
+      border-radius: 9999px;
+      background: var(--primary);
+      background-clip: padding-box;
 
-  .minan-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--primary) 82%, var(--foreground));
-    background-clip: padding-box;
+      &:hover {
+        background: color-mix(in srgb, var(--primary) 82%, var(--foreground));
+        background-clip: padding-box;
+      }
+    }
   }
 
   .minan-rich-text {
     overflow-wrap: anywhere;
-  }
 
-  .minan-rich-text p {
-    min-height: 1.625em;
-  }
+    & p {
+      min-height: 1.625em;
 
-  .minan-rich-text p + p {
-    margin-top: 0.75rem;
-  }
+      & + p {
+        @apply mt-3;
+      }
+    }
 
-  .minan-rich-text ul,
-  .minan-rich-text ol {
-    margin-block: 0.75rem;
-    padding-inline-start: 1.4rem;
-  }
+    & ul,
+    & ol {
+      @apply my-3 ps-[1.4rem];
+    }
 
-  .minan-rich-text ul {
-    list-style-type: disc;
-  }
+    & ul {
+      @apply list-disc;
+    }
 
-  .minan-rich-text ol {
-    list-style-type: decimal;
-  }
+    & ol {
+      @apply list-decimal;
+    }
 
-  .minan-rich-text li + li {
-    margin-top: 0.3rem;
-  }
+    & li + li {
+      @apply mt-[0.3rem];
+    }
 
-  .minan-rich-text li > p {
-    min-height: 0;
-  }
+    & li > p {
+      min-height: 0;
+    }
 
-  .minan-rich-text li > ul,
-  .minan-rich-text li > ol {
-    margin-block: 0.35rem 0;
-  }
+    & li > ul,
+    & li > ol {
+      @apply mt-[0.35rem] mb-0;
+    }
 
-  .minan-rich-text strong {
-    font-weight: 700;
-  }
+    & strong {
+      @apply font-bold;
+    }
 
-  .minan-rich-text em {
-    font-style: italic;
+    & em {
+      @apply italic;
+    }
   }
 
   .minan-rich-text-editor {
-    min-height: 10rem;
-    padding: 0.875rem;
-    outline: none;
-    font-size: 0.875rem;
-    line-height: 1.625;
-  }
+    @apply min-h-40 p-3.5 text-sm leading-[1.625] outline-none;
 
-  .minan-rich-text-editor[contenteditable="false"] {
-    cursor: not-allowed;
+    &[contenteditable="false"] {
+      @apply cursor-not-allowed;
+    }
   }
 
   .minan-skeleton {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    background-color: var(--skeleton);
+    @apply relative isolate overflow-hidden bg-[var(--skeleton)];
+
+    &::after {
+      @apply pointer-events-none absolute inset-0 z-1 -translate-x-full will-change-transform;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--skeleton-highlight) 50%,
+        transparent 100%
+      );
+      content: "";
+      animation: minan-skeleton-shimmer 1.8s ease-in-out infinite;
+    }
   }
 
-  .minan-skeleton::after {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--skeleton-highlight) 50%,
-      transparent 100%
-    );
-    content: "";
-    pointer-events: none;
-    transform: translateX(-100%);
-    will-change: transform;
-    animation: minan-skeleton-shimmer 1.8s ease-in-out infinite;
-  }
-
-  /* ================= COURSE DESIGN CARDS & MULTI-COLOR THEMED CARDS ================= */
   .card {
-    position: relative;
-    z-index: 10;
-    max-width: 22rem;
-    min-height: 20rem;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    --card-accent: var(--clr-blue);
+    --card-glow: rgba(0, 69, 143, 0.56);
+    --card-glow-stop: 45%;
+    --card-progress: 65%;
+    --card-shadow: rgba(24, 144, 255, 0.5);
+    --card-countdown-hover-text: #fff;
+    --card-add-text: var(--background);
+
+    @apply relative z-10 flex w-full max-w-[22rem] min-h-80 flex-col justify-between overflow-hidden rounded-[2.25rem] transition-[transform,box-shadow] duration-300 ease-out;
     box-shadow: 0.063em 0.75em 1.563em rgba(0, 0, 0, 0.78);
-    border-radius: 2.25rem;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
+    background: radial-gradient(
+      ellipse at right top,
+      var(--card-glow) 0%,
+      var(--foreground, #262626) var(--card-glow-stop, 47%),
+      var(--foreground, #262626) 100%
+    );
 
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0.063em 1em 2em rgba(0, 0, 0, 0.85);
-  }
+    &:hover {
+      @apply -translate-y-1;
+      box-shadow: 0.063em 1em 2em rgba(0, 0, 0, 0.85);
+    }
 
-  .card::before {
-    position: absolute;
-    content: "";
-    inset: 0;
-    border-radius: 2.25rem;
-    z-index: 1;
-    border: 0.155rem solid transparent;
-    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: destination-out;
-    mask-composite: exclude;
-    pointer-events: none;
+    &::before {
+      @apply pointer-events-none absolute inset-0 z-1 rounded-[2.25rem];
+      content: "";
+      border: 0.155rem solid transparent;
+      background: linear-gradient(
+        45deg,
+        var(--foreground, #262626),
+        var(--foreground, #262626),
+        var(--foreground, #262626),
+        var(--foreground, #262626),
+        var(--card-accent)
+      ) border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: destination-out;
+      mask-composite: exclude;
+    }
   }
 
   .card-header {
-    position: relative;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem 0.5rem 1.5rem;
-  }
+    @apply relative flex w-full items-center justify-between px-6 pt-5 pb-2;
 
-  .card-header .date {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
+    & .date {
+      @apply text-sm font-medium text-white/70;
+    }
 
-  .card-header svg {
-    color: var(--color-white, #fff);
-    width: 1.5rem;
-    height: 1.5rem;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-
-  .card-header svg:hover {
-    opacity: 0.8;
+    & svg {
+      @apply text-background size-6 cursor-pointer transition-opacity duration-200 hover:opacity-80;
+    }
   }
 
   .card-body {
-    position: relative;
-    width: 100%;
-    padding: 1rem 1.5rem 1.5rem 1.5rem;
-    text-align: left;
-  }
+    @apply relative w-full px-6 pt-4 pb-6 text-left;
 
-  .card-body h3 {
-    color: var(--color-white, #fff);
-    font-size: 1.375rem;
-    margin-top: 0.25rem;
-    margin-bottom: 0.25rem;
-    text-transform: capitalize;
-    font-weight: 700;
-  }
+    & h3 {
+      @apply text-background my-1 text-[1.375rem] font-bold capitalize;
+    }
 
-  .card-body p {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9375rem;
-    letter-spacing: 0.02rem;
-  }
+    & p {
+      @apply text-[0.9375rem] tracking-[0.02rem] text-white/80;
+    }
 
-  .card-body .progress {
-    margin-top: 1.25rem;
-  }
+    & .progress {
+      @apply mt-5;
 
-  .card-body .progress span:first-of-type {
-    color: var(--color-white, #fff);
-    text-align: left;
-    font-weight: 600;
-    font-size: 0.8125rem;
-    width: 100%;
-    display: block;
-    margin-bottom: 0.375rem;
-  }
+      & span:first-of-type {
+        @apply text-background mb-1.5 block w-full text-left text-[0.8125rem] font-semibold;
+      }
 
-  .card-body .progress .progress-bar {
-    position: relative;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.15);
-    height: 0.375rem;
-    display: block;
-    border-radius: 3.125rem;
-    overflow: hidden;
-  }
+      & .progress-bar {
+        @apply relative block h-1.5 w-full overflow-hidden rounded-[3.125rem] bg-white/15;
 
-  .card-body .progress .progress-bar::after {
-    position: absolute;
-    content: "";
-    top: 0;
-    left: 0;
-    bottom: 0;
-    height: 100%;
-    display: block;
-    border-radius: 3.125rem;
-    width: 50%;
-    transition: width 0.5s ease;
-  }
+        &::after {
+          @apply absolute inset-y-0 left-0 block h-full rounded-[3.125rem] transition-[width] duration-500 ease-out;
+          content: "";
+          width: var(--card-progress, 50%);
+          background: var(--card-accent);
+          box-shadow: 0 0 12px var(--card-shadow);
+        }
+      }
 
-  .card-body .progress span:last-of-type {
-    margin-top: 0.375rem;
-    text-align: right;
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
+      & span:last-of-type {
+        @apply mt-1.5 block text-right text-xs font-semibold text-white/70;
+      }
+    }
   }
 
   .card-footer {
-    position: relative;
-    width: 100%;
-    border-top: 0.063rem solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.875rem 1.5rem;
-    background: var(--bg-footer, #151419);
-    border-bottom-left-radius: 2.25rem;
-    border-bottom-right-radius: 2.25rem;
+    @apply relative flex w-full items-center justify-between border-t border-white/[0.08] bg-foreground px-6 py-3.5 rounded-b-[2.25rem];
+
+    & ul {
+      @apply m-0 flex list-none items-center p-0;
+
+      & li {
+        @apply flex -mr-2.5;
+
+        & img {
+          @apply size-[1.875rem] rounded-full border-2 border-foreground object-cover;
+        }
+      }
+    }
+
+    & .btn-add {
+      @apply text-background flex size-[1.875rem] cursor-pointer items-center justify-center rounded-full border-2 border-foreground no-underline transition-[transform,opacity] duration-200 hover:scale-108 hover:opacity-90;
+      background: var(--card-accent);
+      color: var(--card-add-text, var(--background));
+
+      & svg {
+        @apply size-4;
+      }
+    }
+
+    & .btn-countdown {
+      @apply text-background inline-block rounded-[2rem] border border-white/[0.06] bg-foreground px-[1.15rem] py-[0.45rem] text-xs font-semibold no-underline transition-[background-color,color,transform] duration-250 hover:scale-102;
+
+      &:hover {
+        background: var(--card-accent);
+        color: var(--card-countdown-hover-text, #fff);
+      }
+    }
   }
 
-  .card-footer ul {
-    display: flex;
-    align-items: center;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .card-footer ul li {
-    display: flex;
-    margin-right: -0.625rem;
-  }
-
-  .card-footer ul li img {
-    border-radius: 50%;
-    width: 1.875rem;
-    height: 1.875rem;
-    object-fit: cover;
-    border: 2px solid var(--bg-footer, #151419);
-  }
-
-  .card-footer .btn-add {
-    width: 1.875rem;
-    height: 1.875rem;
-    border-radius: 50%;
-    color: var(--color-white, #fff);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    text-decoration: none;
-    border: 2px solid var(--bg-footer, #151419);
-    transition: transform 0.2s ease, opacity 0.2s ease;
-  }
-
-  .card-footer .btn-add:hover {
-    transform: scale(1.08);
-    opacity: 0.9;
-  }
-
-  .card-footer .btn-add svg {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  .card-footer .btn-countdown {
-    background: var(--bg-dark, #232228);
-    color: var(--color-white, #fff);
-    border-radius: 2rem;
-    padding: 0.45rem 1.15rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-block;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
-  }
-
-  .card-footer .btn-countdown:hover {
-    transform: scale(1.02);
-  }
-
-  /* Green Theme */
+  /* Multi-Color Card Themes */
   .card.green {
-    background: radial-gradient(
-      ellipse at right top,
-      rgba(16, 118, 103, 0.93) 0%,
-      var(--bg-footer, #151419) 47%,
-      var(--bg-footer, #151419) 100%
-    );
-  }
-  .card.green::before {
-    background: linear-gradient(
-      45deg,
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--clr-green, #01c3a8)
-    ) border-box;
-  }
-  .card.green .btn-add {
-    background: var(--clr-green, #01c3a8);
-  }
-  .card.green .progress-bar::after {
-    width: 90%;
-    background: var(--clr-green, #01c3a8);
-    box-shadow: 0 0 12px rgba(1, 195, 168, 0.5);
-  }
-  .card.green .btn-countdown:hover {
-    background: var(--clr-green, #01c3a8);
-    color: #000;
+    --card-accent: var(--clr-green);
+    --card-glow: rgba(16, 118, 103, 0.93);
+    --card-glow-stop: 47%;
+    --card-progress: 90%;
+    --card-shadow: rgba(1, 195, 168, 0.5);
+    --card-countdown-hover-text: #000;
   }
 
-  /* Blue Theme */
   .card.blue {
-    background: radial-gradient(
-      ellipse at right top,
-      rgba(0, 69, 143, 0.56) 0%,
-      var(--bg-footer, #151419) 45%,
-      var(--bg-footer, #151419) 100%
-    );
-  }
-  .card.blue::before {
-    background: linear-gradient(
-      45deg,
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--clr-blue, #1890ff)
-    ) border-box;
-  }
-  .card.blue .btn-add {
-    background: var(--clr-blue, #1890ff);
-  }
-  .card.blue .progress-bar::after {
-    width: 65%;
-    background: var(--clr-blue, #1890ff);
-    box-shadow: 0 0 12px rgba(24, 144, 255, 0.5);
-  }
-  .card.blue .btn-countdown:hover {
-    background: var(--clr-blue, #1890ff);
-    color: #fff;
+    --card-accent: var(--clr-blue);
+    --card-glow: rgba(0, 69, 143, 0.56);
+    --card-glow-stop: 45%;
+    --card-progress: 65%;
+    --card-shadow: rgba(24, 144, 255, 0.5);
+    --card-countdown-hover-text: #fff;
   }
 
-  /* Orange Theme */
   .card.orange {
-    background: radial-gradient(
-      ellipse at right top,
-      rgba(255, 183, 65, 0.58) 0%,
-      var(--bg-footer, #151419) 47%,
-      var(--bg-footer, #151419) 100%
-    );
-  }
-  .card.orange::before {
-    background: linear-gradient(
-      45deg,
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--clr-orange, #ffb741)
-    ) border-box;
-  }
-  .card.orange .btn-add {
-    background: var(--clr-orange, #ffb741);
-    color: #000;
-  }
-  .card.orange .progress-bar::after {
-    width: 40%;
-    background: var(--clr-orange, #ffb741);
-    box-shadow: 0 0 12px rgba(255, 183, 65, 0.5);
-  }
-  .card.orange .btn-countdown:hover {
-    background: var(--clr-orange, #ffb741);
-    color: #000;
+    --card-accent: var(--clr-orange);
+    --card-glow: rgba(255, 183, 65, 0.58);
+    --card-glow-stop: 47%;
+    --card-progress: 40%;
+    --card-shadow: rgba(255, 183, 65, 0.5);
+    --card-countdown-hover-text: #000;
+    --card-add-text: #000;
   }
 
-  /* Red Theme */
   .card.red {
-    background: radial-gradient(
-      ellipse at right top,
-      rgba(166, 61, 42, 0.51) 0%,
-      var(--bg-footer, #151419) 47%,
-      var(--bg-footer, #151419) 100%
-    );
-  }
-  .card.red::before {
-    background: linear-gradient(
-      45deg,
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--bg-dark, #232228),
-      var(--clr-red, #a63d2a)
-    ) border-box;
-  }
-  .card.red .btn-add {
-    background: var(--clr-red, #a63d2a);
-  }
-  .card.red .progress-bar::after {
-    width: 50%;
-    background: var(--clr-red, #a63d2a);
-    box-shadow: 0 0 12px rgba(166, 61, 42, 0.5);
-  }
-  .card.red .btn-countdown:hover {
-    background: var(--clr-red, #a63d2a);
-    color: #fff;
+    --card-accent: var(--clr-red);
+    --card-glow: rgba(166, 61, 42, 0.51);
+    --card-glow-stop: 47%;
+    --card-progress: 50%;
+    --card-shadow: rgba(166, 61, 42, 0.5);
+    --card-countdown-hover-text: #fff;
   }
 }
 

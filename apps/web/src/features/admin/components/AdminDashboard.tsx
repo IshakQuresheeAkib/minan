@@ -1,7 +1,6 @@
 "use client";
 
-import { Banknote, ShoppingBag, Sparkles, TrendingUp, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Banknote, ShoppingBag, TrendingUp, Users } from "lucide-react";
 import { AdminDashboardSkeleton } from "@/features/admin/components/AdminSkeleton";
 import { StatCard } from "@/features/admin/components/StatCardOrganic";
 import { BestSellingProducts } from "@/features/admin/components/BestSellingProducts";
@@ -20,7 +19,7 @@ export function AdminDashboard() {
   // Total Sales calculation & formatting
   const totalSalesAmount = summary
     ? (summary.totalSalesMonth || summary.totalSalesOverall)
-    : (metrics.ordersThisMonth ? metrics.ordersThisMonth * 2150 : 0);
+    : 0;
   const totalSalesFormatted = `৳${totalSalesAmount.toLocaleString("en-BD")}`;
 
   const salesGrowthText = summary?.salesGrowthPercent !== undefined && summary.salesGrowthPercent !== 0
@@ -31,7 +30,7 @@ export function AdminDashboard() {
   // New Customers calculation
   const newCustomersCount = summary
     ? (summary.newCustomersMonth || summary.totalCustomers)
-    : (metrics.ordersToday ? metrics.ordersToday * 12 : 0);
+    : 0;
   const customersGrowthText = summary?.customersGrowthPercent !== undefined && summary.customersGrowthPercent !== 0
     ? `${summary.customersGrowthPercent > 0 ? "+" : ""}${summary.customersGrowthPercent}%`
     : undefined;
@@ -126,16 +125,20 @@ export function AdminDashboard() {
       </div>
 
       {/* ================= 4. INVENTORY & CUSTOMER INSIGHTS ROW ================= */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-6">
-          <InventorySnapshotChart inventory={metrics.inventorySnapshot} />
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
+        <div className="flex flex-col lg:col-span-6">
+          <InventorySnapshotChart
+            inventory={metrics.inventorySnapshot}
+            className="h-full"
+          />
         </div>
-        <div className="lg:col-span-6">
+        <div className="flex flex-col lg:col-span-6">
           <CustomerInsights
             demographics={metrics.customerInsights?.demographics}
             retentionRate={metrics.customerInsights?.retentionRate}
             repeatCustomersCount={metrics.customerInsights?.repeatCustomersCount}
             topLocations={metrics.customerInsights?.topLocations}
+            className="h-full"
           />
         </div>
       </div>
