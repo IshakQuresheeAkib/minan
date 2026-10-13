@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { richTextContentClassName } from "@/lib/styles";
 
 const COLLAPSED_HEIGHT_REM = 10.5;
 
@@ -68,7 +69,10 @@ export function ProductDescription({
         {descriptionHtml ? (
           <div
             ref={contentRef}
-            className="minan-rich-text text-[15px] leading-relaxed text-foreground/80 lg:text-base"
+            className={cn(
+              "text-[15px] leading-relaxed text-foreground/80 lg:text-base minan-rich-text",
+              richTextContentClassName,
+            )}
             dangerouslySetInnerHTML={{ __html: descriptionHtml }}
           />
         ) : (

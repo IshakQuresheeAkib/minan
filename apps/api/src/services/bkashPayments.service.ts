@@ -882,17 +882,21 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
 
   if (attempt.status !== "completed") {
     if (input.status === "failure" || input.status === "cancel") {
-      attempt.status = input.status === "cancel" ? "cancelled" : "failed";
-      attempt.terminal_confirmed_at = new Date();
-      if (input.errorCode) {
-        attempt.provider_status_code = input.errorCode;
+      if (!expected) {
+        await queryAndApplyVerification(attempt);
+      } else {
+        attempt.status = input.status === "cancel" ? "cancelled" : "failed";
+        attempt.terminal_confirmed_at = new Date();
+        if (input.errorCode) {
+          attempt.provider_status_code = input.errorCode;
+        }
+        attempt.provider_status_message =
+          getBkashErrorMessage(input.errorCode) ??
+          input.errorMessage ??
+          (input.status === "cancel" ? "Payment was cancelled" : "Payment failed");
+        await attempt.save();
+        await syncOrderFeeStatus(attempt);
       }
-      attempt.provider_status_message =
-        getBkashErrorMessage(input.errorCode) ??
-        input.errorMessage ??
-        (input.status === "cancel" ? "Payment was cancelled" : "Payment failed");
-      await attempt.save();
-      await syncOrderFeeStatus(attempt);
     } else {
       if (attempt.status === "initiated") {
         const claimed = await claimInitiatedExecution(attempt);
