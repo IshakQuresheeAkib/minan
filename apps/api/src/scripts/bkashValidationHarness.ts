@@ -96,8 +96,13 @@ async function getOrFetchToken(): Promise<State["tokenRecord"]> {
   }
 
   const record: State["tokenRecord"] = {
-    requestBody: grantBody,
-    response: grantData,
+    requestBody: { app_key: "[REDACTED]", app_secret: "[REDACTED]" },
+    response: {
+      statusCode: grantData.statusCode,
+      statusMessage: grantData.statusMessage,
+      token_type: grantData.token_type,
+      expires_in: grantData.expires_in,
+    },
     id_token: idToken,
     obtainedAt: Date.now(),
   };
@@ -246,12 +251,20 @@ async function runComplete() {
   const searchData = (await searchRes.json()) as Record<string, unknown>;
   console.log("Search Response:", JSON.stringify(searchData, null, 2));
 
+  // Redact credentials from persisted output
+  const redactedGrantRequest = { app_key: "[REDACTED]", app_secret: "[REDACTED]" };
+  const redactedGrantResponse = {
+    ...(tokenRecord.response as Record<string, unknown>),
+    id_token: "[REDACTED]",
+    refresh_token: "[REDACTED]",
+  };
+
   const apis: CapturedApi[] = [
     {
       title: "Grant Token",
       url: grantUrl,
-      requestBody: tokenRecord.requestBody,
-      response: tokenRecord.response,
+      requestBody: redactedGrantRequest,
+      response: redactedGrantResponse,
     },
     {
       title: "Create Payment",
