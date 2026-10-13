@@ -10,18 +10,28 @@ vi.mock("@/lib/api/client", async (original) => ({
 vi.mock("@/features/checkout/actions/checkout.actions", () => ({ startCheckoutPayment: mocks.start, retryCheckoutPayment: vi.fn() }));
 vi.mock("@/features/products/hooks/useCartPricingSync", () => ({ useCartPricingSync: vi.fn() }));
 vi.mock("@/lib/analytics/ga4", () => ({ toGa4Item: vi.fn(), trackGa4CommerceEvent: mocks.track }));
+const cartState = {
+  hasHydrated: true,
+  items: [{
+    lineId: "one", productId: "product", name: "Shirt", slug: "shirt", price: 100,
+    originalPrice: 100, discount: 0, imageUrl: "", size: "M", color: "Black", quantity: 1, isAvailable: true,
+  }],
+  clearCart: vi.fn(),
+};
+vi.mock("@/store/cart.store", () => {
+  const useCartStore = Object.assign(
+    (selector: (s: typeof cartState) => unknown) => selector(cartState),
+    { getState: () => cartState, setState: vi.fn() },
+  );
+  return { useCartStore };
+});
 import { CheckoutClient } from "./CheckoutClient";
-import { useCartStore } from "@/store/cart.store";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
 const config = { delivery_fee: 100, currency: "BDT", refundable: false };
 beforeEach(() => {
   vi.clearAllMocks();
   useCustomerAuthStore.getState().clearSession();
-  useCartStore.setState({ hasHydrated: true, items: [{
-    lineId: "one", productId: "product", name: "Shirt", slug: "shirt", price: 100,
-    originalPrice: 100, discount: 0, imageUrl: "", size: "M", color: "Black", quantity: 1, isAvailable: true,
-  }] });
 });
 afterEach(cleanup);
 function mount() {

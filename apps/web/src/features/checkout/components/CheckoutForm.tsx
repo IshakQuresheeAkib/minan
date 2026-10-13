@@ -136,6 +136,12 @@ export function CheckoutForm({
     }
     if (result.state === "failed") {
       setRetryContext({ token: result.retry_token, method, payNow, pricingKey });
+      if (result.reference) {
+        window.location.assign(
+          `/payment/result?reference=${encodeURIComponent(result.reference)}`,
+        );
+        return;
+      }
       toast.error(result.message);
       return;
     }
