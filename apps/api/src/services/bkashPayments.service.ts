@@ -888,8 +888,8 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
         attempt.provider_status_code = input.errorCode;
       }
       attempt.provider_status_message =
-        input.errorMessage ??
         getBkashErrorMessage(input.errorCode) ??
+        input.errorMessage ??
         (input.status === "cancel" ? "Payment was cancelled" : "Payment failed");
       await attempt.save();
       await syncOrderFeeStatus(attempt);
