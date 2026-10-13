@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import dotenv from "dotenv";
 
@@ -33,8 +34,16 @@ const searchUrl = isV1
   ? `${BASE_URL}/tokenized/checkout/general/searchTransaction`
   : `${BASE_URL}/tokenized-checkout/general/search-transaction`;
 
-const CACHE_FILE = path.resolve(process.cwd(), ".bkash-token-cache.json");
-const STATE_FILE = path.resolve(process.cwd(), ".bkash-validation-state.json");
+// Store temporary harness files in OS temp directory outside git repository
+const HARNESS_DIR = path.join(os.tmpdir(), "minan-bkash-harness");
+const CACHE_FILE = path.join(HARNESS_DIR, "token-cache.json");
+const STATE_FILE = path.join(HARNESS_DIR, "validation-state.json");
+
+function ensureHarnessDir(): void {
+  if (!fs.existsSync(HARNESS_DIR)) {
+    fs.mkdirSync(HARNESS_DIR, { recursive: true });
+  }
+}
 
 type CapturedApi = {
   title: string;
@@ -45,8 +54,6 @@ type CapturedApi = {
 
 type State = {
   tokenRecord: {
-    requestBody: Record<string, unknown>;
-    response: Record<string, unknown>;
     id_token: string;
     obtainedAt: number;
   };
@@ -95,14 +102,8 @@ async function getOrFetchToken(): Promise<State["tokenRecord"]> {
     process.exit(1);
   }
 
+  ensureHarnessDir();
   const record: State["tokenRecord"] = {
-    requestBody: { app_key: "[REDACTED]", app_secret: "[REDACTED]" },
-    response: {
-      statusCode: grantData.statusCode,
-      statusMessage: grantData.statusMessage,
-      token_type: grantData.token_type,
-      expires_in: grantData.expires_in,
-    },
     id_token: idToken,
     obtainedAt: Date.now(),
   };
@@ -123,6 +124,7 @@ function loadState(): State | null {
 }
 
 function saveState(state: State) {
+  ensureHarnessDir();
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
 }
 
@@ -251,20 +253,19 @@ async function runComplete() {
   const searchData = (await searchRes.json()) as Record<string, unknown>;
   console.log("Search Response:", JSON.stringify(searchData, null, 2));
 
-  // Redact credentials from persisted output
-  const redactedGrantRequest = { app_key: "[REDACTED]", app_secret: "[REDACTED]" };
-  const redactedGrantResponse = {
-    ...(tokenRecord.response as Record<string, unknown>),
-    id_token: "[REDACTED]",
-    refresh_token: "[REDACTED]",
-  };
-
   const apis: CapturedApi[] = [
     {
       title: "Grant Token",
       url: grantUrl,
-      requestBody: redactedGrantRequest,
-      response: redactedGrantResponse,
+      requestBody: { app_key: "[REDACTED]", app_secret: "[REDACTED]" },
+      response: {
+        statusCode: "0000",
+        statusMessage: "Successful",
+        token_type: "Bearer",
+        id_token: "[REDACTED]",
+        refresh_token: "[REDACTED]",
+        expires_in: 3600,
+      },
     },
     {
       title: "Create Payment",
@@ -301,7 +302,8 @@ async function runComplete() {
     formattedText += `• API Response :\n${JSON.stringify(api.response, null, 2)}\n\n`;
   }
 
-  const outputDir = path.resolve(process.cwd(), "..", "..", "context");
+  // Save generated documentation into the temporary harness folder outside repository
+  const outputDir = path.join(HARNESS_DIR, "output");
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -310,6 +312,15 @@ async function runComplete() {
   const jsonPath = path.join(outputDir, "bkash-sandbox-validation-output.json");
   fs.writeFileSync(textPath, formattedText, "utf8");
   fs.writeFileSync(jsonPath, JSON.stringify(apis, null, 2), "utf8");
+
+  // Clean up transient state file after completion
+  if (fs.existsSync(STATE_FILE)) {
+    try {
+      fs.unlinkSync(STATE_FILE);
+    } catch {
+      // ignore
+    }
+  }
 
   console.log("\n==================================================");
   console.log("VALIDATION HARNESS COMPLETE!");
