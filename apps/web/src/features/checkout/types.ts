@@ -49,7 +49,7 @@ export type PaymentStartResult = PaymentStartContract & (
   | { state: "redirect"; bkash_url: string }
   | { state: "processing" }
   | { state: "completed"; reference: string }
-  | { state: "failed"; message: string; retry_token: string }
+  | { state: "failed"; message: string; retry_token: string; reference?: string }
 );
 
 export type PaymentResult = {
@@ -76,6 +76,8 @@ export type PaymentResult = {
   financial_review_required?: boolean;
   merchant_invoice_number?: string;
   bkash_trx_id?: string;
+  provider_status_code?: string;
+  provider_status_message?: string;
   retry_token?: string;
   ecommerce?: {
     value: number;

@@ -40,6 +40,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# bKash runtime credential caches (contain app_secret, bearer tokens, refresh tokens)
+.bkash-token-cache.json
+.bkash-validation-state.json
+
 # OS Files
 .DS_Store
 Thumbs.db

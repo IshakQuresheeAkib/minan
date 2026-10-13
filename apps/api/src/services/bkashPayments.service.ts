@@ -3,6 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { Types } from "mongoose";
 
 import { getBkashConfig } from "../config/bkash.js";
+import { getBkashErrorMessage } from "../config/bkashErrorCodes.js";
 import {
   CHECKOUT_PAYMENT_CONTRACT_VERSION,
   type PaymentMethod,
@@ -57,7 +58,7 @@ type BareStartPaymentResponse =
   | { state: "redirect"; bkash_url: string }
   | { state: "processing" }
   | { state: "completed"; reference: string }
-  | { state: "failed"; message: string; retry_token: string };
+  | { state: "failed"; message: string; retry_token: string; reference?: string };
 
 type StartPaymentResponse = PaymentResponseContract & BareStartPaymentResponse;
 
@@ -78,6 +79,8 @@ export type PaymentResult = {
   financial_review_required?: boolean;
   merchant_invoice_number?: string;
   bkash_trx_id?: string;
+  provider_status_code?: string;
+  provider_status_message?: string;
   retry_token?: string;
   ecommerce?: {
     value: number;
@@ -487,10 +490,12 @@ async function createAttempt(
       attempt.provider_status_message = response.statusMessage ?? "bKash rejected payment creation";
       await attempt.save();
       await syncOrderFeeStatus(attempt);
+      const reference = await mintResultReference(attempt);
       return withResponseContract(attempt, {
         state: "failed",
         message: attempt.provider_status_message,
         retry_token: await mintRetryToken(attempt),
+        reference,
       });
     }
 
@@ -530,10 +535,12 @@ async function createAttempt(
       error instanceof AppError ? error.message : "Payment creation failed";
     await attempt.save();
     await syncOrderFeeStatus(attempt);
+    const reference = await mintResultReference(attempt);
     return withResponseContract(attempt, {
       state: "failed",
       message: attempt.provider_status_message,
       retry_token: await mintRetryToken(attempt),
+      reference,
     });
   }
 }
@@ -880,8 +887,13 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
       } else {
         attempt.status = input.status === "cancel" ? "cancelled" : "failed";
         attempt.terminal_confirmed_at = new Date();
+        if (input.errorCode) {
+          attempt.provider_status_code = input.errorCode;
+        }
         attempt.provider_status_message =
-          input.status === "cancel" ? "Payment was cancelled" : "Payment failed";
+          getBkashErrorMessage(input.errorCode) ??
+          input.errorMessage ??
+          (input.status === "cancel" ? "Payment was cancelled" : "Payment failed");
         await attempt.save();
         await syncOrderFeeStatus(attempt);
       }
@@ -906,17 +918,21 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
 function resultMessage(
   status: PaymentAttemptStatus,
   purpose: PaymentPurpose,
+  providerMessage?: string,
 ): string {
   if (status === "completed") {
     return purpose === "delivery_fee"
       ? "Your advance delivery-fee payment was confirmed. Pay the merchandise balance on delivery."
       : "Your full bKash payment was confirmed. Nothing remains due on delivery.";
   }
-  if (status === "cancelled") return "You cancelled the payment.";
+  if (status === "cancelled") return "Payment was cancelled.";
   if (status === "verification_pending") return "Your payment is still being verified.";
   if (status === "initiated" || status === "creating") return "Your payment is still in progress.";
   if (status === "expired") return "This payment attempt expired.";
-  return "The payment was not completed.";
+  if (providerMessage && providerMessage.trim()) {
+    return providerMessage.trim();
+  }
+  return "Payment failed.";
 }
 
 export async function resolvePaymentResult(reference: string): Promise<PaymentResult> {
@@ -953,7 +969,7 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
     state: attempt.status,
     message: isDuplicateCompletion
       ? "A second payment completion was detected after this Order was already paid. The Order is under financial review; contact MINAN support before paying again."
-      : resultMessage(attempt.status, attempt.payment_purpose),
+      : resultMessage(attempt.status, attempt.payment_purpose, attempt.provider_status_message),
     order_id: order._id.toString(),
     order_number: order.order_number,
     checkout_source: order.checkout_source,
@@ -966,6 +982,8 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
     financial_review_required: order.financial_review_required,
     merchant_invoice_number: attempt.merchant_invoice_number,
     bkash_trx_id: attempt.bkash_trx_id,
+    provider_status_code: attempt.provider_status_code,
+    provider_status_message: attempt.provider_status_message,
     retry_token: retryToken,
     ecommerce: isSettledStorefrontPurchase ? {
       value: order.financials.merchandise_total,

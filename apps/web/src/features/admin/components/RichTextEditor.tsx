@@ -13,6 +13,10 @@ import {
 import { Button } from "@/components/ui/Button";
 import { toggleListAtSelection } from "@/features/admin/components/rich-text-list";
 import { cn } from "@/lib/utils";
+import {
+  richTextContentClassName,
+  richTextEditorClassName,
+} from "@/lib/styles";
 
 type RichTextEditorProps = Omit<ComponentPropsWithoutRef<"div">, "onChange"> & {
   disabled?: boolean;
@@ -97,8 +101,11 @@ export const RichTextEditor = forwardRef<HTMLDivElement, RichTextEditorProps>(
       immediatelyRender: false,
       editorProps: {
         attributes: {
-          class:
-            "minan-rich-text minan-rich-text-editor selection:bg-primary/30",
+          class: cn(
+            richTextContentClassName,
+            richTextEditorClassName,
+            "minan-rich-text minan-rich-text-editor",
+          ),
           role: "textbox",
           "aria-label": "Product description",
           "aria-multiline": "true",

@@ -25,6 +25,8 @@ export const bkashCallbackSchema = z.object({
   paymentID: z.string().trim().min(1).max(200),
   status: z.enum(["success", "failure", "cancel"]),
   signature: z.string().trim().min(1).max(1000).optional(),
+  errorCode: z.string().trim().optional(),
+  errorMessage: z.string().trim().optional(),
 });
 
 export type PaymentCreateInput = z.infer<typeof paymentCreateSchema>;

@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { hideScrollbarClassName } from "@/lib/styles";
 
 type CategoryChipsProps = {
   categories: readonly {
@@ -27,7 +28,10 @@ export function CategoryChips({
       className="mb-6 w-full min-w-0 max-w-full overflow-x-clip"
     >
       <div
-        className="hide-scrollbar w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 touch-auto select-none [-webkit-overflow-scrolling:touch]"
+        className={cn(
+          "w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2 touch-auto select-none [-webkit-overflow-scrolling:touch] hide-scrollbar",
+          hideScrollbarClassName,
+        )}
       >
         <div className="inline-flex min-w-max gap-3">
           {[{ name: "All", slug: undefined }, ...categories].map((category) => {

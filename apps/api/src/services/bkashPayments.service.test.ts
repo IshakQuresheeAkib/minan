@@ -30,7 +30,8 @@ vi.mock("./orders.service.js", () => ({
 
 import { Order } from "../models/Order.js";
 import { PaymentAttempt, type PaymentAttemptDocument } from "../models/PaymentAttempt.js";
-import { bkashCallbackSchema } from "../schemas/bkash.schemas.js";
+import { bkashCallbackSchema, type PaymentCreateInput } from "../schemas/bkash.schemas.js";
+import type { BkashPaymentResponse } from "./bkashClient.service.js";
 import {
   handleBkashCallback,
   paymentResponseIsCompleted,
@@ -106,15 +107,16 @@ function order(
   };
 }
 
-const input = {
+const input: PaymentCreateInput = {
   name: "MINAN Customer",
   phone_number: "01700000000",
   email: "customer@example.com",
   address: "Dhaka",
   notes: "",
-  checkout_source: "cart" as const,
-  shipping_zone: "inside_sylhet" as const,
-  payment_method: "cod" as const,
+  checkout_identity_mode: "guest",
+  checkout_source: "cart",
+  shipping_zone: "inside_sylhet",
+  payment_method: "cod",
   cart_snapshot: {
     items: [{ product_id: new Types.ObjectId().toString(), name: "Shirt", price: 1200, size: "M", color: "Black", quantity: 1 }],
     total: 1200,
@@ -122,10 +124,18 @@ const input = {
 };
 
 describe("bKash delivery-fee verification", () => {
-  const completed = {
-    statusCode: "0000", transactionStatus: "Completed", paymentID: "TR001",
-    trxID: "AJH7ABC123", amount: "60.00", currency: "BDT",
+  const completed: BkashPaymentResponse = {
+    statusCode: "0000",
+    transactionStatus: "Completed",
+    paymentID: "TR001",
+    paymentId: "TR001",
+    trxID: "AJH7ABC123",
+    trxId: "AJH7ABC123",
+    amount: "60.00",
+    currency: "BDT",
     merchantInvoiceNumber: "MN-20260805-0001-01",
+    merchantInvoice: "MN-20260805-0001-01",
+    statusMessage: undefined,
   };
 
   it("accepts only a completed response matching every frozen gateway invariant", () => {
@@ -758,6 +768,28 @@ describe("bKash Order lifecycle", () => {
       }),
       expect.objectContaining({ $set: { delivery_fee_status: "failed" } }),
     );
+  });
+
+  it.each([
+    "failure",
+    "cancel",
+  ] as const)("retains provider query path when an unauthenticated %s callback lacks a verified signature", async (status) => {
+    const pending = attempt("initiated");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status,
+    });
+
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(pending.status).toBe("initiated");
+    expect(pending.terminal_confirmed_at).toBeUndefined();
   });
 
   it("recovers verification-pending payments through Execute then query", async () => {

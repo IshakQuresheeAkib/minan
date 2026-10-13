@@ -38,9 +38,9 @@ function heading(state: PaymentResult["state"]): string {
   if (state === "verification_pending") return "Verification pending";
   if (state === "creating" || state === "initiated")
     return "Payment in progress";
-  if (state === "cancelled") return "Payment cancelled";
+  if (state === "cancelled") return "Payment Cancelled";
   if (state === "unavailable") return "Result unavailable";
-  return "Payment unsuccessful";
+  return "Payment Failed";
 }
 
 export function PaymentResultClient({ result }: { result: PaymentResult }) {
@@ -272,6 +272,9 @@ export function PaymentResultClient({ result }: { result: PaymentResult }) {
           {result.state === "completed"
             ? "Continue shopping"
             : "Return to checkout"}
+        </Button>
+        <Button href={publicRoutes.home} variant="secondary">
+          Back to home
         </Button>
       </div>
     </section>

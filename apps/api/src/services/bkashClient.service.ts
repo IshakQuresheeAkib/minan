@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { getBkashConfig } from "../config/bkash.js";
+import { getBkashErrorMessage } from "../config/bkashErrorCodes.js";
 import { AppError } from "../lib/errors.js";
 import { BkashToken } from "../models/BkashToken.js";
 
@@ -35,12 +36,17 @@ const createResponseSchema = z.object({
 }).transform((data) => {
   const paymentID = data.paymentID ?? data.paymentId;
   const isSuccess = Boolean(paymentID && data.bkashURL);
+  const statusCode = data.statusCode ?? (isSuccess ? "0000" : (data.externalCode ?? "9999"));
   return {
     ...data,
     paymentID,
     paymentId: paymentID,
-    statusCode: data.statusCode ?? (isSuccess ? "0000" : (data.externalCode ?? "9999")),
-    statusMessage: data.statusMessage ?? data.errorMessageEn ?? (data.transactionStatus ? `Status: ${data.transactionStatus}` : undefined),
+    statusCode,
+    statusMessage:
+      data.statusMessage ??
+      data.errorMessageEn ??
+      getBkashErrorMessage(data.statusCode ?? data.externalCode) ??
+      (data.transactionStatus ? `Status: ${data.transactionStatus}` : undefined),
   };
 });
 
@@ -67,6 +73,7 @@ const paymentResponseSchema = z.object({
   const trxID = data.trxID ?? data.trxId;
   const invoice = data.merchantInvoiceNumber ?? data.merchantInvoice;
   const isCompleted = data.transactionStatus === "Completed";
+  const statusCode = data.statusCode ?? (isCompleted ? "0000" : (data.externalCode ?? "9999"));
   return {
     ...data,
     paymentID,
@@ -75,8 +82,12 @@ const paymentResponseSchema = z.object({
     trxId: trxID,
     merchantInvoiceNumber: invoice,
     merchantInvoice: invoice,
-    statusCode: data.statusCode ?? (isCompleted ? "0000" : (data.externalCode ?? "9999")),
-    statusMessage: data.statusMessage ?? data.errorMessageEn ?? (data.transactionStatus ? `Status: ${data.transactionStatus}` : undefined),
+    statusCode,
+    statusMessage:
+      data.statusMessage ??
+      data.errorMessageEn ??
+      getBkashErrorMessage(data.statusCode ?? data.externalCode) ??
+      (data.transactionStatus ? `Status: ${data.transactionStatus}` : undefined),
   };
 });
 
@@ -104,12 +115,17 @@ const searchResponseSchema = z.object({
 }).transform((data) => {
   const trxId = data.trxId ?? data.trxID;
   const isCompleted = data.transactionStatus === "Completed";
+  const statusCode = data.statusCode ?? (isCompleted ? "0000" : (data.externalCode ?? "9999"));
   return {
     ...data,
     trxId,
     trxID: trxId,
-    statusCode: data.statusCode ?? (isCompleted ? "0000" : (data.externalCode ?? "9999")),
-    statusMessage: data.statusMessage ?? data.errorMessageEn ?? (data.transactionStatus ? `Status: ${data.transactionStatus}` : undefined),
+    statusCode,
+    statusMessage:
+      data.statusMessage ??
+      data.errorMessageEn ??
+      getBkashErrorMessage(data.statusCode ?? data.externalCode) ??
+      (data.transactionStatus ? `Status: ${data.transactionStatus}` : undefined),
   };
 });
 
@@ -129,10 +145,15 @@ const refundResponseSchema = z.object({
   errorMessageEn: z.string().optional(),
 }).transform((data) => {
   const isCompleted = data.refundTransactionStatus === "Completed";
+  const statusCode = data.statusCode ?? (isCompleted ? "0000" : (data.externalCode ?? "9999"));
   return {
     ...data,
-    statusCode: data.statusCode ?? (isCompleted ? "0000" : (data.externalCode ?? "9999")),
-    statusMessage: data.statusMessage ?? data.errorMessageEn ?? (data.refundTransactionStatus ? `Status: ${data.refundTransactionStatus}` : undefined),
+    statusCode,
+    statusMessage:
+      data.statusMessage ??
+      data.errorMessageEn ??
+      getBkashErrorMessage(data.statusCode ?? data.externalCode) ??
+      (data.refundTransactionStatus ? `Status: ${data.refundTransactionStatus}` : undefined),
   };
 });
 

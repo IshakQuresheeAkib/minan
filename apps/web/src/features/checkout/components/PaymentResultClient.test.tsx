@@ -59,6 +59,7 @@ describe("PaymentResultClient", () => {
     );
 
     expect(markup).not.toContain("Track this order");
-    expect(markup).toContain("Payment unsuccessful");
+    expect(markup).toContain("Payment Failed");
+    expect(markup).toContain("Back to home");
   });
 });
