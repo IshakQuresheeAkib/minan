@@ -3,14 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import dynamic from "next/dynamic";
+
 import { fetchAdminCategories } from "@/features/admin/actions/categories.actions";
 import { fetchAdminSubcategories } from "@/features/admin/actions/subcategories.actions";
-import {
-  fetchAdminProducts,
-  type AdminProductStatusFilter,
-} from "@/features/admin/actions/products.actions";
-import { ProductForm } from "@/features/admin/components/ProductForm";
+import { type AdminProductStatusFilter } from "@/features/admin/actions/products.actions";
+import { useAdminProducts } from "@/features/admin/hooks/useAdminProducts";
 import { ProductsTable } from "@/features/admin/components/ProductsTable";
+
+const ProductForm = dynamic(
+  () =>
+    import("@/features/admin/components/ProductForm").then(
+      (mod) => mod.ProductForm,
+    ),
+  { ssr: false },
+);
 import type {
   AdminCategory,
   AdminProduct,
@@ -90,12 +97,24 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const appliedFilterDraft = getFilterDraft(appliedFilters);
   const appliedFilterDraftKey = getFilterDraftKey(appliedFilterDraft);
-  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const {
+    products,
+    total,
+    totalPages,
+    loading,
+    error,
+    mutate: mutateProducts,
+  } = useAdminProducts({
+    page: appliedFilters.page,
+    limit: PAGE_LIMIT,
+    search: appliedFilters.search,
+    categoryId: appliedFilters.categoryId,
+    status: appliedFilters.status,
+  });
+
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [subcategories, setSubcategories] = useState<AdminSubcategory[]>([]);
-  const [loading, setLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(
@@ -105,70 +124,10 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
     appliedKey: appliedFilterDraftKey,
     draft: appliedFilterDraft,
   }));
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
   const filterDraft =
     filterDraftState.appliedKey === appliedFilterDraftKey
       ? filterDraftState.draft
       : appliedFilterDraft;
-
-  const loadProducts = useCallback(
-    async (
-      filters: AdminProductAppliedFilters,
-      isCurrent: () => boolean = () => true,
-    ) => {
-      if (!accessToken) {
-        if (isCurrent()) {
-          setLoading(false);
-        }
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetchAdminProducts(accessToken, {
-          page: filters.page,
-          limit: PAGE_LIMIT,
-          search: filters.search,
-          categoryId: filters.categoryId,
-          status: filters.status,
-        });
-
-        if (!isCurrent()) {
-          return;
-        }
-
-        setProducts(response.data);
-        setTotal(response.total);
-        setTotalPages(Math.max(1, Math.ceil(response.total / response.limit)));
-      } catch (loadError) {
-        if (isCurrent()) {
-          setError(getErrorMessage(loadError, "Failed to load products."));
-        }
-      } finally {
-        if (isCurrent()) {
-          setLoading(false);
-        }
-      }
-    },
-    [accessToken],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      await Promise.resolve();
-      await loadProducts(appliedFilters, () => !cancelled);
-    }
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [appliedFilters, loadProducts]);
 
   useEffect(() => {
     const categoryAccessToken = accessToken;
@@ -277,14 +236,14 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
   );
 
   const handleChanged = useCallback(() => {
-    void loadProducts(appliedFilters);
-  }, [appliedFilters, loadProducts]);
+    void mutateProducts();
+  }, [mutateProducts]);
 
   return (
     <>
       {error ? (
         <p className="mb-4 text-sm text-destructive" role="alert">
-          {error}
+          {error instanceof Error ? error.message : "Failed to load products."}
         </p>
       ) : null}
 
@@ -316,7 +275,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
         }}
       />
 
-      {accessToken ? (
+      {accessToken && formOpen ? (
         <ProductForm
           accessToken={accessToken}
           open={formOpen}
