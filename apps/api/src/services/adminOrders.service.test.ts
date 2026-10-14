@@ -147,6 +147,31 @@ describe("Order workflow integrity", () => {
     expect(orderTransitionSchema.safeParse({ status: "shipped", expected_revision: 1 }).success).toBe(true);
   });
 
+  it("requires override_reason for non-adjacent pre-shipment transitions", async () => {
+    vi.spyOn(Order, "findById").mockResolvedValue({
+      _id: new Types.ObjectId(),
+      status: "new",
+      delivery_fee_status: "paid",
+      revision: 1,
+    } as never);
+
+    const admin = { id: new Types.ObjectId().toString(), email: "admin@example.com" };
+
+    await expect(
+      transitionOrder(new Types.ObjectId().toString(), { expected_revision: 1, status: "processing" }, admin),
+    ).rejects.toMatchObject({ statusCode: 409, message: "This transition requires a pre-shipment override reason" });
+
+    const persistenceReached = new Error("Transition reached persistence");
+    vi.spyOn(Order, "findOneAndUpdate").mockRejectedValue(persistenceReached);
+    await expect(
+      transitionOrder(
+        new Types.ObjectId().toString(),
+        { expected_revision: 1, status: "processing", override_reason: "Expedited processing requested" },
+        admin,
+      ),
+    ).rejects.toBe(persistenceReached);
+  });
+
   it("collects the outstanding COD without an action selector", async () => {
     vi.spyOn(Order, "findById").mockResolvedValue({
       financials: { cod_due: 1200, cod_collected: 0 },
