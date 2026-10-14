@@ -90,8 +90,21 @@ function ProductFormFields({
   const [fetchedCategories, setFetchedCategories] = useState<AdminCategory[]>([]);
   const [fetchedSubcategories, setFetchedSubcategories] = useState<AdminSubcategory[]>([]);
 
-  const categories = initialCategories ?? fetchedCategories;
-  const subcategories = initialSubcategories ?? fetchedSubcategories;
+  const hasParentCategories = Boolean(
+    initialCategories && initialCategories.length > 0,
+  );
+  const hasParentSubcategories = Boolean(
+    initialSubcategories && initialSubcategories.length > 0,
+  );
+
+  const categories = hasParentCategories
+    ? initialCategories!
+    : fetchedCategories;
+  const subcategories = hasParentSubcategories
+    ? initialSubcategories!
+    : hasParentCategories && initialSubcategories
+      ? initialSubcategories
+      : fetchedSubcategories;
 
   const [images, setImages] = useState<AdminImageAsset[]>(() =>
     toImageAssets(product?.images ?? []),
