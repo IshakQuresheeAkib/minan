@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/shared/navbar";
 import { ResponsiveBannerImage } from "@/features/home/components/ResponsiveBannerImage";
 import { fallbackHomeBanners } from "@/features/home/data/home-banners";
 import { HERO_ACCESSIBLE_HEADING } from "@/features/home/hero-copy";
@@ -7,7 +6,7 @@ export function HeroFirstSlideShell() {
   const firstBanner = fallbackHomeBanners[0];
 
   if (!firstBanner) {
-    return <Navbar />;
+    return null;
   }
 
   return (
@@ -16,7 +15,6 @@ export function HeroFirstSlideShell() {
       aria-label="Loading homepage promotions"
       className="relative overflow-hidden"
     >
-      <Navbar />
       <div className="relative h-[min(600px,calc(100svh-5rem))] min-h-[540px] w-full overflow-hidden sm:min-h-[600px] lg:h-[90svh] lg:min-h-[640px]">
         <ResponsiveBannerImage
           alt={firstBanner.alt_text}

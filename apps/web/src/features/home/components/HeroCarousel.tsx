@@ -13,7 +13,6 @@ import {
   type PointerEvent,
 } from "react";
 
-import { Navbar } from "@/components/shared/navbar";
 import { ResponsiveBannerImage } from "@/features/home/components/ResponsiveBannerImage";
 import { HERO_ACCESSIBLE_HEADING } from "@/features/home/hero-copy";
 import type { HomeBanner } from "@/features/home/schemas/home-banner.schema";
@@ -234,8 +233,6 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
 
   return (
     <section aria-label="Promotions" className="relative overflow-hidden">
-      <Navbar />
-
       <div
         className="relative h-[min(600px,calc(100svh-5rem))] min-h-[540px] w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing sm:min-h-[600px] lg:h-[90svh] lg:min-h-[640px]"
         onPointerDown={handlePointerDown}

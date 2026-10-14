@@ -1,10 +1,59 @@
 import { getImageProps } from "next/image";
 import Image from "next/image";
+import { preload } from "react-dom";
 
-type ResponsiveBannerImageProps = {
+export type ResponsiveBannerImageSourceProps = {
   alt: string;
   desktopSrc: string;
   mobileSrc: string;
+};
+
+export function getResponsiveBannerImageProps({
+  alt,
+  desktopSrc,
+  mobileSrc,
+}: ResponsiveBannerImageSourceProps) {
+  const desktop = getImageProps({
+    src: desktopSrc,
+    alt,
+    width: 1920,
+    height: 1080,
+    sizes: "100vw",
+  });
+
+  const mobile = getImageProps({
+    src: mobileSrc,
+    alt,
+    fill: true,
+    sizes: "100vw",
+  });
+
+  return { desktop, mobile };
+}
+
+export function preloadResponsiveBannerImage(
+  sources: ResponsiveBannerImageSourceProps,
+) {
+  const { desktop, mobile } = getResponsiveBannerImageProps(sources);
+
+  preload(desktop.props.src, {
+    as: "image",
+    fetchPriority: "high",
+    imageSizes: desktop.props.sizes,
+    imageSrcSet: desktop.props.srcSet,
+    media: "(min-width: 768px)",
+  });
+
+  preload(mobile.props.src, {
+    as: "image",
+    fetchPriority: "high",
+    imageSizes: mobile.props.sizes,
+    imageSrcSet: mobile.props.srcSet,
+    media: "(max-width: 767px)",
+  });
+}
+
+type ResponsiveBannerImageProps = ResponsiveBannerImageSourceProps & {
   eager?: boolean;
 };
 
@@ -14,12 +63,10 @@ export function ResponsiveBannerImage({
   mobileSrc,
   eager = false,
 }: ResponsiveBannerImageProps) {
-  const desktop = getImageProps({
-    src: desktopSrc,
+  const { desktop } = getResponsiveBannerImageProps({
     alt,
-    width: 1920,
-    height: 1080,
-    sizes: "100vw",
+    desktopSrc,
+    mobileSrc,
   });
 
   return (
@@ -42,3 +89,4 @@ export function ResponsiveBannerImage({
     </picture>
   );
 }
+
