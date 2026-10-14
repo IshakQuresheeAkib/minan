@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  ProductsSection,
+  CategoryProductGrid,
   type HomeCategoryProductGroup,
 } from "./ProductsSection";
 
@@ -73,10 +73,10 @@ function createCategoryGroup(): HomeCategoryProductGroup {
   };
 }
 
-describe("ProductsSection category previews", () => {
+describe("CategoryProductGrid category previews", () => {
   it("renders each product preview once across responsive breakpoints", () => {
     const markup = renderToStaticMarkup(
-      <ProductsSection categoryGroups={[createCategoryGroup()]} />,
+      <CategoryProductGrid group={createCategoryGroup()} />,
     );
 
     expect(markup.match(/>product-4<\/article>/g)).toHaveLength(1);
