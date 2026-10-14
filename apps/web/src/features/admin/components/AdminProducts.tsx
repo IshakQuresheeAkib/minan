@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import type { ComponentProps } from "react";
 import dynamic from "next/dynamic";
 
 import { fetchAdminCategories } from "@/features/admin/actions/categories.actions";
@@ -10,8 +11,9 @@ import { fetchAdminSubcategories } from "@/features/admin/actions/subcategories.
 import { type AdminProductStatusFilter } from "@/features/admin/actions/products.actions";
 import { useAdminProducts } from "@/features/admin/hooks/useAdminProducts";
 import { ProductsTable } from "@/features/admin/components/ProductsTable";
+import type { ProductForm as ProductFormType } from "@/features/admin/components/ProductForm";
 
-const ProductForm = dynamic(
+const ProductForm = dynamic<ComponentProps<typeof ProductFormType>>(
   () =>
     import("@/features/admin/components/ProductForm").then(
       (mod) => mod.ProductForm,
@@ -280,7 +282,12 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
           accessToken={accessToken}
           open={formOpen}
           product={editingProduct}
-          onOpenChange={setFormOpen}
+          onOpenChange={(nextOpen) => {
+            setFormOpen(nextOpen);
+            if (!nextOpen) {
+              setEditingProduct(null);
+            }
+          }}
           onSaved={handleChanged}
         />
       ) : null}

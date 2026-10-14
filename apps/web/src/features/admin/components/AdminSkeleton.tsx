@@ -81,15 +81,6 @@ export function AdminTopBarSkeleton({ className }: AdminSkeletonProps) {
 export function AdminDashboardSkeleton({ className }: AdminSkeletonProps) {
   return (
     <div className={cn("space-y-6", className)}>
-      {/* Header Skeleton */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-56 rounded-lg sm:h-8 sm:w-72" />
-          <Skeleton className="h-4 w-40 rounded-md sm:w-80" />
-        </div>
-        <Skeleton className="h-8 w-28 rounded-full" />
-      </div>
-
       {/* 4 Stats Cards Skeleton */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (

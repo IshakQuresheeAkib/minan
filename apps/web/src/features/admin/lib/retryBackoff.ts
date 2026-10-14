@@ -1,3 +1,7 @@
+import { ApiError } from "@/lib/api/client";
+
+export const NON_RETRYABLE_STATUS_CODES = [400, 401, 403, 404] as const;
+
 export const DEFAULT_BACKOFF_DELAYS = [
   30_000, 60_000, 120_000, 300_000,
 ] as const;
@@ -24,9 +28,9 @@ export function calculateBackoffWithJitter(
  * Standard SWR onErrorRetry handler with backoff and visibility/online awareness.
  */
 export function swrRetryWithBackoff(
-  _error: Error,
+  error: Error,
   _key: string,
-  _config: { errorRetryCount?: number },
+  config: { errorRetryCount?: number },
   revalidate: (options: { retryCount: number }) => void,
   options: { retryCount: number },
 ) {
@@ -37,6 +41,21 @@ export function swrRetryWithBackoff(
   ) {
     return;
   }
+
+  if (
+    error instanceof ApiError &&
+    (NON_RETRYABLE_STATUS_CODES as readonly number[]).includes(error.status)
+  ) {
+    return;
+  }
+
+  if (
+    config.errorRetryCount !== undefined &&
+    options.retryCount >= config.errorRetryCount
+  ) {
+    return;
+  }
+
   const delay = calculateBackoffWithJitter(options.retryCount);
   window.setTimeout(
     () => revalidate({ retryCount: options.retryCount + 1 }),

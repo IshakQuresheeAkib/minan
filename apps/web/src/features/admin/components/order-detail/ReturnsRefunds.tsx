@@ -22,6 +22,10 @@ export function ReturnsRefunds({
   const [refundReason, setRefundReason] = useState("");
   const eligible = order.status === "delivered" || order.status === "returned";
 
+  const hasReturnLines = order.lines.some(
+    (line) => (returnQty[line.line_id] ?? 0) > 0,
+  );
+
   return (
     <section className="border-b py-6">
       <h2 className="text-lg font-semibold">Returns and merchandise refunds</h2>
@@ -34,16 +38,19 @@ export function ReturnsRefunds({
             className="space-y-3 rounded-lg border p-4"
             onSubmit={(event) => {
               event.preventDefault();
-              const lines = order.lines.flatMap((line) =>
-                returnQty[line.line_id]
+              const lines = order.lines.flatMap((line) => {
+                const qty = returnQty[line.line_id] ?? 0;
+                const max = line.quantity - line.returned_quantity;
+                return qty > 0
                   ? [
                       {
                         line_id: line.line_id,
-                        quantity: returnQty[line.line_id],
+                        quantity: Math.min(qty, max),
                       },
                     ]
-                  : [],
-              );
+                  : [];
+              });
+              if (lines.length === 0) return;
               void run("returns", "POST", { lines, reason: returnReason });
             }}
           >
@@ -78,7 +85,11 @@ export function ReturnsRefunds({
               onChange={(event) => setReturnReason(event.target.value)}
               required
             />
-            <Button type="submit" variant="secondary">
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={!hasReturnLines || !returnReason.trim()}
+            >
               Record return
             </Button>
           </form>

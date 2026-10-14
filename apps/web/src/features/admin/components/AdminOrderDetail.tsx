@@ -110,7 +110,10 @@ export function AdminOrderDetail({ id }: { id: string }) {
             run={run}
             accessToken={accessToken}
           />
-          <ActivityTimeline order={order} />
+          <ActivityTimeline
+            key={`activity-${order.revision}`}
+            order={order}
+          />
         </main>
         <OrderUtility
           key={`utility-${order.revision}`}
