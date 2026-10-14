@@ -54,14 +54,34 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* ================= GREETING HEADER ================= */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[#1A1715] sm:text-3xl">
-            Welcome back, {adminName}!
-          </h1>
-          <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
-            Here&apos;s an overview of your store performance, orders, and inventory.
-          </p>
+      <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-secondary/15 to-white/90 p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(245,184,54,0.12)]">
+        {/* Soft Ambient Brand Glows */}
+        <div className="pointer-events-none absolute -right-6 -top-6 size-40 rounded-full bg-gradient-to-br from-primary/20 via-secondary/25 to-transparent blur-2xl" />
+        <div className="pointer-events-none absolute right-24 -bottom-8 size-28 rounded-full bg-secondary/20 blur-xl" />
+
+        <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-white/80 px-3 py-1 text-[11px] font-bold text-amber-900 shadow-xs backdrop-blur-xs">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-primary" />
+              </span>
+              <span>MINAN Live Store Operations</span>
+            </div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-[#1A1715] sm:text-3xl">
+              Welcome back, {adminName}!
+            </h1>
+            <p className="mt-1 text-xs text-neutral-600 sm:text-sm">
+              Here&apos;s an overview of your store performance, orders, and inventory.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 sm:self-center">
+            <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur-xs">
+              <span className="size-2 rounded-full bg-emerald-500" />
+              <span>Sylhet Hub Active</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -79,7 +99,7 @@ export function AdminDashboard() {
           change={salesGrowthText}
           isPositive={salesGrowthPositive}
           subtitle={summary?.totalSalesMonth ? "This month" : "All time"}
-          colorVariant="green"
+          colorVariant="primary"
           icon={<Banknote className="size-4" />}
         />
         <StatCard
@@ -95,7 +115,7 @@ export function AdminDashboard() {
           title="Open Orders"
           value={openOrdersCount}
           subtitle="Awaiting fulfillment"
-          colorVariant="orange"
+          colorVariant="secondary"
           icon={<ShoppingBag className="size-4" />}
         />
         <StatCard

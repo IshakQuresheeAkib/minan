@@ -88,7 +88,7 @@ export function AdminTopBar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search catalog products..."
-            className="w-full rounded-full border border-[#DFD6C8] bg-white/80 py-2 pl-10 pr-4 text-xs font-medium text-neutral-800 placeholder:text-neutral-400 shadow-xs transition-all focus:border-[#C4B5A0] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C4B5A0]/20"
+            className="w-full rounded-full border border-[#DFD6C8] bg-white/80 py-2 pl-10 pr-4 text-xs font-medium text-neutral-800 placeholder:text-neutral-400 shadow-xs transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </form>
       </div>
@@ -97,8 +97,8 @@ export function AdminTopBar({
       <div className="flex items-center gap-3">
         {/* Live Clock Badge */}
         {currentTime ? (
-          <div className="hidden items-center gap-1.5 rounded-full border border-[#E0D7C9] bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-700 shadow-xs sm:flex">
-            <Clock className="size-3.5 text-neutral-400" />
+          <div className="hidden items-center gap-1.5 rounded-full border border-primary/25 bg-white/80 px-3 py-1.5 text-xs font-semibold text-neutral-800 shadow-xs sm:flex">
+            <Clock className="size-3.5 text-primary" />
             <span>{currentTime}</span>
           </div>
         ) : null}
@@ -119,7 +119,7 @@ export function AdminTopBar({
 
         {/* Admin Avatar & Profile */}
         <div className="group relative flex items-center gap-2">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-[#EAE2D5] font-display text-xs font-bold text-[#4A3E31] shadow-sm">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-secondary via-primary to-primary font-display text-xs font-bold text-amber-950 shadow-sm">
             A
           </div>
 

@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { StatCardOrganic } from "@/features/admin/components/StatCardOrganic";
 
 describe("StatCardOrganic component", () => {
+  afterEach(() => {
+    cleanup();
+  });
   it("renders with green color variant and change indicator", () => {
     const { container } = render(
       <StatCardOrganic
@@ -90,5 +93,37 @@ describe("StatCardOrganic component", () => {
     const card = container.firstElementChild as HTMLElement;
     fireEvent.click(card);
     expect(onActionClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders with primary brand color variant", () => {
+    const { container } = render(
+      <StatCardOrganic
+        title="Brand Sales"
+        value="৳300,000"
+        colorVariant="primary"
+      />,
+    );
+
+    expect(screen.getByText("Brand Sales")).toBeDefined();
+    expect(screen.getByText("৳300,000")).toBeDefined();
+
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.style.background).toContain("rgba(245, 184, 54");
+  });
+
+  it("renders with secondary brand color variant", () => {
+    const { container } = render(
+      <StatCardOrganic
+        title="Brand Orders"
+        value="42"
+        colorVariant="secondary"
+      />,
+    );
+
+    expect(screen.getByText("Brand Orders")).toBeDefined();
+    expect(screen.getByText("42")).toBeDefined();
+
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.style.background).toContain("rgba(254, 214, 91");
   });
 });

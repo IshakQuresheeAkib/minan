@@ -4,7 +4,14 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type CardColorVariant = "green" | "blue" | "orange" | "red";
+export type CardColorVariant =
+  | "primary"
+  | "secondary"
+  | "gold"
+  | "green"
+  | "blue"
+  | "orange"
+  | "red";
 
 export type StatCardProps = {
   title: string;
@@ -26,7 +33,7 @@ const SHAPE_TO_COLOR: Record<1 | 2 | 3 | 4, CardColorVariant> = {
   4: "red",
 };
 
-// Rich color schemes tailored for MINAN light theme
+// Rich color schemes tailored for MINAN light theme with signature #f5b836 and #fed65b branding
 const COLOR_CONFIG: Record<
   CardColorVariant,
   {
@@ -38,6 +45,36 @@ const COLOR_CONFIG: Record<
     glowShadow: string;
   }
 > = {
+  primary: {
+    colorClass: "primary",
+    accentColor: "#9A6900",
+    accentLight: "rgba(245, 184, 54, 0.16)",
+    radialGradient:
+      "radial-gradient(ellipse at right top, rgba(245, 184, 54, 0.22) 0%, rgba(254, 214, 91, 0.12) 40%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
+    borderGradient:
+      "linear-gradient(135deg, rgba(245, 184, 54, 0.8) 0%, rgba(254, 214, 91, 0.5) 45%, rgba(232, 225, 213, 0.45) 100%)",
+    glowShadow: "rgba(245, 184, 54, 0.35)",
+  },
+  secondary: {
+    colorClass: "secondary",
+    accentColor: "#8C5E00",
+    accentLight: "rgba(254, 214, 91, 0.22)",
+    radialGradient:
+      "radial-gradient(ellipse at right top, rgba(254, 214, 91, 0.25) 0%, rgba(245, 184, 54, 0.10) 45%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
+    borderGradient:
+      "linear-gradient(135deg, rgba(254, 214, 91, 0.85) 0%, rgba(245, 184, 54, 0.45) 50%, rgba(232, 225, 213, 0.45) 100%)",
+    glowShadow: "rgba(254, 214, 91, 0.35)",
+  },
+  gold: {
+    colorClass: "gold",
+    accentColor: "#9A6900",
+    accentLight: "rgba(245, 184, 54, 0.16)",
+    radialGradient:
+      "radial-gradient(ellipse at right top, rgba(245, 184, 54, 0.22) 0%, rgba(254, 214, 91, 0.12) 40%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
+    borderGradient:
+      "linear-gradient(135deg, rgba(245, 184, 54, 0.8) 0%, rgba(254, 214, 91, 0.5) 45%, rgba(232, 225, 213, 0.45) 100%)",
+    glowShadow: "rgba(245, 184, 54, 0.35)",
+  },
   green: {
     colorClass: "green",
     accentColor: "#0d9488",
@@ -151,7 +188,13 @@ export function StatCardOrganic({
         </p>
         {icon ? (
           <div
-            className="flex size-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105"
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105",
+              (resolvedColor === "primary" ||
+                resolvedColor === "secondary" ||
+                resolvedColor === "gold") &&
+                "border border-primary/30 shadow-[0_2px_8px_-2px_rgba(245,184,54,0.25)]",
+            )}
             style={{
               backgroundColor: cfg.accentLight,
               color: cfg.accentColor,

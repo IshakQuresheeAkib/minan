@@ -121,7 +121,7 @@ export function OrderOverviewChart({
             <h2 className="font-display text-lg sm:text-xl font-bold tracking-tight text-[#1A1715]">
               Order Overview
             </h2>
-            <div className="flex size-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">
+            <div className="flex size-7 items-center justify-center rounded-lg border border-primary/30 bg-gradient-to-br from-primary/20 via-secondary/30 to-primary/10 text-amber-900 shadow-xs">
               <TrendingUp className="size-3.5 stroke-[2.2]" />
             </div>
           </div>
@@ -138,7 +138,7 @@ export function OrderOverviewChart({
           >
             <SelectTrigger
               size="sm"
-              className="w-[125px] rounded-full border-[#E4DDD1] bg-[#FAF8F5] text-xs font-semibold text-neutral-700 hover:bg-[#F3EDE3]"
+              className="w-[125px] rounded-full border-[#E4DDD1] bg-[#FAF8F5] text-xs font-semibold text-neutral-700 transition-colors hover:border-primary/40 hover:bg-secondary/15 hover:text-amber-900 focus:ring-2 focus:ring-primary/20"
             >
               <SelectValue />
             </SelectTrigger>
@@ -162,19 +162,19 @@ export function OrderOverviewChart({
             }}
           >
             <div className="flex flex-col items-center">
-              <div className="rounded-xl bg-[#1C1917] px-3 py-1.5 text-center shadow-xl border border-neutral-700">
+              <div className="rounded-xl border border-primary/40 bg-[#1C1917] px-3.5 py-2 text-center shadow-[0_8px_24px_-4px_rgba(245,184,54,0.3)]">
                 <span className="block text-[10px] font-medium text-neutral-300">
                   {activePoint.date}
                 </span>
                 <span className="block font-sans text-xs font-bold text-white">
                   ৳{activePoint.sales.toLocaleString("en-BD")}
                 </span>
-                <span className="block text-[10px] font-medium text-emerald-400">
+                <span className="block text-[10px] font-bold text-[#fed65b]">
                   {activePoint.orders} order{activePoint.orders === 1 ? "" : "s"}
                 </span>
               </div>
               {/* Tooltip caret */}
-              <div className="size-2 -translate-y-1 rotate-45 bg-[#1C1917]" />
+              <div className="size-2 -translate-y-1 rotate-45 border-r border-b border-primary/40 bg-[#1C1917]" />
             </div>
           </div>
         ) : null}
@@ -186,12 +186,12 @@ export function OrderOverviewChart({
         >
           <defs>
             <linearGradient id="orderAreaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#D9C9B4" stopOpacity="0.45" />
-              <stop offset="60%" stopColor="#ECE3D6" stopOpacity="0.15" />
+              <stop offset="0%" stopColor="#f5b836" stopOpacity="0.38" />
+              <stop offset="45%" stopColor="#fed65b" stopOpacity="0.16" />
               <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.0" />
             </linearGradient>
             <filter id="lineShadow" x="-10%" y="-10%" width="120%" height="130%">
-              <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#1C1917" floodOpacity="0.12" />
+              <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#f5b836" floodOpacity="0.25" />
             </filter>
           </defs>
 
@@ -250,7 +250,7 @@ export function OrderOverviewChart({
                 height={chartHeight}
                 fill="transparent"
               />
-              {/* Highlight dot */}
+              {/* Highlight dot with signature brand aura */}
               {i === activeIndex ? (
                 <g>
                   <line
@@ -258,13 +258,14 @@ export function OrderOverviewChart({
                     y1={paddingTop}
                     x2={pt.x}
                     y2={paddingTop + chartHeight}
-                    stroke="#1C1917"
-                    strokeWidth="1"
+                    stroke="#f5b836"
+                    strokeWidth="1.5"
                     strokeDasharray="3 3"
-                    opacity="0.3"
+                    opacity="0.6"
                   />
-                  <circle cx={pt.x} cy={pt.y} r="6" fill="#FAF8F5" stroke="#1C1917" strokeWidth="2.5" />
-                  <circle cx={pt.x} cy={pt.y} r="2.5" fill="#1C1917" />
+                  <circle cx={pt.x} cy={pt.y} r="10" fill="#fed65b" opacity="0.35" />
+                  <circle cx={pt.x} cy={pt.y} r="5.5" fill="#FAF8F5" stroke="#f5b836" strokeWidth="2.5" />
+                  <circle cx={pt.x} cy={pt.y} r="2.5" fill="#f5b836" />
                 </g>
               ) : null}
             </g>

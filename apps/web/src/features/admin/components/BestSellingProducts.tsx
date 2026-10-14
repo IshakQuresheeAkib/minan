@@ -61,13 +61,13 @@ function MiniSparkline({ data }: { data: number[] }) {
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
-      className="overflow-visible stroke-emerald-500"
+      className="overflow-visible"
       aria-hidden="true"
     >
       <defs>
         <linearGradient id="sparkGradient" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#059669" stopOpacity="1" />
+          <stop offset="0%" stopColor="#fed65b" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#f5b836" stopOpacity="1" />
         </linearGradient>
       </defs>
       <polyline
@@ -82,8 +82,8 @@ function MiniSparkline({ data }: { data: number[] }) {
       <circle
         cx={width}
         cy={height - ((lastVal - min) / range) * (height - 4) - 2}
-        r="2"
-        className="fill-emerald-600"
+        r="2.5"
+        className="fill-primary"
       />
     </svg>
   );
@@ -104,7 +104,7 @@ export function BestSellingProducts({
           </h2>
           <Badge
             variant="secondary"
-            className="border-none bg-[#FAF5EE] text-[10px] font-semibold text-[#8C7A6B]"
+            className="border border-primary/25 bg-gradient-to-r from-primary/15 to-secondary/25 text-[10px] font-bold text-amber-900"
           >
             Real-time
           </Badge>
@@ -113,7 +113,7 @@ export function BestSellingProducts({
           variant="secondary"
           size="sm"
           asChild
-          className="h-8 rounded-full border-[#E4DDD1] bg-transparent text-xs font-semibold text-neutral-600 shadow-none hover:bg-[#FAF7F2] hover:text-neutral-900"
+          className="h-8 rounded-full border-[#E4DDD1] bg-transparent text-xs font-semibold text-neutral-600 shadow-none transition-colors hover:border-primary/40 hover:bg-secondary/15 hover:text-amber-900"
         >
           <Link href={adminRoutes.products}>
             <span>All Products</span>
@@ -134,7 +134,7 @@ export function BestSellingProducts({
               <Link
                 key={product.id}
                 href={`${adminRoutes.products}?search=${encodeURIComponent(product.name)}`}
-                className="group/item flex flex-col overflow-hidden rounded-xl border border-[#EFE8DC]/80 bg-[#FAF8F5]/60 p-2.5 transition-all duration-300 hover:border-[#E0D7C9] hover:bg-[#FAF8F5] hover:shadow-xs"
+                className="group/item flex flex-col overflow-hidden rounded-xl border border-[#EFE8DC]/80 bg-white/70 p-2.5 transition-all duration-300 hover:border-primary/40 hover:bg-gradient-to-b hover:from-white hover:to-secondary/10 hover:shadow-[0_8px_20px_-6px_rgba(245,184,54,0.15)]"
               >
                 {/* Image Container with graceful fallback */}
                 <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-[#EBE5DB]">
@@ -174,7 +174,9 @@ export function BestSellingProducts({
         </div>
       ) : (
         <div className="mt-5 flex min-h-[140px] flex-col items-center justify-center rounded-xl border border-dashed border-[#E8E1D5] bg-[#FAF8F5] p-6 text-center">
-          <Sparkles className="size-6 text-neutral-400" />
+          <div className="flex size-12 items-center justify-center rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/15 to-secondary/25 text-amber-800 shadow-xs">
+            <Sparkles className="size-6 stroke-[1.8]" />
+          </div>
           <p className="mt-2 text-xs font-semibold text-neutral-700">No sales recorded yet</p>
           <p className="mt-1 text-[11px] text-neutral-400">
             Top-selling items will automatically appear here once orders are confirmed.
