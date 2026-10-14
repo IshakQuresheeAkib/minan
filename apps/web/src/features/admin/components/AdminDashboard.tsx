@@ -14,7 +14,6 @@ export function AdminDashboard() {
   const { metrics, loading, error } = useDashboard();
 
   const summary = metrics.summary;
-  const adminName = metrics.adminProfile?.displayName || "Admin";
 
   // Total Sales calculation & formatting
   const totalSalesAmount = summary
@@ -53,18 +52,6 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* ================= GREETING HEADER ================= */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[#1A1715] sm:text-3xl">
-            Welcome back, {adminName}!
-          </h1>
-          <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
-            Here&apos;s an overview of your store performance, orders, and inventory.
-          </p>
-        </div>
-      </div>
-
       {error ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-xs font-medium text-rose-700" role="alert">
           {error}
@@ -79,7 +66,7 @@ export function AdminDashboard() {
           change={salesGrowthText}
           isPositive={salesGrowthPositive}
           subtitle={summary?.totalSalesMonth ? "This month" : "All time"}
-          colorVariant="green"
+          colorVariant="red"
           icon={<Banknote className="size-4" />}
         />
         <StatCard
@@ -95,7 +82,7 @@ export function AdminDashboard() {
           title="Open Orders"
           value={openOrdersCount}
           subtitle="Awaiting fulfillment"
-          colorVariant="orange"
+          colorVariant="purple"
           icon={<ShoppingBag className="size-4" />}
         />
         <StatCard
@@ -104,7 +91,7 @@ export function AdminDashboard() {
           change={conversionGrowthText}
           isPositive={conversionGrowthPositive}
           subtitle="Storefront visits"
-          colorVariant="red"
+          colorVariant="green"
           icon={<TrendingUp className="size-4" />}
         />
       </div>

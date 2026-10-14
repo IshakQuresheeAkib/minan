@@ -81,15 +81,6 @@ export function AdminTopBarSkeleton({ className }: AdminSkeletonProps) {
 export function AdminDashboardSkeleton({ className }: AdminSkeletonProps) {
   return (
     <div className={cn("space-y-6", className)}>
-      {/* Header Skeleton */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-56 rounded-lg sm:h-8 sm:w-72" />
-          <Skeleton className="h-4 w-40 rounded-md sm:w-80" />
-        </div>
-        <Skeleton className="h-8 w-28 rounded-full" />
-      </div>
-
       {/* 4 Stats Cards Skeleton */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -141,4 +132,42 @@ export function AdminShellSkeleton({ children, className }: AdminShellSkeletonPr
   );
 }
 
+export function AdminOrdersSkeleton({ className }: AdminSkeletonProps) {
+  return (
+    <section className={cn("space-y-5", className)}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-36 rounded-lg" />
+          <Skeleton className="h-4 w-72 rounded-md" />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Skeleton className="h-10 w-full max-w-sm rounded-md" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-24 rounded-md" />
+          <Skeleton className="h-9 w-28 rounded-md" />
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-lg border bg-background">
+        <div className="border-b p-4">
+          <Skeleton className="h-5 w-full rounded" />
+        </div>
+        <div className="divide-y p-2 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between py-2 px-2">
+              <Skeleton className="h-5 w-28 rounded" />
+              <Skeleton className="h-5 w-36 rounded" />
+              <Skeleton className="h-5 w-20 rounded" />
+              <Skeleton className="h-5 w-16 rounded" />
+              <Skeleton className="h-5 w-20 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export const OrdersSkeleton = AdminOrdersSkeleton;
 export const AdminSkeleton = AdminShellSkeleton;
+

@@ -37,6 +37,12 @@ function RetentionRing({
         viewBox={`0 0 ${size} ${size}`}
         className="-rotate-90"
       >
+        <defs>
+          <linearGradient id="retentionGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#f5b836" />
+            <stop offset="100%" stopColor="#fed65b" />
+          </linearGradient>
+        </defs>
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -49,7 +55,8 @@ function RetentionRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          className="stroke-[#1C1917] transition-all duration-700 ease-out"
+          stroke="url(#retentionGradient)"
+          className="transition-all duration-700 ease-out"
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -57,7 +64,7 @@ function RetentionRing({
           fill="none"
         />
       </svg>
-      <span className="absolute font-sans text-[11px] font-bold text-[#1C1917]">
+      <span className="absolute font-sans text-[11px] font-bold text-amber-950">
         {percentage}%
       </span>
     </div>
@@ -90,7 +97,7 @@ export function CustomerInsights({
           <h2 className="font-display text-lg font-bold tracking-tight text-[#1A1715] sm:text-xl">
             Customer Insights
           </h2>
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#FAF5EE] text-[#8C7A6B]">
+          <div className="flex size-7 items-center justify-center rounded-lg border border-primary/30 bg-gradient-to-br from-primary/20 via-secondary/30 to-primary/10 text-amber-900 shadow-sm">
             <Users className="size-3.5" />
           </div>
         </div>
@@ -134,7 +141,7 @@ export function CustomerInsights({
               <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Delivery Regions
               </h3>
-              <MapPin className="size-3.5 text-[#8C7A6B]" />
+              <MapPin className="size-3.5 text-primary" />
             </div>
 
             <ul className="mt-2.5 space-y-2 text-xs">
@@ -146,9 +153,9 @@ export function CustomerInsights({
                     <li key={loc.city} className="space-y-1">
                       <div className="flex items-center justify-between gap-1.5 font-medium text-neutral-700">
                         <span className="flex items-center gap-1.5 min-w-0 truncate">
-                          <span className="size-1.5 shrink-0 rounded-full bg-[#8C7A6B]" />
+                          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
                           <span className="truncate" title={loc.city}>
-                            {displayName}
+                             {displayName}
                           </span>
                         </span>
                         <span className="shrink-0 text-[11px] font-bold text-neutral-900">
@@ -157,7 +164,7 @@ export function CustomerInsights({
                       </div>
                       <div className="h-1 w-full overflow-hidden rounded-full bg-[#EFE9E0]">
                         <div
-                          className="h-full rounded-full bg-[#8C7A6B] transition-all duration-700 ease-out"
+                          className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-700 ease-out"
                           style={{ width: `${Math.min(shareValue, 100)}%` }}
                         />
                       </div>
@@ -172,7 +179,9 @@ export function CustomerInsights({
 
           <div className="mt-3 flex items-center justify-between border-t border-[#EFE8DC]/80 pt-2.5 text-[11px] text-neutral-500">
             <span>Primary Hub</span>
-            <span className="font-semibold text-neutral-700">Sylhet, BD</span>
+            <span className="inline-flex items-center rounded-md border border-primary/30 bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+              Sylhet, BD
+            </span>
           </div>
         </div>
       </div>
@@ -199,7 +208,7 @@ export function CustomerInsights({
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFE9E0]">
                   <div
-                    className="h-full rounded-full bg-[#1C1917] transition-all duration-700 ease-out"
+                    className="h-full rounded-full bg-gradient-to-r from-primary via-secondary to-primary/80 transition-all duration-700 ease-out"
                     style={{ width: `${Math.min(item.percentage, 100)}%` }}
                   />
                 </div>

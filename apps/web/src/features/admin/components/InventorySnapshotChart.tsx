@@ -90,7 +90,7 @@ export function InventorySnapshotChart({
             <h2 className="font-display text-lg font-bold tracking-tight text-[#1A1715] sm:text-xl">
               Inventory Snapshot
             </h2>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-[#FAF5EE] text-[#8C7A6B]">
+            <div className="flex size-7 items-center justify-center rounded-lg border border-primary/30 bg-gradient-to-br from-primary/20 via-secondary/30 to-primary/10 text-amber-900 shadow-sm">
               <Layers className="size-3.5" />
             </div>
           </div>
@@ -127,9 +127,13 @@ export function InventorySnapshotChart({
             >
               <defs>
                 <linearGradient id="goldCurve" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#C99757" />
-                  <stop offset="50%" stopColor="#E5A642" />
-                  <stop offset="100%" stopColor="#B38038" />
+                  <stop offset="0%" stopColor="#f5b836" />
+                  <stop offset="50%" stopColor="#fed65b" />
+                  <stop offset="100%" stopColor="#f5b836" />
+                </linearGradient>
+                <linearGradient id="peakBarGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f5b836" />
+                  <stop offset="100%" stopColor="#fed65b" />
                 </linearGradient>
               </defs>
 
@@ -148,7 +152,7 @@ export function InventorySnapshotChart({
                       height={barH}
                       rx={barRadius}
                       ry={barRadius}
-                      fill={bar.highlight ? "#1C1917" : "#ECE4D6"}
+                      fill={bar.highlight ? "url(#peakBarGrad)" : "#ECE4D6"}
                       className="transition-all duration-500 hover:opacity-80"
                     >
                       <title>{`${bar.name}: ${bar.count} items`}</title>
@@ -171,14 +175,23 @@ export function InventorySnapshotChart({
 
               {/* Anchor node on peak bar */}
               {peakPoint ? (
-                <circle
-                  cx={peakPoint.x}
-                  cy={peakPoint.y}
-                  r="4"
-                  fill="#FAF8F5"
-                  stroke="#1C1917"
-                  strokeWidth="2"
-                />
+                <g>
+                  <circle
+                    cx={peakPoint.x}
+                    cy={peakPoint.y}
+                    r="8"
+                    fill="#fed65b"
+                    opacity="0.35"
+                  />
+                  <circle
+                    cx={peakPoint.x}
+                    cy={peakPoint.y}
+                    r="4"
+                    fill="#FAF8F5"
+                    stroke="#f5b836"
+                    strokeWidth="2.5"
+                  />
+                </g>
               ) : null}
             </svg>
 
@@ -188,9 +201,9 @@ export function InventorySnapshotChart({
                 {topCategories.map((cat) => (
                   <span
                     key={cat.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#E8E1D5]/70 bg-[#FAF7F2]/80 px-2.5 py-1 text-[11px] font-medium text-neutral-600 transition-colors hover:border-[#DACFBF] hover:bg-[#FAF5EE]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-gradient-to-r from-primary/10 to-secondary/15 px-2.5 py-1 text-[11px] font-medium text-neutral-800 transition-colors hover:border-primary/40 hover:bg-secondary/25"
                   >
-                    <span className="size-1.5 shrink-0 rounded-full bg-[#8C7A6B]" />
+                    <span className="size-1.5 shrink-0 rounded-full bg-primary" />
                     <span className="max-w-[85px] truncate sm:max-w-[110px]" title={cat.name}>
                       {cat.name}
                     </span>
@@ -216,7 +229,7 @@ export function InventorySnapshotChart({
           variant="secondary"
           size="sm"
           asChild
-          className="h-8 cursor-pointer rounded-full border-[#E4DDD1] bg-transparent text-xs font-semibold text-neutral-700 shadow-none hover:bg-[#FAF7F2] hover:text-neutral-900"
+          className="h-8 cursor-pointer rounded-full border-[#E4DDD1] bg-transparent text-xs font-semibold text-neutral-700 shadow-none hover:border-primary/40 hover:bg-secondary/15 hover:text-amber-900"
         >
           <Link href={adminRoutes.products}>
             Manage Catalog

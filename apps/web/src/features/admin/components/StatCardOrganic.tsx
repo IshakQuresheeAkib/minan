@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type CardColorVariant = "green" | "blue" | "orange" | "red";
+export type CardColorVariant = "red" | "blue" | "purple" | "green";
 
 export type StatCardProps = {
   title: string;
@@ -16,17 +16,19 @@ export type StatCardProps = {
   colorVariant?: CardColorVariant;
   className?: string;
   icon?: ReactNode;
+  iconBgColor?: string;
+  iconColor?: string;
   onActionClick?: () => void;
 };
 
 const SHAPE_TO_COLOR: Record<1 | 2 | 3 | 4, CardColorVariant> = {
-  1: "green",
+  1: "red",
   2: "blue",
-  3: "orange",
-  4: "red",
+  3: "purple",
+  4: "green",
 };
 
-// Rich color schemes tailored for MINAN light theme
+// Rich color schemes tailored for MINAN admin dashboard metrics
 const COLOR_CONFIG: Record<
   CardColorVariant,
   {
@@ -38,15 +40,15 @@ const COLOR_CONFIG: Record<
     glowShadow: string;
   }
 > = {
-  green: {
-    colorClass: "green",
-    accentColor: "#0d9488",
-    accentLight: "rgba(16, 118, 103, 0.08)",
+  red: {
+    colorClass: "red",
+    accentColor: "#dc2626",
+    accentLight: "rgba(220, 38, 38, 0.14)",
     radialGradient:
-      "radial-gradient(ellipse at right top, rgba(16, 118, 103, 0.12) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
+      "radial-gradient(ellipse at right top, rgba(166, 61, 42, 0.12) 0%, rgba(220, 38, 38, 0.08) 35%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
     borderGradient:
-      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(16, 118, 103, 0.35) 100%)",
-    glowShadow: "rgba(16, 118, 103, 0.16)",
+      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(220, 38, 38, 0.35) 100%)",
+    glowShadow: "rgba(220, 38, 38, 0.20)",
   },
   blue: {
     colorClass: "blue",
@@ -58,25 +60,25 @@ const COLOR_CONFIG: Record<
       "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(0, 69, 143, 0.35) 100%)",
     glowShadow: "rgba(0, 69, 143, 0.16)",
   },
-  orange: {
-    colorClass: "orange",
-    accentColor: "#d97706",
-    accentLight: "rgba(255, 183, 65, 0.12)",
+  purple: {
+    colorClass: "purple",
+    accentColor: "#7c3aed",
+    accentLight: "rgba(124, 58, 237, 0.14)",
     radialGradient:
-      "radial-gradient(ellipse at right top, rgba(255, 183, 65, 0.14) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
+      "radial-gradient(ellipse at right top, rgba(124, 58, 237, 0.14) 0%, rgba(139, 92, 246, 0.06) 40%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
     borderGradient:
-      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(255, 183, 65, 0.45) 100%)",
-    glowShadow: "rgba(217, 119, 6, 0.16)",
+      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(124, 58, 237, 0.35) 100%)",
+    glowShadow: "rgba(124, 58, 237, 0.20)",
   },
-  red: {
-    colorClass: "red",
-    accentColor: "#a63d2a",
-    accentLight: "rgba(166, 61, 42, 0.08)",
+  green: {
+    colorClass: "green",
+    accentColor: "#0d9488",
+    accentLight: "rgba(16, 118, 103, 0.14)",
     radialGradient:
-      "radial-gradient(ellipse at right top, rgba(166, 61, 42, 0.10) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
+      "radial-gradient(ellipse at right top, rgba(16, 118, 103, 0.12) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
     borderGradient:
-      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(166, 61, 42, 0.35) 100%)",
-    glowShadow: "rgba(166, 61, 42, 0.16)",
+      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(16, 118, 103, 0.35) 100%)",
+    glowShadow: "rgba(16, 118, 103, 0.20)",
   },
 };
 
@@ -90,6 +92,8 @@ export function StatCardOrganic({
   colorVariant,
   className,
   icon,
+  iconBgColor,
+  iconColor,
   onActionClick,
 }: StatCardProps) {
   // Resolve active color variant (explicit prop or mapped from shapeVariant 1..4)
@@ -151,10 +155,20 @@ export function StatCardOrganic({
         </p>
         {icon ? (
           <div
-            className="flex size-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105"
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105",
+              resolvedColor === "red" &&
+                "border border-rose-300/40 shadow-[0_2px_8px_-2px_rgba(220,38,38,0.20)]",
+              resolvedColor === "blue" &&
+                "border border-sky-300/40 shadow-[0_2px_8px_-2px_rgba(2,132,199,0.18)]",
+              resolvedColor === "purple" &&
+                "border border-purple-300/40 shadow-[0_2px_8px_-2px_rgba(124,58,237,0.20)]",
+              resolvedColor === "green" &&
+                "border border-emerald-300/40 shadow-[0_2px_8px_-2px_rgba(16,118,103,0.18)]",
+            )}
             style={{
-              backgroundColor: cfg.accentLight,
-              color: cfg.accentColor,
+              backgroundColor: iconBgColor ?? cfg.accentLight,
+              color: iconColor ?? cfg.accentColor,
             }}
           >
             {icon}
@@ -163,7 +177,7 @@ export function StatCardOrganic({
           <div
             className="size-2 rounded-full transition-transform duration-300 group-hover:scale-125"
             style={{
-              backgroundColor: cfg.accentColor,
+              backgroundColor: iconColor ?? cfg.accentColor,
               boxShadow: `0 0 6px ${cfg.glowShadow}`,
             }}
           />

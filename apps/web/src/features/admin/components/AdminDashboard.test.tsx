@@ -98,10 +98,9 @@ vi.mock("@/features/admin/hooks/useDashboard", () => ({
 }));
 
 describe("AdminDashboard", () => {
-  it("renders the real admin greeting and key metrics", () => {
+  it("renders key metrics and dashboard sections", () => {
     render(<AdminDashboard />);
 
-    expect(screen.getByText("Welcome back, Akib!")).toBeDefined();
     expect(screen.getByText("৳48,500")).toBeDefined();
     expect(screen.getByText("+18.5%")).toBeDefined();
     expect(screen.getByText("3.8%")).toBeDefined();

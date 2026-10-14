@@ -27,7 +27,7 @@ vi.mock("@/components/shared/NavPill", () => ({
   NavPill: () => <nav aria-label="Main navigation" />,
 }));
 
-vi.mock("@/features/home/components/SearchBar", () => ({
+vi.mock("@/components/shared/SearchBar", () => ({
   SearchBar: () => <div role="search" />,
 }));
 

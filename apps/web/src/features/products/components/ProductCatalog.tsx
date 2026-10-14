@@ -31,7 +31,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { SearchBar } from "@/features/home/components/SearchBar";
+import { SearchBar } from "@/components/shared/SearchBar";
 import { ProductGrid } from "@/features/products/components/ProductGrid";
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { productColorSwatches } from "@/features/products/constants/product-colors";

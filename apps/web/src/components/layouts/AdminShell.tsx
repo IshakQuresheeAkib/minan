@@ -122,14 +122,14 @@ export function AdminShell({ children }: AdminShellProps) {
                 className={cn(
                   "relative flex flex-col items-center justify-center w-full py-2.5 px-2 rounded-2xl transition-all duration-300",
                   isActive
-                    ? "bg-white/95 text-[#1C1917] shadow-[0_4px_16px_-2px_rgba(40,30,20,0.06)] border border-[#E4DBD0]"
+                    ? "bg-white/95 text-[#1C1917] shadow-[0_4px_16px_-2px_rgba(245,184,54,0.12)] border border-[#E4DBD0]"
                     : "text-neutral-500 hover:bg-white/50 hover:text-neutral-900",
                 )}
               >
                 {/* Active Tab Inverted Curved Corner Fillets & Sculpted Notch */}
                 {isActive ? (
                   <>
-                    <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-[#1C1917]" />
+                    <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(245,184,54,0.8)]" />
                     {/* Top concave fillet */}
                     <div className="pointer-events-none absolute -top-2.5 right-1 size-2.5 overflow-hidden">
                       <svg viewBox="0 0 10 10" className="size-full fill-white/95">
@@ -253,7 +253,7 @@ export function AdminShell({ children }: AdminShellProps) {
                       className={cn(
                         "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all",
                         isActive
-                          ? "bg-white font-bold text-[#1C1917] shadow-xs"
+                          ? "border border-primary/30 bg-white font-bold text-[#1C1917] shadow-xs"
                           : "text-neutral-600 hover:bg-white/60",
                       )}
                     >

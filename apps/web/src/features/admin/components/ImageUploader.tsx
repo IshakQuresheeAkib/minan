@@ -48,6 +48,7 @@ export function ImageUploader({
   const inputId = useId();
   const mountedRef = useRef(true);
   const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const usesProductRoles = multiple && showProductRoles;
 
   useEffect(() => {
@@ -61,6 +62,30 @@ export function ImageUploader({
   function updateUploading(nextUploading: boolean) {
     setUploading(nextUploading);
     onUploadStateChange?.(nextUploading);
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!uploading && !isDragging) {
+      setIsDragging(true);
+    }
+  }
+
+  function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    if (uploading) return;
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      void handleFiles(event.dataTransfer.files);
+    }
   }
 
   async function handleFiles(fileList: FileList | null) {
@@ -186,7 +211,19 @@ export function ImageUploader({
   }
 
   const uploadButton = (
-    <div>
+    <div
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={cn(
+        "relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-4 text-center transition-colors",
+        isDragging
+          ? "border-primary bg-primary/5"
+          : "border-border/60 hover:border-primary/40",
+        uploading ? "pointer-events-none opacity-50" : "",
+      )}
+    >
       <input
         id={inputId}
         ref={inputRef}
@@ -215,6 +252,11 @@ export function ImageUploader({
             ? "Upload images"
             : "Upload image"}
       </label>
+      <p className="text-xs text-foreground/50">
+        {multiple
+          ? "or drag and drop images here"
+          : "or drag and drop an image here"}
+      </p>
     </div>
   );
 

@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { fetchOrderChanges } from "@/features/admin/actions/orders.actions";
+import { calculateBackoffWithJitter } from "@/features/admin/lib/retryBackoff";
 import { useAuthStore } from "@/store/auth.store";
 import { useOrdersNotificationsStore } from "@/store/orders-notifications.store";
 
@@ -93,8 +94,13 @@ export function OrdersNotificationProvider({ children }: { children: ReactNode }
       } catch {
         failures += 1;
       } finally {
-        const backoff = [POLL_MS, 60_000, 120_000, 300_000][Math.min(failures, 3)]!;
-        timeoutId = window.setTimeout(() => void poll(), backoff + Math.floor(Math.random() * 5_000));
+        const delay = calculateBackoffWithJitter(failures, [
+          POLL_MS,
+          60_000,
+          120_000,
+          300_000,
+        ]);
+        timeoutId = window.setTimeout(() => void poll(), delay);
       }
     }
 

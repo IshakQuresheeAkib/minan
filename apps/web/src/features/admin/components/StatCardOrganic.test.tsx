@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { StatCardOrganic } from "@/features/admin/components/StatCardOrganic";
 
 describe("StatCardOrganic component", () => {
+  afterEach(() => {
+    cleanup();
+  });
   it("renders with green color variant and change indicator", () => {
     const { container } = render(
       <StatCardOrganic
@@ -42,7 +45,7 @@ describe("StatCardOrganic component", () => {
     expect(card.style.background).toContain("rgba(0, 69, 143");
   });
 
-  it("renders with orange color variant from shapeVariant 3", () => {
+  it("renders with purple color variant from shapeVariant 3", () => {
     const { container } = render(
       <StatCardOrganic
         title="Open Orders"
@@ -55,10 +58,10 @@ describe("StatCardOrganic component", () => {
     expect(screen.getByText("15")).toBeDefined();
 
     const card = container.firstElementChild as HTMLElement;
-    expect(card.style.background).toContain("rgba(255, 183, 65");
+    expect(card.style.background).toContain("rgba(124, 58, 237");
   });
 
-  it("renders with red color variant from shapeVariant 4", () => {
+  it("renders with green color variant from shapeVariant 4", () => {
     const { container } = render(
       <StatCardOrganic
         title="Conversion Rate"
@@ -74,7 +77,7 @@ describe("StatCardOrganic component", () => {
     expect(screen.getByText("-0.4%")).toBeDefined();
 
     const card = container.firstElementChild as HTMLElement;
-    expect(card.style.background).toContain("rgba(166, 61, 42");
+    expect(card.style.background).toContain("rgba(16, 118, 103");
   });
 
   it("handles click action when onActionClick is provided", () => {
@@ -90,5 +93,56 @@ describe("StatCardOrganic component", () => {
     const card = container.firstElementChild as HTMLElement;
     fireEvent.click(card);
     expect(onActionClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders with purple color variant", () => {
+    const { container } = render(
+      <StatCardOrganic
+        title="Open Orders"
+        value="46"
+        colorVariant="purple"
+        icon={<span data-testid="test-icon">icon</span>}
+      />,
+    );
+
+    expect(screen.getByText("Open Orders")).toBeDefined();
+    expect(screen.getByText("46")).toBeDefined();
+
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.style.background).toContain("rgba(124, 58, 237");
+
+    const iconCircle = screen.getByTestId("test-icon").parentElement as HTMLElement;
+    expect(iconCircle.style.backgroundColor).toBe("rgba(124, 58, 237, 0.14)");
+    expect(iconCircle.classList.contains("rounded-full")).toBe(true);
+  });
+
+  it("renders red variant with red top right circle bg color", () => {
+    render(
+      <StatCardOrganic
+        title="Total Sales"
+        value="৳12,416"
+        colorVariant="red"
+        icon={<span data-testid="test-icon">icon</span>}
+      />,
+    );
+
+    const iconCircle = screen.getByTestId("test-icon").parentElement as HTMLElement;
+    expect(iconCircle.style.backgroundColor).toBe("rgba(220, 38, 38, 0.14)");
+    expect(iconCircle.classList.contains("rounded-full")).toBe(true);
+  });
+
+  it("renders green variant with green top right circle bg color", () => {
+    render(
+      <StatCardOrganic
+        title="Conversion Rate"
+        value="3.2%"
+        colorVariant="green"
+        icon={<span data-testid="test-icon">icon</span>}
+      />,
+    );
+
+    const iconCircle = screen.getByTestId("test-icon").parentElement as HTMLElement;
+    expect(iconCircle.style.backgroundColor).toBe("rgba(16, 118, 103, 0.14)");
+    expect(iconCircle.classList.contains("rounded-full")).toBe(true);
   });
 });
