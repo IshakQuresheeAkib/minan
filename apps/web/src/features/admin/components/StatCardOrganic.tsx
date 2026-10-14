@@ -4,15 +4,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type CardColorVariant =
-  | "primary"
-  | "secondary"
-  | "gold"
-  | "green"
-  | "blue"
-  | "orange"
-  | "red"
-  | "purple";
+export type CardColorVariant = "red" | "blue" | "purple" | "green";
 
 export type StatCardProps = {
   title: string;
@@ -30,13 +22,13 @@ export type StatCardProps = {
 };
 
 const SHAPE_TO_COLOR: Record<1 | 2 | 3 | 4, CardColorVariant> = {
-  1: "green",
+  1: "red",
   2: "blue",
-  3: "orange",
-  4: "red",
+  3: "purple",
+  4: "green",
 };
 
-// Rich color schemes tailored for MINAN light theme with signature #f5b836 and #fed65b branding
+// Rich color schemes tailored for MINAN admin dashboard metrics
 const COLOR_CONFIG: Record<
   CardColorVariant,
   {
@@ -48,45 +40,15 @@ const COLOR_CONFIG: Record<
     glowShadow: string;
   }
 > = {
-  primary: {
-    colorClass: "primary",
-    accentColor: "#9A6900",
-    accentLight: "rgba(245, 184, 54, 0.16)",
+  red: {
+    colorClass: "red",
+    accentColor: "#dc2626",
+    accentLight: "rgba(220, 38, 38, 0.14)",
     radialGradient:
-      "radial-gradient(ellipse at right top, rgba(245, 184, 54, 0.22) 0%, rgba(254, 214, 91, 0.12) 40%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
+      "radial-gradient(ellipse at right top, rgba(166, 61, 42, 0.12) 0%, rgba(220, 38, 38, 0.08) 35%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
     borderGradient:
-      "linear-gradient(135deg, rgba(245, 184, 54, 0.8) 0%, rgba(254, 214, 91, 0.5) 45%, rgba(232, 225, 213, 0.45) 100%)",
-    glowShadow: "rgba(245, 184, 54, 0.35)",
-  },
-  secondary: {
-    colorClass: "secondary",
-    accentColor: "#8C5E00",
-    accentLight: "rgba(254, 214, 91, 0.22)",
-    radialGradient:
-      "radial-gradient(ellipse at right top, rgba(254, 214, 91, 0.25) 0%, rgba(245, 184, 54, 0.10) 45%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
-    borderGradient:
-      "linear-gradient(135deg, rgba(254, 214, 91, 0.85) 0%, rgba(245, 184, 54, 0.45) 50%, rgba(232, 225, 213, 0.45) 100%)",
-    glowShadow: "rgba(254, 214, 91, 0.35)",
-  },
-  gold: {
-    colorClass: "gold",
-    accentColor: "#9A6900",
-    accentLight: "rgba(245, 184, 54, 0.16)",
-    radialGradient:
-      "radial-gradient(ellipse at right top, rgba(245, 184, 54, 0.22) 0%, rgba(254, 214, 91, 0.12) 40%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
-    borderGradient:
-      "linear-gradient(135deg, rgba(245, 184, 54, 0.8) 0%, rgba(254, 214, 91, 0.5) 45%, rgba(232, 225, 213, 0.45) 100%)",
-    glowShadow: "rgba(245, 184, 54, 0.35)",
-  },
-  green: {
-    colorClass: "green",
-    accentColor: "#0d9488",
-    accentLight: "rgba(16, 118, 103, 0.14)",
-    radialGradient:
-      "radial-gradient(ellipse at right top, rgba(16, 118, 103, 0.12) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
-    borderGradient:
-      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(16, 118, 103, 0.35) 100%)",
-    glowShadow: "rgba(16, 118, 103, 0.20)",
+      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(220, 38, 38, 0.35) 100%)",
+    glowShadow: "rgba(220, 38, 38, 0.20)",
   },
   blue: {
     colorClass: "blue",
@@ -98,26 +60,6 @@ const COLOR_CONFIG: Record<
       "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(0, 69, 143, 0.35) 100%)",
     glowShadow: "rgba(0, 69, 143, 0.16)",
   },
-  orange: {
-    colorClass: "orange",
-    accentColor: "#d97706",
-    accentLight: "rgba(255, 183, 65, 0.12)",
-    radialGradient:
-      "radial-gradient(ellipse at right top, rgba(255, 183, 65, 0.14) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
-    borderGradient:
-      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(255, 183, 65, 0.45) 100%)",
-    glowShadow: "rgba(217, 119, 6, 0.16)",
-  },
-  red: {
-    colorClass: "red",
-    accentColor: "#dc2626",
-    accentLight: "rgba(220, 38, 38, 0.14)",
-    radialGradient:
-      "radial-gradient(ellipse at right top, rgba(166, 61, 42, 0.12) 0%, rgba(220, 38, 38, 0.08) 35%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
-    borderGradient:
-      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(220, 38, 38, 0.35) 100%)",
-    glowShadow: "rgba(220, 38, 38, 0.20)",
-  },
   purple: {
     colorClass: "purple",
     accentColor: "#7c3aed",
@@ -127,6 +69,16 @@ const COLOR_CONFIG: Record<
     borderGradient:
       "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(124, 58, 237, 0.35) 100%)",
     glowShadow: "rgba(124, 58, 237, 0.20)",
+  },
+  green: {
+    colorClass: "green",
+    accentColor: "#0d9488",
+    accentLight: "rgba(16, 118, 103, 0.14)",
+    radialGradient:
+      "radial-gradient(ellipse at right top, rgba(16, 118, 103, 0.12) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
+    borderGradient:
+      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(16, 118, 103, 0.35) 100%)",
+    glowShadow: "rgba(16, 118, 103, 0.20)",
   },
 };
 
@@ -205,22 +157,14 @@ export function StatCardOrganic({
           <div
             className={cn(
               "flex size-7 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105",
-              resolvedColor === "primary" &&
-                "border border-primary/30 shadow-[0_2px_8px_-2px_rgba(245,184,54,0.25)]",
-              resolvedColor === "secondary" &&
-                "border border-primary/30 shadow-[0_2px_8px_-2px_rgba(254,214,91,0.25)]",
-              resolvedColor === "gold" &&
-                "border border-primary/30 shadow-[0_2px_8px_-2px_rgba(245,184,54,0.25)]",
               resolvedColor === "red" &&
                 "border border-rose-300/40 shadow-[0_2px_8px_-2px_rgba(220,38,38,0.20)]",
-              resolvedColor === "purple" &&
-                "border border-purple-300/40 shadow-[0_2px_8px_-2px_rgba(124,58,237,0.20)]",
               resolvedColor === "blue" &&
                 "border border-sky-300/40 shadow-[0_2px_8px_-2px_rgba(2,132,199,0.18)]",
+              resolvedColor === "purple" &&
+                "border border-purple-300/40 shadow-[0_2px_8px_-2px_rgba(124,58,237,0.20)]",
               resolvedColor === "green" &&
                 "border border-emerald-300/40 shadow-[0_2px_8px_-2px_rgba(16,118,103,0.18)]",
-              resolvedColor === "orange" &&
-                "border border-amber-300/40 shadow-[0_2px_8px_-2px_rgba(217,119,6,0.18)]",
             )}
             style={{
               backgroundColor: iconBgColor ?? cfg.accentLight,

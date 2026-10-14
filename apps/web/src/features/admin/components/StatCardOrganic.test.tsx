@@ -45,7 +45,7 @@ describe("StatCardOrganic component", () => {
     expect(card.style.background).toContain("rgba(0, 69, 143");
   });
 
-  it("renders with orange color variant from shapeVariant 3", () => {
+  it("renders with purple color variant from shapeVariant 3", () => {
     const { container } = render(
       <StatCardOrganic
         title="Open Orders"
@@ -58,10 +58,10 @@ describe("StatCardOrganic component", () => {
     expect(screen.getByText("15")).toBeDefined();
 
     const card = container.firstElementChild as HTMLElement;
-    expect(card.style.background).toContain("rgba(255, 183, 65");
+    expect(card.style.background).toContain("rgba(124, 58, 237");
   });
 
-  it("renders with red color variant from shapeVariant 4", () => {
+  it("renders with green color variant from shapeVariant 4", () => {
     const { container } = render(
       <StatCardOrganic
         title="Conversion Rate"
@@ -77,7 +77,7 @@ describe("StatCardOrganic component", () => {
     expect(screen.getByText("-0.4%")).toBeDefined();
 
     const card = container.firstElementChild as HTMLElement;
-    expect(card.style.background).toContain("rgba(166, 61, 42");
+    expect(card.style.background).toContain("rgba(16, 118, 103");
   });
 
   it("handles click action when onActionClick is provided", () => {
@@ -93,38 +93,6 @@ describe("StatCardOrganic component", () => {
     const card = container.firstElementChild as HTMLElement;
     fireEvent.click(card);
     expect(onActionClick).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders with primary brand color variant", () => {
-    const { container } = render(
-      <StatCardOrganic
-        title="Brand Sales"
-        value="৳300,000"
-        colorVariant="primary"
-      />,
-    );
-
-    expect(screen.getByText("Brand Sales")).toBeDefined();
-    expect(screen.getByText("৳300,000")).toBeDefined();
-
-    const card = container.firstElementChild as HTMLElement;
-    expect(card.style.background).toContain("rgba(245, 184, 54");
-  });
-
-  it("renders with secondary brand color variant", () => {
-    const { container } = render(
-      <StatCardOrganic
-        title="Brand Orders"
-        value="42"
-        colorVariant="secondary"
-      />,
-    );
-
-    expect(screen.getByText("Brand Orders")).toBeDefined();
-    expect(screen.getByText("42")).toBeDefined();
-
-    const card = container.firstElementChild as HTMLElement;
-    expect(card.style.background).toContain("rgba(254, 214, 91");
   });
 
   it("renders with purple color variant", () => {
