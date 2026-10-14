@@ -51,7 +51,7 @@ export function AdminTopBar({
       );
     }
     updateClock();
-    const timer = setInterval(updateClock, 1000);
+    const timer = setInterval(updateClock, 30_000);
     return () => clearInterval(timer);
   }, []);
 

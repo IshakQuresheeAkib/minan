@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, ShoppingBag, Sparkles } from "lucide-react";
@@ -40,6 +40,7 @@ function ProductThumbnail({
 }
 
 function MiniSparkline({ data }: { data: number[] }) {
+  const gradientId = useId();
   if (!data || data.length === 0) return null;
   const min = Math.min(...data, 0);
   const max = Math.max(...data, 1);
@@ -65,14 +66,14 @@ function MiniSparkline({ data }: { data: number[] }) {
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="sparkGradient" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#fed65b" stopOpacity="0.8" />
           <stop offset="100%" stopColor="#f5b836" stopOpacity="1" />
         </linearGradient>
       </defs>
       <polyline
         fill="none"
-        stroke="url(#sparkGradient)"
+        stroke={`url(#${gradientId})`}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"

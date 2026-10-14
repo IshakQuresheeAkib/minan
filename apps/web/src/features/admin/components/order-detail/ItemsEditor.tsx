@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -56,16 +56,6 @@ export function ItemsEditor({
       reason: "",
     },
   });
-
-  useEffect(() => {
-    form.reset({
-      quantities: Object.fromEntries(
-        order.lines.map((line) => [line.line_id, line.quantity]),
-      ),
-      discount: order.financials.order_discount,
-      reason: "",
-    });
-  }, [order.lines, order.financials.order_discount, order.revision, form]);
 
   async function onSubmit(data: ItemsEditorFormValues) {
     const ok = await run("items", "PATCH", {

@@ -12,7 +12,8 @@ vi.mock("./checkoutCart.service.js", () => ({
 import { Order } from "../models/Order.js";
 import { OrderCounter } from "../models/OrderCounter.js";
 import { PaymentAttempt } from "../models/PaymentAttempt.js";
-import { orderTransitionSchema } from "../schemas/order.schemas.js";
+import { orderTransitionSchema, type OrderTransitionInput } from "../schemas/order.schemas.js";
+import type { AuthenticatedAdmin } from "../types/auth.types.js";
 import {
   createOrderExchange,
   escapeCsvCell,
@@ -23,6 +24,12 @@ import {
   updateOrderCustomer,
   updateOrderItems,
 } from "./adminOrders.service.js";
+
+const testAdmin: AuthenticatedAdmin = {
+  id: new Types.ObjectId().toString(),
+  email: "admin@example.com",
+  session_version: 1,
+};
 
 function chainResult<T>(value: T) {
   const promise = Promise.resolve(value);
@@ -112,7 +119,7 @@ describe("Order CSV security", () => {
       },
     ]) as never);
 
-    const csv = await exportAdminOrdersCsv({});
+    const csv = await exportAdminOrdersCsv({ sort: "newest" });
 
     expect(csv).toContain('"bKash transaction","Duplicate bKash transactions"');
     expect(csv).toContain('"SETTLED123","DUPLICATE123"');
@@ -134,11 +141,10 @@ describe("Order workflow integrity", () => {
       delivery_fee_status: "paid",
     } as never);
 
-    const admin = { id: new Types.ObjectId().toString(), email: "admin@example.com" };
-    const input = { expected_revision: 1, status: "exchanged" as const };
+    const input = { expected_revision: 1, status: "exchanged" } as unknown as OrderTransitionInput;
 
     await expect(
-      transitionOrder(new Types.ObjectId().toString(), input, admin),
+      transitionOrder(new Types.ObjectId().toString(), input, testAdmin),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
 
@@ -155,10 +161,8 @@ describe("Order workflow integrity", () => {
       revision: 1,
     } as never);
 
-    const admin = { id: new Types.ObjectId().toString(), email: "admin@example.com" };
-
     await expect(
-      transitionOrder(new Types.ObjectId().toString(), { expected_revision: 1, status: "processing" }, admin),
+      transitionOrder(new Types.ObjectId().toString(), { expected_revision: 1, status: "processing" }, testAdmin),
     ).rejects.toMatchObject({ statusCode: 409, message: "This transition requires a pre-shipment override reason" });
 
     const persistenceReached = new Error("Transition reached persistence");
@@ -167,7 +171,7 @@ describe("Order workflow integrity", () => {
       transitionOrder(
         new Types.ObjectId().toString(),
         { expected_revision: 1, status: "processing", override_reason: "Expedited processing requested" },
-        admin,
+        testAdmin,
       ),
     ).rejects.toBe(persistenceReached);
   });
@@ -184,7 +188,7 @@ describe("Order workflow integrity", () => {
       recordOrderCod(
         new Types.ObjectId().toString(),
         { expected_revision: 1 },
-        { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+        testAdmin,
       ),
     ).rejects.toBe(persistenceReached);
     expect(update).toHaveBeenCalledWith(
@@ -220,7 +224,7 @@ describe("Order workflow integrity", () => {
         expected_revision: 2,
         reason: "One item was returned",
       },
-      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+      testAdmin,
     )).rejects.toBe(persistenceReached);
 
     expect(update).toHaveBeenCalledWith(
@@ -253,7 +257,7 @@ describe("Order workflow integrity", () => {
         expected_revision: 2,
         reason: "The complete order was returned",
       },
-      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+      testAdmin,
     )).rejects.toBe(persistenceReached);
 
     expect(update).toHaveBeenCalledWith(
@@ -331,7 +335,7 @@ describe("Order workflow integrity", () => {
           expected_revision: 1,
           reason: "Customer approved a lower-price replacement",
         },
-        { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+        testAdmin,
       ),
     ).rejects.toMatchObject({ statusCode: 409 });
   });
@@ -354,7 +358,7 @@ describe("Order workflow integrity", () => {
           expected_revision: 1,
           reason: "Customer requested a change",
         },
-        { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+        testAdmin,
       ),
     ).rejects.toMatchObject({ statusCode: 409 });
     expect(mocks.buildVerifiedCartSnapshot).not.toHaveBeenCalled();
@@ -427,7 +431,7 @@ describe("Order workflow integrity", () => {
         expected_revision: 2,
         reason: "Customer requested a change",
       },
-      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+      testAdmin,
     );
 
     expect(Order.findOneAndUpdate).toHaveBeenCalledWith(
@@ -454,7 +458,7 @@ describe("Order workflow integrity", () => {
         expected_revision: 2,
         reason: "Customer corrected their email address",
       },
-      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+      testAdmin,
     )).rejects.toBe(persistenceReached);
 
     expect(update).toHaveBeenCalledWith(
@@ -531,7 +535,7 @@ describe("Order workflow integrity", () => {
         expected_revision: 1,
         reason: "Customer requested a replacement",
       },
-      { id: new Types.ObjectId().toString(), email: "admin@example.com" },
+      testAdmin,
     )).rejects.toBe(persistenceReached);
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({

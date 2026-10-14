@@ -280,6 +280,8 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
       {accessToken && formOpen ? (
         <ProductForm
           accessToken={accessToken}
+          categories={categories}
+          subcategories={subcategories}
           open={formOpen}
           product={editingProduct}
           onOpenChange={(nextOpen) => {

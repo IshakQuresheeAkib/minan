@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -60,16 +60,6 @@ export function CustomerEditor({
       reason: "",
     },
   });
-
-  useEffect(() => {
-    form.reset({
-      name: order.name,
-      phone_number: order.phone_number,
-      email: order.email,
-      address: order.address,
-      reason: "",
-    });
-  }, [order.name, order.phone_number, order.email, order.address, order.revision, form]);
 
   async function onSubmit(values: CustomerFormValues) {
     const success = await run("customer", "PATCH", {
