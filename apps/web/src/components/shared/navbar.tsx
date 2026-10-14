@@ -6,7 +6,7 @@ import Link from "next/link";
 import { NavPill } from "@/components/shared/NavPill";
 import { NavbarActions } from "@/components/shared/NavbarActions";
 import { publicRoutes } from "@/constants/routes";
-import { SearchBar } from "@/features/home/components/SearchBar";
+import { SearchBar } from "@/components/shared/SearchBar";
 
 export function Navbar() {
   return (

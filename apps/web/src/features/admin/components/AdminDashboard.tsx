@@ -66,7 +66,7 @@ export function AdminDashboard() {
           change={salesGrowthText}
           isPositive={salesGrowthPositive}
           subtitle={summary?.totalSalesMonth ? "This month" : "All time"}
-          colorVariant="primary"
+          colorVariant="red"
           icon={<Banknote className="size-4" />}
         />
         <StatCard
@@ -82,7 +82,7 @@ export function AdminDashboard() {
           title="Open Orders"
           value={openOrdersCount}
           subtitle="Awaiting fulfillment"
-          colorVariant="secondary"
+          colorVariant="purple"
           icon={<ShoppingBag className="size-4" />}
         />
         <StatCard
@@ -91,7 +91,7 @@ export function AdminDashboard() {
           change={conversionGrowthText}
           isPositive={conversionGrowthPositive}
           subtitle="Storefront visits"
-          colorVariant="red"
+          colorVariant="green"
           icon={<TrendingUp className="size-4" />}
         />
       </div>

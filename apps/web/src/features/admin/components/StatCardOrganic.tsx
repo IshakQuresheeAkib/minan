@@ -11,7 +11,8 @@ export type CardColorVariant =
   | "green"
   | "blue"
   | "orange"
-  | "red";
+  | "red"
+  | "purple";
 
 export type StatCardProps = {
   title: string;
@@ -23,6 +24,8 @@ export type StatCardProps = {
   colorVariant?: CardColorVariant;
   className?: string;
   icon?: ReactNode;
+  iconBgColor?: string;
+  iconColor?: string;
   onActionClick?: () => void;
 };
 
@@ -78,12 +81,12 @@ const COLOR_CONFIG: Record<
   green: {
     colorClass: "green",
     accentColor: "#0d9488",
-    accentLight: "rgba(16, 118, 103, 0.08)",
+    accentLight: "rgba(16, 118, 103, 0.14)",
     radialGradient:
       "radial-gradient(ellipse at right top, rgba(16, 118, 103, 0.12) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
     borderGradient:
       "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(16, 118, 103, 0.35) 100%)",
-    glowShadow: "rgba(16, 118, 103, 0.16)",
+    glowShadow: "rgba(16, 118, 103, 0.20)",
   },
   blue: {
     colorClass: "blue",
@@ -107,13 +110,23 @@ const COLOR_CONFIG: Record<
   },
   red: {
     colorClass: "red",
-    accentColor: "#a63d2a",
-    accentLight: "rgba(166, 61, 42, 0.08)",
+    accentColor: "#dc2626",
+    accentLight: "rgba(220, 38, 38, 0.14)",
     radialGradient:
-      "radial-gradient(ellipse at right top, rgba(166, 61, 42, 0.10) 0%, rgba(255, 255, 255, 0.96) 55%, #FFFFFF 100%)",
+      "radial-gradient(ellipse at right top, rgba(166, 61, 42, 0.12) 0%, rgba(220, 38, 38, 0.08) 35%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
     borderGradient:
-      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(166, 61, 42, 0.35) 100%)",
-    glowShadow: "rgba(166, 61, 42, 0.16)",
+      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(220, 38, 38, 0.35) 100%)",
+    glowShadow: "rgba(220, 38, 38, 0.20)",
+  },
+  purple: {
+    colorClass: "purple",
+    accentColor: "#7c3aed",
+    accentLight: "rgba(124, 58, 237, 0.14)",
+    radialGradient:
+      "radial-gradient(ellipse at right top, rgba(124, 58, 237, 0.14) 0%, rgba(139, 92, 246, 0.06) 40%, rgba(255, 255, 255, 0.98) 75%, #FFFFFF 100%)",
+    borderGradient:
+      "linear-gradient(135deg, rgba(232, 225, 213, 0.9) 0%, rgba(232, 225, 213, 0.4) 60%, rgba(124, 58, 237, 0.35) 100%)",
+    glowShadow: "rgba(124, 58, 237, 0.20)",
   },
 };
 
@@ -127,6 +140,8 @@ export function StatCardOrganic({
   colorVariant,
   className,
   icon,
+  iconBgColor,
+  iconColor,
   onActionClick,
 }: StatCardProps) {
   // Resolve active color variant (explicit prop or mapped from shapeVariant 1..4)
@@ -189,15 +204,27 @@ export function StatCardOrganic({
         {icon ? (
           <div
             className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105",
-              (resolvedColor === "primary" ||
-                resolvedColor === "secondary" ||
-                resolvedColor === "gold") &&
+              "flex size-7 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105",
+              resolvedColor === "primary" &&
                 "border border-primary/30 shadow-[0_2px_8px_-2px_rgba(245,184,54,0.25)]",
+              resolvedColor === "secondary" &&
+                "border border-primary/30 shadow-[0_2px_8px_-2px_rgba(254,214,91,0.25)]",
+              resolvedColor === "gold" &&
+                "border border-primary/30 shadow-[0_2px_8px_-2px_rgba(245,184,54,0.25)]",
+              resolvedColor === "red" &&
+                "border border-rose-300/40 shadow-[0_2px_8px_-2px_rgba(220,38,38,0.20)]",
+              resolvedColor === "purple" &&
+                "border border-purple-300/40 shadow-[0_2px_8px_-2px_rgba(124,58,237,0.20)]",
+              resolvedColor === "blue" &&
+                "border border-sky-300/40 shadow-[0_2px_8px_-2px_rgba(2,132,199,0.18)]",
+              resolvedColor === "green" &&
+                "border border-emerald-300/40 shadow-[0_2px_8px_-2px_rgba(16,118,103,0.18)]",
+              resolvedColor === "orange" &&
+                "border border-amber-300/40 shadow-[0_2px_8px_-2px_rgba(217,119,6,0.18)]",
             )}
             style={{
-              backgroundColor: cfg.accentLight,
-              color: cfg.accentColor,
+              backgroundColor: iconBgColor ?? cfg.accentLight,
+              color: iconColor ?? cfg.accentColor,
             }}
           >
             {icon}
@@ -206,7 +233,7 @@ export function StatCardOrganic({
           <div
             className="size-2 rounded-full transition-transform duration-300 group-hover:scale-125"
             style={{
-              backgroundColor: cfg.accentColor,
+              backgroundColor: iconColor ?? cfg.accentColor,
               boxShadow: `0 0 6px ${cfg.glowShadow}`,
             }}
           />

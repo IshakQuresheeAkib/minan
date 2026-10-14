@@ -126,4 +126,55 @@ describe("StatCardOrganic component", () => {
     const card = container.firstElementChild as HTMLElement;
     expect(card.style.background).toContain("rgba(254, 214, 91");
   });
+
+  it("renders with purple color variant", () => {
+    const { container } = render(
+      <StatCardOrganic
+        title="Open Orders"
+        value="46"
+        colorVariant="purple"
+        icon={<span data-testid="test-icon">icon</span>}
+      />,
+    );
+
+    expect(screen.getByText("Open Orders")).toBeDefined();
+    expect(screen.getByText("46")).toBeDefined();
+
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.style.background).toContain("rgba(124, 58, 237");
+
+    const iconCircle = screen.getByTestId("test-icon").parentElement as HTMLElement;
+    expect(iconCircle.style.backgroundColor).toBe("rgba(124, 58, 237, 0.14)");
+    expect(iconCircle.classList.contains("rounded-full")).toBe(true);
+  });
+
+  it("renders red variant with red top right circle bg color", () => {
+    render(
+      <StatCardOrganic
+        title="Total Sales"
+        value="৳12,416"
+        colorVariant="red"
+        icon={<span data-testid="test-icon">icon</span>}
+      />,
+    );
+
+    const iconCircle = screen.getByTestId("test-icon").parentElement as HTMLElement;
+    expect(iconCircle.style.backgroundColor).toBe("rgba(220, 38, 38, 0.14)");
+    expect(iconCircle.classList.contains("rounded-full")).toBe(true);
+  });
+
+  it("renders green variant with green top right circle bg color", () => {
+    render(
+      <StatCardOrganic
+        title="Conversion Rate"
+        value="3.2%"
+        colorVariant="green"
+        icon={<span data-testid="test-icon">icon</span>}
+      />,
+    );
+
+    const iconCircle = screen.getByTestId("test-icon").parentElement as HTMLElement;
+    expect(iconCircle.style.backgroundColor).toBe("rgba(16, 118, 103, 0.14)");
+    expect(iconCircle.classList.contains("rounded-full")).toBe(true);
+  });
 });

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Search, Clock, LogOut, Menu } from "lucide-react";
+import { Bell, Clock, LogOut, Menu } from "lucide-react";
 import { adminRoutes } from "@/constants/routes";
 import { useOrdersNotifications } from "@/features/admin/components/OrdersNotificationProvider";
+import { SearchBar } from "@/components/shared/SearchBar";
 
 const SECTION_TITLES: { prefix: string; label: string }[] = [
   { prefix: adminRoutes.orders, label: "Orders" },
@@ -27,12 +28,13 @@ export function AdminTopBar({
   const router = useRouter();
   const pathname = usePathname();
   const { unreadCount } = useOrdersNotifications();
-  const [searchQuery, setSearchQuery] = useState("");
   const [currentTime, setCurrentTime] = useState("");
-
   const title = useMemo(() => {
     if (pathname === adminRoutes.dashboard) return "Dashboard";
-    return SECTION_TITLES.find((section) => pathname.startsWith(section.prefix))?.label ?? "Admin";
+    return (
+      SECTION_TITLES.find((section) => pathname.startsWith(section.prefix))
+        ?.label ?? "Admin"
+    );
   }, [pathname]);
 
   // Live real-time clock
@@ -52,12 +54,6 @@ export function AdminTopBar({
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    router.push(`${adminRoutes.products}?search=${encodeURIComponent(searchQuery.trim())}`);
-  }
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-[#EBE3D7]/80 bg-[#F6F1EB]/90 px-4 py-3.5 backdrop-blur-md transition-all print:hidden sm:px-6 lg:px-8">
@@ -81,16 +77,21 @@ export function AdminTopBar({
 
       {/* Central Search Bar */}
       <div className="hidden flex-1 max-w-md md:block">
-        <form onSubmit={handleSearch} className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search catalog products..."
-            className="w-full rounded-full border border-[#DFD6C8] bg-white/80 py-2 pl-10 pr-4 text-xs font-medium text-neutral-800 placeholder:text-neutral-400 shadow-xs transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </form>
+        <SearchBar
+          variant="admin"
+          alwaysOpen
+          placeholder="Search catalog products..."
+          onSearchSubmit={(query) => {
+            const trimmed = query.trim();
+            if (!trimmed) {
+              router.push(adminRoutes.products);
+              return;
+            }
+            router.push(
+              `${adminRoutes.products}?search=${encodeURIComponent(trimmed)}`,
+            );
+          }}
+        />
       </div>
 
       {/* Right Section: Live Time, Notifications, Admin Profile */}
