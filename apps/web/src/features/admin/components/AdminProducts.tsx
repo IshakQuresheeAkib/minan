@@ -117,6 +117,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [subcategories, setSubcategories] = useState<AdminSubcategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [classificationsLoaded, setClassificationsLoaded] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(
@@ -148,6 +149,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
       }
 
       setCategoriesLoading(true);
+      setClassificationsLoaded(false);
       setCategoriesError(null);
 
       try {
@@ -158,6 +160,7 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
         if (!cancelled) {
           setCategories(categoryResponse.data);
           setSubcategories(subcategoryResponse.data);
+          setClassificationsLoaded(true);
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -280,6 +283,8 @@ export function AdminProducts({ appliedFilters }: AdminProductsProps) {
       {accessToken && formOpen ? (
         <ProductForm
           accessToken={accessToken}
+          categories={classificationsLoaded ? categories : undefined}
+          subcategories={classificationsLoaded ? subcategories : undefined}
           open={formOpen}
           product={editingProduct}
           onOpenChange={(nextOpen) => {

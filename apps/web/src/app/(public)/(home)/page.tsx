@@ -5,10 +5,14 @@ import { connection } from "next/server";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { siteConfig } from "@/config/site.config";
 import { HomeCatalog } from "@/features/home/components/HomeCatalog";
-import { HeroCarousel } from "@/features/home/components/HeroCarousel";
+import {
+  HeroCarousel,
+} from "@/features/home/components/HeroCarousel";
 import { HeroFirstSlideShell } from "@/features/home/components/HeroFirstSlideShell";
+import { preloadResponsiveBannerImage } from "@/features/home/components/ResponsiveBannerImage";
 import { fallbackHomeBanners } from "@/features/home/data/home-banners";
 import { getCachedHomeBanners } from "@/features/home/services/home-banner.cache";
+
 import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
 import { getCachedHomeCatalog } from "@/features/products/services/product.cache";
 import { getHomeStructuredData } from "@/lib/seo/structured-data";
@@ -57,6 +61,15 @@ async function HomeHeroContent() {
     }
   } catch (error) {
     console.error("Failed to load homepage banners", error);
+  }
+
+  const primaryBanner = banners[0];
+  if (primaryBanner) {
+    preloadResponsiveBannerImage({
+      alt: primaryBanner.alt_text,
+      desktopSrc: primaryBanner.desktop_image_url,
+      mobileSrc: primaryBanner.mobile_image_url,
+    });
   }
 
   return <HeroCarousel banners={banners} />;

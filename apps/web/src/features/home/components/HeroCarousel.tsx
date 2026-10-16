@@ -1,6 +1,5 @@
 "use client";
 
-import gsap from "gsap";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import {
@@ -13,7 +12,6 @@ import {
   type PointerEvent,
 } from "react";
 
-import { Navbar } from "@/components/shared/navbar";
 import { ResponsiveBannerImage } from "@/features/home/components/ResponsiveBannerImage";
 import { HERO_ACCESSIBLE_HEADING } from "@/features/home/hero-copy";
 import type { HomeBanner } from "@/features/home/schemas/home-banner.schema";
@@ -21,7 +19,8 @@ import { publicRoutes } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 const SLIDE_INTERVAL = 4000;
-const ANIM_DURATION = 0.65;
+const ANIM_DURATION_MS = 650;
+const ANIM_EASING = "cubic-bezier(0.45, 0, 0.55, 1)";
 const DRAG_THRESHOLD = 56;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -60,6 +59,7 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
   const currentRef = useRef(0);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isAnimatingRef = useRef(false);
+  const activeAnimationsRef = useRef<Animation[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const suppressClickRef = useRef(false);
   const dragRef = useRef({
@@ -70,15 +70,16 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
   });
 
   useEffect(() => {
-    slideRefs.current.forEach((el, index) => {
-      if (!el) return;
-
-      gsap.set(el, {
-        opacity: index === 0 ? 1 : 0,
-        x: 0,
-        zIndex: index === 0 ? 10 : 0,
+    return () => {
+      activeAnimationsRef.current.forEach((anim) => {
+        try {
+          anim.cancel();
+        } catch {
+          // Ignore cancellation errors during unmount
+        }
       });
-    });
+      activeAnimationsRef.current = [];
+    };
   }, []);
 
   const goTo = useCallback(
@@ -86,47 +87,83 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
       if (isAnimatingRef.current) return;
       if (nextIndex === currentRef.current) return;
 
-      const outEl = slideRefs.current[currentRef.current];
+      const prevIndex = currentRef.current;
+      const outEl = slideRefs.current[prevIndex];
       const inEl = slideRefs.current[nextIndex];
       if (!outEl || !inEl) return;
 
       isAnimatingRef.current = true;
 
-      const duration = prefersReducedMotion ? 0 : ANIM_DURATION;
-      const xOut = prefersReducedMotion ? 0 : direction === "next" ? -70 : 70;
-      const xIn = prefersReducedMotion ? 0 : direction === "next" ? 70 : -70;
+      if (
+        prefersReducedMotion ||
+        typeof outEl.animate !== "function" ||
+        typeof inEl.animate !== "function"
+      ) {
+        currentRef.current = nextIndex;
+        setCurrent(nextIndex);
+        isAnimatingRef.current = false;
+        return;
+      }
 
-      gsap.set(inEl, { x: xIn, opacity: 0, zIndex: 10 });
+      const xOut = direction === "next" ? -70 : 70;
+      const xIn = direction === "next" ? 70 : -70;
 
-      const tl = gsap.timeline({
-        onComplete: () => {
-          gsap.set(outEl, { zIndex: 0 });
-          isAnimatingRef.current = false;
-        },
-      });
+      inEl.style.zIndex = "11";
+      outEl.style.zIndex = "10";
 
-      tl.to(
-        outEl,
-        {
-          x: xOut,
-          opacity: 0,
-          duration,
-          ease: "power2.inOut",
-        },
-        0,
-      ).to(
-        inEl,
-        {
-          x: 0,
-          opacity: 1,
-          duration,
-          ease: "power2.inOut",
-        },
-        0,
-      );
+      try {
+        const animOut = outEl.animate(
+          [
+            { transform: "translate3d(0, 0, 0)", opacity: 1 },
+            { transform: `translate3d(${xOut}px, 0, 0)`, opacity: 0 },
+          ],
+          {
+            duration: ANIM_DURATION_MS,
+            easing: ANIM_EASING,
+            fill: "forwards",
+          },
+        );
 
-      currentRef.current = nextIndex;
-      setCurrent(nextIndex);
+        const animIn = inEl.animate(
+          [
+            { transform: `translate3d(${xIn}px, 0, 0)`, opacity: 0 },
+            { transform: "translate3d(0, 0, 0)", opacity: 1 },
+          ],
+          {
+            duration: ANIM_DURATION_MS,
+            easing: ANIM_EASING,
+            fill: "forwards",
+          },
+        );
+
+        activeAnimationsRef.current = [animOut, animIn];
+
+        currentRef.current = nextIndex;
+        setCurrent(nextIndex);
+
+        Promise.all([animOut.finished, animIn.finished])
+          .then(() => {
+            animOut.cancel();
+            animIn.cancel();
+            outEl.style.zIndex = "";
+            inEl.style.zIndex = "";
+            activeAnimationsRef.current = [];
+            isAnimatingRef.current = false;
+          })
+          .catch(() => {
+            outEl.style.zIndex = "";
+            inEl.style.zIndex = "";
+            activeAnimationsRef.current = [];
+            isAnimatingRef.current = false;
+          });
+      } catch {
+        outEl.style.zIndex = "";
+        inEl.style.zIndex = "";
+        activeAnimationsRef.current = [];
+        currentRef.current = nextIndex;
+        setCurrent(nextIndex);
+        isAnimatingRef.current = false;
+      }
     },
     [prefersReducedMotion],
   );
@@ -177,6 +214,7 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (banners.length < 2) return;
+    if (isAnimatingRef.current) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (event.target instanceof Element && event.target.closest("button")) {
       return;
@@ -234,8 +272,6 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
 
   return (
     <section aria-label="Promotions" className="relative overflow-hidden">
-      <Navbar />
-
       <div
         className="relative h-[min(600px,calc(100svh-5rem))] min-h-[540px] w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing sm:min-h-[600px] lg:h-[90svh] lg:min-h-[640px]"
         onPointerDown={handlePointerDown}

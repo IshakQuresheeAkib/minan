@@ -113,4 +113,48 @@ describe("getAllowedTransitions", () => {
     expect(result.isLocked).toBe(false);
     expect(result.transitions.map((t) => t.status)).toEqual(["delivered"]);
   });
+
+  it("allows skipping from new to processing with required reason", () => {
+    const result = getAllowedTransitions(createMockOrder({ status: "new" }));
+    const processing = result.transitions.find((t) => t.status === "processing");
+    expect(processing).toBeDefined();
+    expect(processing?.requiresReason).toBe(true);
+    expect(processing?.disabled).toBeFalsy();
+  });
+
+  it("allows reverting from confirmed to new with required reason", () => {
+    const result = getAllowedTransitions(createMockOrder({ status: "confirmed" }));
+    const newTransition = result.transitions.find((t) => t.status === "new");
+    expect(newTransition).toBeDefined();
+    expect(newTransition?.requiresReason).toBe(true);
+    expect(newTransition?.disabled).toBeFalsy();
+  });
+
+  it("allows reverting from processing to confirmed or new with required reason", () => {
+    const result = getAllowedTransitions(createMockOrder({
+      status: "processing",
+      delivery_fee_status: "paid",
+    }));
+    const confirmed = result.transitions.find((t) => t.status === "confirmed");
+    expect(confirmed).toBeDefined();
+    expect(confirmed?.requiresReason).toBe(true);
+    expect(confirmed?.disabled).toBe(false);
+
+    const newTransition = result.transitions.find((t) => t.status === "new");
+    expect(newTransition).toBeDefined();
+    expect(newTransition?.requiresReason).toBe(true);
+    expect(newTransition?.disabled).toBeFalsy();
+  });
+
+  it("disables reverting from processing to confirmed when delivery fee is unpaid", () => {
+    const result = getAllowedTransitions(createMockOrder({
+      status: "processing",
+      delivery_fee_status: "awaiting",
+    }));
+    const confirmed = result.transitions.find((t) => t.status === "confirmed");
+    expect(confirmed).toBeDefined();
+    expect(confirmed?.disabled).toBe(true);
+    expect(confirmed?.disabledReason).toContain("Delivery fee must be paid");
+  });
 });
+

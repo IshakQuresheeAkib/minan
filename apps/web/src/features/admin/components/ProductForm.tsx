@@ -56,6 +56,8 @@ type ProductFormProps = {
   accessToken: string;
   open: boolean;
   product: AdminProduct | null;
+  categories?: AdminCategory[];
+  subcategories?: AdminSubcategory[];
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 };
@@ -64,6 +66,8 @@ type ProductFormFieldsProps = {
   accessToken: string;
   uploadingImages: boolean;
   product: AdminProduct | null;
+  categories?: AdminCategory[];
+  subcategories?: AdminSubcategory[];
   onUploadStateChange: (uploading: boolean) => void;
   onSaved: () => void;
   onClose: () => void;
@@ -77,12 +81,31 @@ function ProductFormFields({
   accessToken,
   uploadingImages,
   product,
+  categories: initialCategories,
+  subcategories: initialSubcategories,
   onUploadStateChange,
   onSaved,
   onClose,
 }: ProductFormFieldsProps) {
-  const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [subcategories, setSubcategories] = useState<AdminSubcategory[]>([]);
+  const [fetchedCategories, setFetchedCategories] = useState<AdminCategory[]>([]);
+  const [fetchedSubcategories, setFetchedSubcategories] = useState<AdminSubcategory[]>([]);
+
+  const hasParentCategories = Boolean(
+    initialCategories && initialCategories.length > 0,
+  );
+  const hasParentSubcategories = Boolean(
+    initialSubcategories && initialSubcategories.length > 0,
+  );
+
+  const categories = hasParentCategories
+    ? initialCategories!
+    : fetchedCategories;
+  const subcategories = hasParentSubcategories
+    ? initialSubcategories!
+    : hasParentCategories && initialSubcategories
+      ? initialSubcategories
+      : fetchedSubcategories;
+
   const [images, setImages] = useState<AdminImageAsset[]>(() =>
     toImageAssets(product?.images ?? []),
   );
@@ -111,6 +134,10 @@ function ProductFormFields({
   });
 
   useEffect(() => {
+    if (initialCategories && initialSubcategories && initialCategories.length > 0) {
+      return;
+    }
+
     let cancelled = false;
 
     void Promise.all([
@@ -119,8 +146,8 @@ function ProductFormFields({
     ])
       .then(([categoryResponse, subcategoryResponse]) => {
         if (!cancelled) {
-          setCategories(categoryResponse.data);
-          setSubcategories(subcategoryResponse.data);
+          setFetchedCategories(categoryResponse.data);
+          setFetchedSubcategories(subcategoryResponse.data);
         }
       })
       .catch((error: unknown) => {
@@ -136,7 +163,7 @@ function ProductFormFields({
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessToken, initialCategories, initialSubcategories]);
 
   const selectedCategoryId = useWatch({
     control: form.control,
@@ -480,6 +507,8 @@ export function ProductForm({
   accessToken,
   open,
   product,
+  categories,
+  subcategories,
   onOpenChange,
   onSaved,
 }: ProductFormProps) {
@@ -513,6 +542,8 @@ export function ProductForm({
             accessToken={accessToken}
             uploadingImages={uploadingImages}
             product={product}
+            categories={categories}
+            subcategories={subcategories}
             onUploadStateChange={setUploadingImages}
             onSaved={onSaved}
             onClose={() => onOpenChange(false)}

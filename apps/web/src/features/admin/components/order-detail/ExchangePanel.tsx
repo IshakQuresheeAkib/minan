@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -68,18 +68,6 @@ export function ExchangePanel({
   const selectedProduct = products.find(
     (product) => product._id === selectedProductId,
   );
-
-  useEffect(() => {
-    form.reset({
-      returnedLine: order.lines[0]?.line_id ?? "",
-      returnedQuantity: 1,
-      selectedProduct: "",
-      quantity: 1,
-      size: "",
-      color: "",
-      reason: "",
-    });
-  }, [order.lines, order.revision, form]);
 
   if (order.status !== "delivered") return null;
 

@@ -162,9 +162,10 @@ export function OrderUtility({
 
             <Input
               className="mt-3"
+              maxLength={500}
               placeholder={
                 selectedTransition?.requiresReason
-                  ? "Reason (required for this transition)"
+                  ? "Reason (required, min 3 characters)"
                   : "Reason / override reason"
               }
               value={reason}
@@ -175,15 +176,20 @@ export function OrderUtility({
               className="mt-3 w-full"
               disabled={
                 selectedTransition?.disabled ||
-                (selectedTransition?.requiresReason && !reason.trim())
+                (selectedTransition?.requiresReason && reason.trim().length < 3)
               }
-              onClick={() =>
+              onClick={() => {
+                const trimmedReason = reason.trim();
                 void run("transitions", "POST", {
                   status: nextStatus,
-                  reason: reason || undefined,
-                  override_reason: reason || undefined,
-                })
-              }
+                  reason: trimmedReason || undefined,
+                  override_reason: selectedTransition?.requiresReason
+                    ? trimmedReason || undefined
+                    : trimmedReason.length >= 3
+                      ? trimmedReason
+                      : undefined,
+                });
+              }}
             >
               Update workflow
             </Button>

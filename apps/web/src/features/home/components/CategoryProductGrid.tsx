@@ -8,32 +8,6 @@ import {
 
 export type HomeCategoryProductGroup = HomeCatalogProductGroup;
 
-type ProductsSectionProps = {
-  categoryGroups: HomeCategoryProductGroup[];
-};
-
-export function ProductsSection({ categoryGroups }: ProductsSectionProps) {
-  const visibleGroups = categoryGroups.filter(
-    (group) => group.products.data.length > 0,
-  );
-
-  if (visibleGroups.length === 0) {
-    return (
-      <p className="py-10 text-center text-sm text-foreground/70">
-        No products available yet.
-      </p>
-    );
-  }
-
-  return (
-    <section className="space-y-10 xl:space-y-12" aria-label="Products by category">
-      {visibleGroups.map((group) => (
-        <CategoryProductGrid key={group.category.slug} group={group} />
-      ))}
-    </section>
-  );
-}
-
 type CategoryProductGridProps = {
   group: HomeCategoryProductGroup;
   products?: HomeCategoryProductGroup["products"]["data"];
