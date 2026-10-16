@@ -141,7 +141,8 @@ describe("Order workflow integrity", () => {
       delivery_fee_status: "paid",
     } as never);
 
-    const input = { expected_revision: 1, status: "exchanged" } as unknown as OrderTransitionInput;
+    // @ts-expect-error "exchanged" is intentionally invalid for orderTransitionSchema
+    const input: OrderTransitionInput = { expected_revision: 1, status: "exchanged" };
 
     await expect(
       transitionOrder(new Types.ObjectId().toString(), input, testAdmin),

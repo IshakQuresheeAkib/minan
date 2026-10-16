@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   CategoryProductGrid,
   type HomeCategoryProductGroup,
-} from "./ProductsSection";
+} from "./CategoryProductGrid";
 
 vi.mock("@/features/home/components/CategoryGridCard", () => ({
   CategoryGridCard: ({ name }: { name: string }) => (

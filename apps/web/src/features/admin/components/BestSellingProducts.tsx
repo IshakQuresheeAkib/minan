@@ -40,7 +40,7 @@ function ProductThumbnail({
 }
 
 function MiniSparkline({ data }: { data: number[] }) {
-  const gradientId = useId();
+  const gradientId = `spark-${useId().replace(/[^a-zA-Z0-9-_]/g, "")}`;
   if (!data || data.length === 0) return null;
   const min = Math.min(...data, 0);
   const max = Math.max(...data, 1);

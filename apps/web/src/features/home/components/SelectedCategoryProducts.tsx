@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect } from "react";
 import useSWR, { useSWRConfig, unstable_serialize } from "swr";
 
-import { CategoryProductGrid } from "@/features/home/components/ProductsSection";
+import { CategoryProductGrid } from "@/features/home/components/CategoryProductGrid";
 import { ProductCardSkeleton } from "@/features/products/components/ProductCardSkeleton";
 import {
   getProducts,

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ getProducts: vi.fn() }));
 vi.mock("@/features/products/services/product.service", () => ({ getProducts: mocks.getProducts }));
-vi.mock("@/features/home/components/ProductsSection", () => ({
+vi.mock("@/features/home/components/CategoryProductGrid", () => ({
   CategoryProductGrid: ({ group }: { group: { products: { data: { name: string }[] } } }) => <p>{group.products.data[0]?.name}</p>,
 }));
 import { SelectedCategoryProducts } from "./SelectedCategoryProducts";

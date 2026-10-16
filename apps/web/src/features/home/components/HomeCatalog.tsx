@@ -5,7 +5,7 @@ import {
 import {
   CategoryProductGrid,
   type HomeCategoryProductGroup,
-} from "@/features/home/components/ProductsSection";
+} from "@/features/home/components/CategoryProductGrid";
 
 type HomeCatalogProps = {
   categoryGroups: HomeCategoryProductGroup[];

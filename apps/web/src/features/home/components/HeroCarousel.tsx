@@ -94,15 +94,6 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
 
       isAnimatingRef.current = true;
 
-      activeAnimationsRef.current.forEach((anim) => {
-        try {
-          anim.cancel();
-        } catch {
-          // Ignore cancellation of superseded animation
-        }
-      });
-      activeAnimationsRef.current = [];
-
       if (
         prefersReducedMotion ||
         typeof outEl.animate !== "function" ||
