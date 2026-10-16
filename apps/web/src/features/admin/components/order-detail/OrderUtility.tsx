@@ -162,6 +162,7 @@ export function OrderUtility({
 
             <Input
               className="mt-3"
+              maxLength={500}
               placeholder={
                 selectedTransition?.requiresReason
                   ? "Reason (required, min 3 characters)"
