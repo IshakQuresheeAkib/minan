@@ -10,6 +10,7 @@
     "seed": "tsx src/seed/seed.ts",
     "seed:admin": "tsx src/seed/seed-admin.ts",
     "seed:home-banners": "tsx src/seed/seed-home-banners.ts",
+    "seed:bkash-uat": "tsx src/seed/seed-bkash-uat.ts",
     "cleanup:inactive-admin-sessions": "tsx src/scripts/cleanup-inactive-admin-sessions.ts",
     "migrate:orders": "tsx src/scripts/migrate-leads-to-orders.ts",
     "migrate:order-tracking": "tsx src/scripts/migrate-order-tracking.ts",

@@ -805,12 +805,37 @@ async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void
   );
 }
 
+const ALREADY_COMPLETED_STATUS_CODES = new Set(["2062", "2068", "2117"]);
+const DEFINITIVE_FAILED_STATUS_CODES = new Set([
+  "2006", // Invalid amount
+  "2009", // Invalid Wallet
+  "2010", // Invalid OTP
+  "2011", // Invalid PIN
+  "2012", // Invalid Receiver MSISDN
+  "2013", // Resend Limit Exceeded
+  "2014", // Wrong PIN
+  "2015", // Wrong PIN count exceeded
+  "2016", // Wrong verification code
+  "2017", // Wrong verification limit exceeded
+  "2018", // OTP verification time expired
+  "2019", // PIN verification time expired
+  "2023", // Insufficient Balance
+  "2029", // Duplicate for all transactions
+  "2057", // Not a bKash Account
+  "2058", // Not a Customer Wallet
+  "2059", // Multiple OTP request for a single session denied
+]);
+
 async function applyVerification(
   attempt: PaymentAttemptDocument,
   response: BkashPaymentResponse,
 ): Promise<void> {
   attempt.provider_status_code = response.statusCode;
-  attempt.provider_status_message = response.statusMessage;
+  attempt.provider_status_message =
+    getBkashErrorMessage(response.statusCode) ??
+    response.statusMessage ??
+    attempt.provider_status_message;
+
   if (paymentResponseIsCompleted(response, attempt)) {
     attempt.status = "completed";
     attempt.bkash_trx_id = response.trxID;
@@ -830,6 +855,12 @@ async function applyVerification(
       attempt.terminal_confirmed_at = new Date();
     } else if (transactionStatus === "initiated") {
       attempt.status = "initiated";
+    } else if (
+      response.statusCode &&
+      DEFINITIVE_FAILED_STATUS_CODES.has(response.statusCode)
+    ) {
+      attempt.status = "failed";
+      attempt.terminal_confirmed_at = new Date();
     } else {
       attempt.status = "verification_pending";
     }
@@ -860,11 +891,18 @@ async function executeOrQuery(attempt: PaymentAttemptDocument): Promise<void> {
       await applyVerification(attempt, response);
       return;
     }
+    if (response.statusCode && ALREADY_COMPLETED_STATUS_CODES.has(response.statusCode)) {
+      await queryAndApplyVerification(attempt);
+      return;
+    }
+    // Execute returned a response (e.g. 2023 Insufficient Balance, 2010 Invalid OTP, 2029 Duplicate).
+    // bKash strictly requires NOT calling Query Payment API when Execute API responded.
+    await applyVerification(attempt, response);
+    return;
   } catch {
-    // Query below resolves timeouts and transport failures safely.
+    // Only query bKash if no response was received from execute API within 30s (timeout) or transport failure
+    await queryAndApplyVerification(attempt);
   }
-
-  await queryAndApplyVerification(attempt);
 }
 
 export async function handleBkashCallback(input: BkashCallbackInput): Promise<string> {

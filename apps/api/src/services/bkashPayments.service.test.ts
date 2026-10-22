@@ -861,6 +861,66 @@ describe("bKash Order lifecycle", () => {
     expect(result.ecommerce).toBeUndefined();
   });
 
+  it("does not call query Payment API when Execute responds with 2023 Insufficient Balance", async () => {
+    const pending = attempt("initiated");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockReturnValue(chainResult(pending) as never);
+    mocks.executePayment.mockResolvedValue({
+      statusCode: "2023",
+      statusMessage: "Insufficient Balance",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "success" });
+
+    expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(mocks.queryPayment).not.toHaveBeenCalled();
+    expect(pending.status).toBe("failed");
+    expect(pending.provider_status_code).toBe("2023");
+    expect(pending.provider_status_message).toBe("Insufficient Balance");
+    expect(pending.terminal_confirmed_at).toBeDefined();
+  });
+
+  it("does not call query Payment API when Execute responds with 2029 Duplicate Transaction", async () => {
+    const pending = attempt("initiated");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockReturnValue(chainResult(pending) as never);
+    mocks.executePayment.mockResolvedValue({
+      statusCode: "2029",
+      statusMessage: "Duplicate for all transactions",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "success" });
+
+    expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(mocks.queryPayment).not.toHaveBeenCalled();
+    expect(pending.status).toBe("failed");
+    expect(pending.provider_status_code).toBe("2029");
+    expect(pending.terminal_confirmed_at).toBeDefined();
+  });
+
+  it("calls query Payment API when Execute times out or fails to respond", async () => {
+    const pending = attempt("initiated");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockReturnValue(chainResult(pending) as never);
+    mocks.executePayment.mockRejectedValue(new Error("TimeoutError"));
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "success" });
+
+    expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(pending.status).toBe("initiated");
+  });
+
   it("blocks payment creation and retry during checkout maintenance", async () => {
     process.env.CHECKOUT_MAINTENANCE_MODE = "true";
     await expect(startBkashPayment(input, "idempotency-key-with-safe-length")).rejects.toMatchObject({ statusCode: 503 });

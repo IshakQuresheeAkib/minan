@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { getBkashConfig } from "../config/bkash.js";
+import { getBkashConfig, isBkashRestricted, isCustomerAllowedForBkash } from "../config/bkash.js";
 import { AppError } from "../lib/errors.js";
 import { parseBody } from "../lib/parseBody.js";
 import { resolveCustomerSession } from "../middleware/requireCustomerAuth.js";
@@ -37,6 +37,15 @@ export async function createBkashPaymentHandler(
       : null;
     if (input.checkout_identity_mode === "customer" && !ownership) {
       throw new AppError("Unauthorized", 401);
+    }
+    if (isBkashRestricted()) {
+      const allowed = isCustomerAllowedForBkash(ownership?.email ?? input.email);
+      if (!allowed) {
+        throw new AppError(
+          "bKash online payment is currently restricted during testing. Please sign in with an authorized test account.",
+          403,
+        );
+      }
     }
     res.json({
       data: await startBkashPayment(

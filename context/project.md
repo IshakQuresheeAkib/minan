@@ -512,7 +512,12 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `app/(admin)/admin/` contains protected admin routes and the admin shell layout.
 - `app/(public)/admin/login/page.tsx` is public so unauthenticated admins can reach it.
 - Public layout chrome is `components/layouts/PublicChrome.tsx`.
-- Admin layout chrome is `components/layouts/AdminShell.tsx`, featuring desktop sidebar branding with the MINAN logo, mobile header with a slide-out navigation drawer, and `features/admin/components/AdminTopBar.tsx` (dynamic section title, real-time Asia/Dhaka clock, product search, unread order notifications, and admin profile pill). Dedicated admin skeletons live in `features/admin/components/AdminSkeleton.tsx` (`AdminShellSkeleton` during session bootstrapping, `AdminDashboardSkeleton` during metrics hydration).
+ - Admin layout chrome is `components/layouts/AdminShell.tsx`, featuring desktop sidebar branding with the MINAN logo, mobile header with a slide-out navigation drawer, and `features/admin/components/AdminTopBar.tsx` (dynamic section title, real-time Asia/Dhaka clock, product search, unread order notifications, and admin profile pill). Dedicated admin skeletons live in `features/admin/components/AdminSkeleton.tsx` (`AdminShellSkeleton` during session bootstrapping, `AdminDashboardSkeleton` during metrics hydration, and `AdminOrdersSkeleton` for orders page Suspense).
+- `components/shared/SearchBar.tsx` provides unified search input with debounced suggestions across the storefront Navbar, product catalog, and `AdminTopBar`.
+- Admin order fulfillment decomposes the order detail view into modular subcomponents in `features/admin/components/order-detail/` (`OrderHeader`, `CustomerEditor`, `ItemsEditor`, `ExchangePanel`, `ReturnsRefunds`, `ActivityTimeline`, `OrderUtility`).
+- `features/admin/lib/orderTransitions.ts` defines allowed order state transitions: pre-shipment non-adjacent transitions (`new` -> `processing`, `confirmed` -> `new`) require an override reason (3-120 characters); reverting `processing` to `confirmed` is blocked when the delivery fee is unpaid.
+- `features/admin/lib/retryBackoff.ts` provides exponential backoff and jitter for order change polling (`OrdersNotificationProvider`), halting polling on terminal non-retryable errors (e.g., 401, 403, 404).
+- Storefront homepage organizes preview grids via `features/home/components/CategoryProductGrid.tsx`. Responsive hero banners support preloading via `preloadResponsiveBannerImage` (`ResponsiveBannerImage.tsx`), and `HeroCarousel.tsx` uses `activeAnimationsRef` to prevent overlapping GSAP animation conflicts.
 - `features/<domain>/` colocates domain components, hooks, actions, services, schemas, and types.
 - `features/<domain>/actions/*.actions.ts` are plain async functions calling Express. No `"use server"`.
 - `components/ui/` is shadcn/ui output.
@@ -565,13 +570,13 @@ The payment-result page resolves its opaque reference through the Express API on
 - Cart stored in Zustand and persisted to browser `localStorage`
 - Product catalog supports multi-select category/subcategory/color/size filters, effective min/max price filters, sort (`newest`, `price-asc`, `price-desc`, `name-asc`), URL-backed state, and infinite scroll
 - Products support integer percentage discounts. APIs retain the original `price` and expose the rounded `discounted_price`. Storefront cards, PDP, cart, buy-now, and frozen Order lines use the effective discounted price.
-- Header search provides debounced product suggestions and links submitted searches to `/products?search=...`
+- Header and admin search use the shared `SearchBar` component with debounced product suggestions and query routing
 - Checkout creates one MongoDB Order with separate auditable full-Order or delivery-fee payment attempts
 - Checkout verifies cart products, prices, sizes, and colors server-side before persisting the frozen Order snapshot
 - Authenticated admin management for products, categories, ordered subcategories, Orders, admins, and managed uploads
 - Versioned homepage banner management with 16:9 desktop and 4:5 mobile Cloudinary assets, atomic ordering, and deferred cleanup
 - Admin dashboard aggregates live Bangladesh-local Order workflow metrics, monthly/total revenue with growth rates, conversion rates, interactive 7-day and 30-day sales/orders chart series, catalog inventory distribution with low-stock alerts, best-selling products with 7-day sparklines, customer insights (collection demographics, retention, repeat buyers, delivery locations), recent orders showcase, and traffic sources
-- Polished admin UX with modular organic stat cards, topbar product search, live Dhaka time, unread order notifications, and dedicated loading skeletons (`AdminDashboardSkeleton`, `AdminShellSkeleton`) eliminating layout shifts
+- Polished admin UX with modular organic stat cards, topbar product search, live Dhaka time, unread order notifications, guarded order transitions requiring reasons for pre-shipment workflow jumps, modular order detail management, and dedicated loading skeletons (`AdminDashboardSkeleton`, `AdminShellSkeleton`, `AdminOrdersSkeleton`) eliminating layout shifts
 - Vercel Speed Insights is mounted in the root frontend layout
 - Public and customer order tracking use the customer-safe Order serializer.
 
@@ -837,7 +842,8 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/utils/` owns response serializers.
 - API startup validates configuration and connects to MongoDB before listening. A listen error, including `EADDRINUSE`, is logged; startup disconnects from MongoDB and exits.
 - Dashboard metrics logic in `services/dashboard.service.ts` calculates real-time metrics across orders and analytics using Bangladesh timezone boundaries without synthetic placeholders. bKash payment client integration in `services/bkashClient.service.ts` enforces Tokenized Checkout v2 contracts, Grant Token rate limits (max 2/hr), and refresh-first retry recovery.
-- bKash error code resolution (`config/bkashErrorCodes.ts`) maps PGW error numbers to customer-friendly descriptions and enriches callback error flows (`errorCode`, `errorMessage`). A dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts`) generates audit evidence and captures request/response lifecycle artifacts for merchant compliance.
+- bKash error code resolution (`config/bkashErrorCodes.ts`) maps PGW error numbers to customer-friendly descriptions and enriches callback error flows (`errorCode`, `errorMessage`). A dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts`) generates audit evidence and captures request/response lifecycle artifacts for merchant compliance, persisting temporary token caches and execution state to the OS temporary directory (`os.tmpdir()`) to prevent git workspace pollution and credential leaks.
+- bKash Production UAT compliance enforces that Query Payment API is only called if Execute Payment API has no response within 30 seconds (timeout or connection failure) or for already-completed indicators (`2062`, `2068`, `2117`), while definitive customer failure codes (`2023`, `2029`, `2010`, etc.) terminate immediately without querying. Production access is restricted via `BKASH_RESTRICT_ACCESS=true` and `BKASH_UAT_ALLOWED_EMAILS`, unlocking bKash checkout only for authenticated UAT test accounts, with seed script `seed:bkash-uat` generating the test customer and required test products.
 - Non-admin router mounts include products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, admin auth, customer auth, public Order tracking, and customer-owned Order reads.
 - Admin router is mounted at `/api/admin`.
 - All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh. The system does not query the database on every request.
