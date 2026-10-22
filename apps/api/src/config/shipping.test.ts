@@ -7,7 +7,6 @@ import {
   shippingAreaLabel,
 } from "./shipping.js";
 
-const originalLegacy = process.env.DELIVERY_FEE_BDT;
 const originalInside = process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT;
 const originalOutside = process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT;
 
@@ -20,19 +19,16 @@ function restore(name: string, value: string | undefined): void {
 }
 
 afterEach(() => {
-  restore("DELIVERY_FEE_BDT", originalLegacy);
   restore("DELIVERY_FEE_INSIDE_SYLHET_BDT", originalInside);
   restore("DELIVERY_FEE_OUTSIDE_SYLHET_BDT", originalOutside);
 });
 
 describe("shipping configuration", () => {
   it("returns the two server-authoritative options in display order", () => {
-    process.env.DELIVERY_FEE_BDT = "100";
     process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT = "60";
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = "120";
 
     expect(getShippingConfig()).toEqual({
-      delivery_fee: 100,
       shipping_options: [
         {
           id: "inside_sylhet",
@@ -52,7 +48,6 @@ describe("shipping configuration", () => {
         methods: ["bkash_full", "cod"],
       },
     });
-    expect(getDeliveryFeeForCheckout()).toBe(100);
     expect(getDeliveryFeeForCheckout("inside_sylhet")).toBe(60);
     expect(getDeliveryFeeForCheckout("outside_sylhet")).toBe(120);
     expect(getDeliveryFeeForShippingZone("inside_sylhet")).toBe(60);
@@ -60,7 +55,6 @@ describe("shipping configuration", () => {
   });
 
   it("rejects missing, non-integer, and non-positive fees", () => {
-    process.env.DELIVERY_FEE_BDT = "100";
     delete process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT;
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = "120";
     expect(() => getShippingConfig()).toThrow(/INSIDE_SYLHET/);
@@ -71,10 +65,6 @@ describe("shipping configuration", () => {
     process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT = "60";
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = "0";
     expect(() => getShippingConfig()).toThrow(/positive whole number/);
-
-    process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = "120";
-    delete process.env.DELIVERY_FEE_BDT;
-    expect(() => getShippingConfig()).toThrow(/DELIVERY_FEE_BDT/);
   });
 
   it("labels historical Orders without inferring an area from their fee", () => {

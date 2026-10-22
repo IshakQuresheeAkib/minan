@@ -32,8 +32,7 @@ export type ShippingOption = {
 };
 
 export type CheckoutConfig = {
-  delivery_fee: number;
-  shipping_options?: [ShippingOption, ShippingOption];
+  shipping_options: [ShippingOption, ShippingOption];
   currency: "BDT";
   refundable: false;
   payment_contract?: CheckoutPaymentContract;

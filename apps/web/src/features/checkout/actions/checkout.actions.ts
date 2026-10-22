@@ -19,9 +19,14 @@ export async function startCheckoutPayment(
   customerAccessToken?: string,
 ): Promise<{ data: PaymentStartResult }> {
   const client = customerAccessToken ? customerApiRequest : apiRequest;
-  return client<{ data: PaymentStartResult }>("/api/bkash/payments", {
+  const uat = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("uat") : null;
+  const query = uat ? `?uat=${encodeURIComponent(uat)}` : "";
+  return client<{ data: PaymentStartResult }>(`/api/bkash/payments${query}`, {
     method: "POST",
-    headers: { "Idempotency-Key": idempotencyKey },
+    headers: {
+      "Idempotency-Key": idempotencyKey,
+      ...(uat ? { "x-bkash-uat": uat } : {}),
+    },
     ...(customerAccessToken ? { accessToken: customerAccessToken } : {}),
     body,
   });

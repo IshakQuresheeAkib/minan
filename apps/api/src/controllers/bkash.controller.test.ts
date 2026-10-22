@@ -16,9 +16,27 @@ function response() {
 }
 
 const input = {
-  name: "MINAN Customer", phone_number: "01700000000", email: "customer@example.com", address: "Sylhet, Bangladesh",
-  checkout_identity_mode: "customer", checkout_source: "cart", payment_method: "cod",
-  cart_snapshot: { items: [{ product_id: "507f1f77bcf86cd799439011", name: "Shirt", price: 1200, size: "M", color: "Black", quantity: 1 }], total: 1200 },
+  name: "MINAN Customer",
+  phone_number: "01700000000",
+  email: "customer@example.com",
+  address: "Sylhet, Bangladesh",
+  shipping_zone: "inside_sylhet",
+  checkout_identity_mode: "customer",
+  checkout_source: "cart",
+  payment_method: "cod",
+  cart_snapshot: {
+    items: [
+      {
+        product_id: "507f1f77bcf86cd799439011",
+        name: "Shirt",
+        price: 1200,
+        size: "M",
+        color: "Black",
+        quantity: 1,
+      },
+    ],
+    total: 1200,
+  },
 };
 
 describe("checkout ownership controller", () => {

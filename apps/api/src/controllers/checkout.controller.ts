@@ -14,7 +14,8 @@ export async function getCheckoutConfigHandler(
   try {
     const restricted = isBkashRestricted();
     const customer = restricted ? await resolveCustomerSession(req) : null;
-    const isAllowed = !restricted || isCustomerAllowedForBkash(customer?.email);
+    const uatToken = (req.query?.uat as string) || req.cookies?.bkash_uat || req.get?.("x-bkash-uat");
+    const isAllowed = !restricted || isCustomerAllowedForBkash(customer?.email, uatToken);
 
     const baseConfig = getShippingConfig();
     const data = isAllowed
@@ -25,7 +26,7 @@ export async function getCheckoutConfigHandler(
         };
 
     const etag = `"${createHash("sha256").update(JSON.stringify(data)).digest("base64url")}"`;
-    if (req.get("If-None-Match") === etag) {
+    if (req.get?.("If-None-Match") === etag) {
       res.status(304).end();
       return;
     }
@@ -42,4 +43,3 @@ export async function getCheckoutConfigHandler(
     next(error);
   }
 }
-

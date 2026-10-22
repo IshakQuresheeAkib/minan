@@ -41,7 +41,6 @@ import { useCustomerAuthStore } from "@/store/customer-auth.store";
 type CheckoutFormProps = {
   cartSnapshot: CartSnapshot;
   checkoutSource: CheckoutSource;
-  deliveryFee: number;
   disabled?: boolean;
   pricingPending?: boolean;
   merchandiseTotal: number;
@@ -55,7 +54,6 @@ type CheckoutFormProps = {
 export function CheckoutForm({
   cartSnapshot,
   checkoutSource,
-  deliveryFee,
   disabled = false,
   pricingPending = false,
   merchandiseTotal,
@@ -72,15 +70,15 @@ export function CheckoutForm({
     payNow: number;
     pricingKey: string;
   } | null>(null);
-  const pricingKey = JSON.stringify([paymentContract, shippingOptions, deliveryFee, cartSnapshot]);
+  const pricingKey = JSON.stringify([paymentContract, shippingOptions, cartSnapshot]);
   const retryContext = retryState?.pricingKey === pricingKey ? retryState : null;
   const [retrying, setRetrying] = useState(false);
   const [forceGuest, setForceGuest] = useState(false);
   const usesShippingZones = shippingOptions.length > 0;
   const supportsPaymentChoice = paymentContract !== undefined;
   const validationSchema = useMemo(
-    () => getLeadInputSchema(usesShippingZones, supportsPaymentChoice),
-    [supportsPaymentChoice, usesShippingZones],
+    () => getLeadInputSchema(supportsPaymentChoice),
+    [supportsPaymentChoice],
   );
   const form = useForm<LeadInput>({
     resolver: zodResolver(validationSchema),
@@ -100,8 +98,7 @@ export function CheckoutForm({
   const selectedOption = shippingOptions.find(
     (option) => option.id === selectedShippingZone,
   );
-  const payableDeliveryFee = selectedOption?.delivery_fee ??
-    (usesShippingZones ? undefined : deliveryFee);
+  const payableDeliveryFee = selectedOption?.delivery_fee;
   const errorIds = {
     address: `${formId}-address-error`,
     email: `${formId}-email-error`,
@@ -153,11 +150,11 @@ export function CheckoutForm({
     const paymentMethod = supportsPaymentChoice
       ? values.payment_method
       : "cod";
-    if (!paymentMethod) return;
+    if (!paymentMethod || payableDeliveryFee === undefined) return;
     const { payNow } = getPaymentSplit(
       paymentMethod,
       merchandiseTotal,
-      payableDeliveryFee ?? deliveryFee,
+      payableDeliveryFee,
     );
     let session = forceGuest ? null : useCustomerAuthStore.getState().session;
     if (!forceGuest && useCustomerAuthStore.getState().status === "unknown") {
@@ -219,7 +216,7 @@ export function CheckoutForm({
       className="mt-8 grid gap-4"
       onSubmit={(event) =>
         void form.handleSubmit(onSubmit, (invalidFields) => {
-          if (usesShippingZones && invalidFields.shipping_zone) {
+          if (invalidFields.shipping_zone) {
             form.setFocus("shipping_zone");
           } else if (supportsPaymentChoice && invalidFields.payment_method) {
             form.setFocus("payment_method");
@@ -352,7 +349,7 @@ export function CheckoutForm({
             ? `Pay Tk ${getPaymentSplit(
               selectedPaymentMethod,
               merchandiseTotal,
-              payableDeliveryFee ?? deliveryFee,
+              payableDeliveryFee ?? 0,
             ).payNow.toLocaleString("en-BD")} with bKash`
             : "Select a payment method"
           : payableDeliveryFee

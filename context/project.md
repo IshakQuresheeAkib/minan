@@ -736,7 +736,6 @@ BKASH_APP_KEY=
 BKASH_APP_SECRET=
 BKASH_USERNAME=
 BKASH_PASSWORD=
-DELIVERY_FEE_BDT=100
 DELIVERY_FEE_INSIDE_SYLHET_BDT=60
 DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120
 API_PUBLIC_URL=https://api.minan.com
@@ -750,7 +749,7 @@ FRONTEND_URL=https://app.minan.com
 - `cleanup:inactive-admin-sessions` is a guarded legacy-maintenance command. Run it without `--apply` before reactivating an inactive legacy admin. After reviewing the count, rerun it with `-- --apply` to clear stale refresh-token hashes and advance `session_version`. Normal admin deactivation performs this revocation automatically.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 - `API_PUBLIC_URL` must be the directly reachable Render API origin used for the bKash callback. `FRONTEND_URL` is the Vercel storefront origin used after callback verification.
-- `DELIVERY_FEE_INSIDE_SYLHET_BDT=60`, `DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120`, and compatibility fallback `DELIVERY_FEE_BDT=100` are required positive integers for this release. Do not add frontend public fee variables. Remove the fallback in a later cleanup release, once the previous storefront can no longer send traffic.
+- `DELIVERY_FEE_INSIDE_SYLHET_BDT=60` and `DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120` are required positive integers. Do not add frontend public fee variables. `shipping_zone` is strictly required on checkout requests.
 - `CHECKOUT_MAINTENANCE_MODE=true` blocks payment creation and retry during migration while preserving callbacks, result resolution, and admin recheck.
 - The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL. It does not depend on the browser rewrite.
 - Use bKash sandbox credentials (`https://tokenized.sandbox.bka.sh/v2`) until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Tokenized Checkout v2 enforces strict Grant Token rate limits (max 2 calls/hr), handled automatically via in-memory rate-limit tracking and refresh-token caching. Replace the base URL and credentials together for production.

@@ -28,7 +28,14 @@ vi.mock("@/store/cart.store", () => {
 import { CheckoutClient } from "./CheckoutClient";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
-const config = { delivery_fee: 100, currency: "BDT", refundable: false };
+const config = {
+  shipping_options: [
+    { id: "inside_sylhet", label: "Inside Sylhet Shipping Cost", delivery_fee: 60 },
+    { id: "outside_sylhet", label: "Outside Sylhet Shipping Cost", delivery_fee: 120 },
+  ],
+  currency: "BDT",
+  refundable: false,
+};
 beforeEach(() => {
   vi.clearAllMocks();
   useCustomerAuthStore.getState().clearSession();
@@ -51,7 +58,7 @@ describe("checkout configuration loading", () => {
     expect(mocks.start).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Loading delivery and payment options")).toBeTruthy();
     await act(async () => resolveConfig({ data: config }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /Pay Tk 100/ }).hasAttribute("disabled")).toBe(false));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Continue to bKash/ }).hasAttribute("disabled")).toBe(false));
     expect(screen.getByLabelText("Name")).toBe(name);
     expect(name.value).toBe("Test Buyer");
   });

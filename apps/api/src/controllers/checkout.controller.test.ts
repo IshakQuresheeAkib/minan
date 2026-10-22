@@ -46,7 +46,6 @@ function mockResponse() {
 }
 
 const originalFees = {
-  DELIVERY_FEE_BDT: process.env.DELIVERY_FEE_BDT,
   DELIVERY_FEE_INSIDE_SYLHET_BDT: process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT,
   DELIVERY_FEE_OUTSIDE_SYLHET_BDT: process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT,
 };
@@ -54,7 +53,6 @@ const originalFees = {
 describe("getCheckoutConfigHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.DELIVERY_FEE_BDT = "100";
     process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT = "60";
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = "120";
     delete process.env.BKASH_RESTRICT_ACCESS;
@@ -62,7 +60,6 @@ describe("getCheckoutConfigHandler", () => {
   });
 
   afterEach(() => {
-    process.env.DELIVERY_FEE_BDT = originalFees.DELIVERY_FEE_BDT;
     process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT = originalFees.DELIVERY_FEE_INSIDE_SYLHET_BDT;
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = originalFees.DELIVERY_FEE_OUTSIDE_SYLHET_BDT;
     delete process.env.BKASH_RESTRICT_ACCESS;

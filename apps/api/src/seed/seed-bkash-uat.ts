@@ -8,6 +8,7 @@ import { Product } from "../models/Product.js";
 
 export async function seedBkashUat(): Promise<{
   user: { email: string; password: string };
+  users: { email: string; password: string }[];
   products: { name: string; slug: string; price: number; purpose: string }[];
 }> {
   await connectDB();
@@ -86,26 +87,38 @@ export async function seedBkashUat(): Promise<{
     );
   }
 
-  // 3. Upsert UAT Test Customer
-  const uatEmail = (process.env.BKASH_UAT_TEST_EMAIL || "bkash-uat@minan.com").trim().toLowerCase();
+  // 3. Upsert UAT Test Customers
+  const uatEmails = Array.from(
+    new Set(
+      [
+        process.env.BKASH_UAT_TEST_EMAIL,
+        "akibqureshee11@gmail.com",
+        "bkash-uat@minan.com",
+      ]
+        .filter(Boolean)
+        .map((e) => (e as string).trim().toLowerCase()),
+    ),
+  );
   const uatPassword = process.env.BKASH_UAT_TEST_PASSWORD || "MinanBkashUAT2026!";
   const passwordHash = await hashCustomerPassword(uatPassword);
 
-  await Customer.findOneAndUpdate(
-    { normalized_email: uatEmail },
-    {
-      $set: {
-        email: uatEmail,
-        normalized_email: uatEmail,
-        password_hash: passwordHash,
-        is_active: true,
+  for (const email of uatEmails) {
+    await Customer.findOneAndUpdate(
+      { normalized_email: email },
+      {
+        $set: {
+          email,
+          normalized_email: email,
+          password_hash: passwordHash,
+          is_active: true,
+        },
+        $setOnInsert: {
+          session_version: 0,
+        },
       },
-      $setOnInsert: {
-        session_version: 0,
-      },
-    },
-    { upsert: true, returnDocument: "after" },
-  );
+      { upsert: true, returnDocument: "after" },
+    );
+  }
 
   try {
     await revalidateStorefront();
@@ -113,8 +126,14 @@ export async function seedBkashUat(): Promise<{
     // Ignore storefront revalidation errors during seeding
   }
 
+  const primaryUser = {
+    email: uatEmails[0] ?? "akibqureshee11@gmail.com",
+    password: uatPassword,
+  };
+
   return {
-    user: { email: uatEmail, password: uatPassword },
+    user: primaryUser,
+    users: uatEmails.map((email) => ({ email, password: uatPassword })),
     products: testProducts.map((p) => ({
       name: p.name,
       slug: p.slug,
@@ -128,9 +147,11 @@ if (process.argv[1] && process.argv[1].includes("seed-bkash-uat")) {
   seedBkashUat()
     .then(async (result) => {
       console.log("=== bKash UAT Seed Successful ===");
-      console.log("Test Customer Account:");
-      console.log(`  Email:    ${result.user.email}`);
-      console.log(`  Password: ${result.user.password}`);
+      console.log("Test Customer Accounts:");
+      for (const u of result.users) {
+        console.log(`  Email:    ${u.email}`);
+        console.log(`  Password: ${u.password}`);
+      }
       console.log("\nTest Products:");
       for (const prod of result.products) {
         console.log(`  - ${prod.name} (${prod.price} BDT)`);
@@ -139,11 +160,11 @@ if (process.argv[1] && process.argv[1].includes("seed-bkash-uat")) {
       }
       console.log("=================================");
       await disconnectDB();
-      process.exit(0);
+      process.exitCode = 0;
     })
     .catch(async (error: unknown) => {
       console.error("bKash UAT seed failed:", error);
       await disconnectDB();
-      process.exit(1);
+      process.exitCode = 1;
     });
 }

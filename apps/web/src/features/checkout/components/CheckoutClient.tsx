@@ -58,8 +58,7 @@ export function CheckoutClient() {
   const selectedShippingOption = config?.shipping_options?.find(
     (option) => option.id === shippingZone,
   );
-  const payableDeliveryFee = selectedShippingOption?.delivery_fee ??
-    (config?.shipping_options ? undefined : config?.delivery_fee);
+  const payableDeliveryFee = selectedShippingOption?.delivery_fee;
   const summaryPaymentMethod = config?.payment_contract
     ? paymentMethod
     : config
@@ -96,7 +95,6 @@ export function CheckoutClient() {
           <CheckoutForm
             cartSnapshot={cartSnapshot}
             checkoutSource="cart"
-            deliveryFee={config?.delivery_fee ?? 0}
             disabled
             pricingPending={configLoading}
             merchandiseTotal={total}
@@ -156,7 +154,6 @@ export function CheckoutClient() {
         <CheckoutForm
           cartSnapshot={cartSnapshot}
           checkoutSource="cart"
-          deliveryFee={config?.delivery_fee ?? 0}
           disabled={hasUnavailableItems || !config || configValidating || Boolean(configError)}
           pricingPending={configLoading}
           merchandiseTotal={total}

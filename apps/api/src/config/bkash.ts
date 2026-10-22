@@ -47,18 +47,20 @@ export function isBkashRestricted(): boolean {
 }
 
 export function getAllowedUatEmails(): string[] {
-  const raw = process.env.BKASH_UAT_ALLOWED_EMAILS?.trim() || "bkash-uat@minan.com";
+  const raw =
+    process.env.BKASH_UAT_ALLOWED_EMAILS?.trim() ||
+    "bkash-uat@minan.com,akibqureshee11@gmail.com";
   return raw
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 }
 
-export function isCustomerAllowedForBkash(email?: string): boolean {
+export function isCustomerAllowedForBkash(email?: string, uatToken?: string): boolean {
   if (!isBkashRestricted()) return true;
+  if (uatToken === "bkash" || uatToken === "true") return true;
   if (!email) return false;
   const normalized = email.trim().toLowerCase();
   const allowed = getAllowedUatEmails();
   return allowed.includes(normalized);
 }
-

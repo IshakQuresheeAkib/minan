@@ -18,7 +18,7 @@ import {
 } from "../services/bkashPayments.service.js";
 
 function idempotencyKey(req: Request): string {
-  const value = req.get("Idempotency-Key")?.trim();
+  const value = req.get?.("Idempotency-Key")?.trim();
   if (!value || value.length < 16 || value.length > 128) {
     throw new AppError("A valid Idempotency-Key header is required", 400);
   }
@@ -39,10 +39,11 @@ export async function createBkashPaymentHandler(
       throw new AppError("Unauthorized", 401);
     }
     if (isBkashRestricted()) {
-      const allowed = isCustomerAllowedForBkash(ownership?.email ?? input.email);
+      const uatToken = (req.query?.uat as string) || req.cookies?.bkash_uat || req.get?.("x-bkash-uat");
+      const allowed = isCustomerAllowedForBkash(ownership?.email ?? input.email, uatToken);
       if (!allowed) {
         throw new AppError(
-          "bKash online payment is currently restricted during testing. Please sign in with an authorized test account.",
+          "bKash online payment is currently restricted during testing. Please sign in with an authorized test account or use the UAT link.",
           403,
         );
       }

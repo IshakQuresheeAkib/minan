@@ -65,6 +65,18 @@ describe("seedBkashUat", () => {
 
     expect(mocks.productFindOneAndUpdate).toHaveBeenCalledTimes(3);
     expect(mocks.customerFindOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ normalized_email: "akibqureshee11@gmail.com" }),
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          email: "akibqureshee11@gmail.com",
+          password_hash: "hashed-argon2-pw",
+          is_active: true,
+        }),
+      }),
+      expect.objectContaining({ upsert: true }),
+    );
+
+    expect(mocks.customerFindOneAndUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ normalized_email: "bkash-uat@minan.com" }),
       expect.objectContaining({
         $set: expect.objectContaining({
@@ -76,7 +88,6 @@ describe("seedBkashUat", () => {
       expect.objectContaining({ upsert: true }),
     );
 
-    expect(result.user.email).toBe("bkash-uat@minan.com");
     expect(result.user.password).toBe("MinanBkashUAT2026!");
   });
 });
