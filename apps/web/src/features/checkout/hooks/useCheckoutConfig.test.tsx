@@ -68,7 +68,7 @@ describe("useCheckoutConfig", () => {
 
     expect(mocks.apiRequest).toHaveBeenCalledWith(
       "/api/checkout/config",
-      { accessToken: "uat-token-123" },
+      { accessToken: "uat-token-123", _retrying: true },
     );
   });
 
