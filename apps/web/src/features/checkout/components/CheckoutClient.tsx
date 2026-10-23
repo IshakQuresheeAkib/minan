@@ -154,7 +154,12 @@ export function CheckoutClient() {
         <CheckoutForm
           cartSnapshot={cartSnapshot}
           checkoutSource="cart"
-          disabled={hasUnavailableItems || !config || configValidating || Boolean(configError)}
+          disabled={
+            hasUnavailableItems ||
+            !config?.payment_contract ||
+            configValidating ||
+            Boolean(configError)
+          }
           pricingPending={configLoading}
           merchandiseTotal={total}
           onPaymentMethodChange={setPaymentMethod}
@@ -164,6 +169,11 @@ export function CheckoutClient() {
           shippingOptions={config?.shipping_options ?? []}
         />
         <CheckoutConfigStatus loading={configLoading} error={configError} onRetry={retryConfig} />
+        {config && !config.payment_contract ? (
+          <p className="mt-3 text-sm font-medium text-destructive" role="status">
+            Online checkout is temporarily in maintenance mode. Please try again later.
+          </p>
+        ) : null}
         {hasUnavailableItems ? (
           <p className="mt-3 text-sm font-medium text-destructive">
             Remove unavailable products from your cart before submitting.

@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+
 vi.mock("@/features/checkout/hooks/useCheckoutConfig", () => ({
   useCheckoutConfig: () => ({ config: null, configLoading: true, configValidating: true, configError: undefined, retryConfig: vi.fn() }),
 }));

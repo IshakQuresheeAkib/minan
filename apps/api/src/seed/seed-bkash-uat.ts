@@ -92,7 +92,6 @@ export async function seedBkashUat(): Promise<{
     new Set(
       [
         process.env.BKASH_UAT_TEST_EMAIL,
-        "akibqureshee11@gmail.com",
         "bkash-uat@minan.com",
       ]
         .filter(Boolean)
@@ -127,7 +126,7 @@ export async function seedBkashUat(): Promise<{
   }
 
   const primaryUser = {
-    email: uatEmails[0] ?? "akibqureshee11@gmail.com",
+    email: uatEmails[0] ?? "bkash-uat@minan.com",
     password: uatPassword,
   };
 

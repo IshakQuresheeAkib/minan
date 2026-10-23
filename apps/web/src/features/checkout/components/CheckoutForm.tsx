@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export function CheckoutForm({
   shippingOptions,
 }: CheckoutFormProps) {
   const formId = useId();
+  const router = useRouter();
   const [retryState, setRetryContext] = useState<{
     token: string;
     method: PaymentMethod;
@@ -126,17 +128,13 @@ export function CheckoutForm({
       return;
     }
     if (result.state === "completed") {
-      window.location.assign(
-        `/payment/result?reference=${encodeURIComponent(result.reference)}`,
-      );
+      router.push(`/payment/result?reference=${encodeURIComponent(result.reference)}`);
       return;
     }
     if (result.state === "failed") {
       setRetryContext({ token: result.retry_token, method, payNow, pricingKey });
       if (result.reference) {
-        window.location.assign(
-          `/payment/result?reference=${encodeURIComponent(result.reference)}`,
-        );
+        router.push(`/payment/result?reference=${encodeURIComponent(result.reference)}`);
         return;
       }
       toast.error(result.message);

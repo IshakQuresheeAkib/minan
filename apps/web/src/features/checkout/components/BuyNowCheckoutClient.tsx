@@ -146,7 +146,7 @@ export function BuyNowCheckoutClient() {
           checkoutSource="buy_now"
           disabled={
             !item.isAvailable ||
-            !config ||
+            !config?.payment_contract ||
             configValidating ||
             Boolean(configError)
           }
@@ -163,6 +163,11 @@ export function BuyNowCheckoutClient() {
           error={configError}
           onRetry={retryConfig}
         />
+        {config && !config.payment_contract ? (
+          <p className="mt-3 text-sm font-medium text-destructive" role="status">
+            Online checkout is temporarily in maintenance mode. Please try again later.
+          </p>
+        ) : null}
         {!item.isAvailable ? (
           <p className="mt-3 text-sm font-medium text-destructive">
             This product is currently unavailable. Choose another product to

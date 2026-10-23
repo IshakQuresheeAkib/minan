@@ -16,15 +16,7 @@ export const leadInputSchema = z.object({
   notes: z.string().trim().max(500).optional(),
 });
 
-export function getLeadInputSchema(
-  requirePaymentMethodOrFirstArg?: boolean,
-  maybeRequirePaymentMethod?: boolean,
-) {
-  const requirePaymentMethod =
-    maybeRequirePaymentMethod !== undefined
-      ? maybeRequirePaymentMethod
-      : Boolean(requirePaymentMethodOrFirstArg);
-
+export function getLeadInputSchema(requirePaymentMethod = false) {
   return leadInputSchema.superRefine((input, context) => {
     if (requirePaymentMethod && input.payment_method === undefined) {
       context.addIssue({

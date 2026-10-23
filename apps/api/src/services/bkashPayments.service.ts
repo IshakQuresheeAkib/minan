@@ -942,11 +942,11 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
         // Execute was already dispatched and timed out/was silent. Money may have moved,
         // so query bKash to verify if it completed before marking as terminal.
         await queryAndApplyVerification(attempt);
-        if ((attempt.status as PaymentAttemptStatus) !== "completed") {
-          // If query itself failed/timed out, attempt remains verification_pending from catch block.
-          // Leave terminal_confirmed_at undefined so recovery nets stay open for subsequent rechecks.
-          const queryAnswered = (attempt.status as PaymentAttemptStatus) !== "verification_pending";
-          await applyTerminalCallback(queryAnswered);
+        // If the query itself failed/timed out, status stays verification_pending: money may
+        // have moved, so retry must stay blocked and recovery rechecks keep polling bKash.
+        const queryAnswered = (attempt.status as PaymentAttemptStatus) !== "verification_pending";
+        if (queryAnswered && (attempt.status as PaymentAttemptStatus) !== "completed") {
+          await applyTerminalCallback(true);
         }
       } else {
         // Execute was never called (e.g. status was "initiated"). No funds moved.

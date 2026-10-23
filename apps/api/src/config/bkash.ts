@@ -49,7 +49,7 @@ export function isBkashRestricted(): boolean {
 export function getAllowedUatEmails(): string[] {
   const raw =
     process.env.BKASH_UAT_ALLOWED_EMAILS?.trim() ||
-    "bkash-uat@minan.com,akibqureshee11@gmail.com";
+    "bkash-uat@minan.com";
   return raw
     .split(",")
     .map((e) => e.trim().toLowerCase())
