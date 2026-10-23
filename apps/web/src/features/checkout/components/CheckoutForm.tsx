@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -92,6 +92,13 @@ export function CheckoutForm({
       notes: "",
     },
   });
+  const session = useCustomerAuthStore((state) => state.session);
+
+  useEffect(() => {
+    if (session?.customer?.email && !form.getValues("email")) {
+      form.setValue("email", session.customer.email);
+    }
+  }, [session, form]);
   const errors = form.formState.errors;
   const selectedPaymentMethod = useWatch({
     control: form.control,
@@ -177,9 +184,29 @@ export function CheckoutForm({
         ? error.status
         : undefined;
       if (checkoutIdentityMode === "customer" && status === 401) {
+        try {
+          const freshSession = await restoreCustomerSession();
+          if (freshSession) {
+            const retryResponse = await startCheckoutPayment(
+              {
+                ...values,
+                cart_snapshot: cartSnapshot,
+                checkout_identity_mode: "customer",
+                checkout_source: checkoutSource,
+                payment_method: paymentMethod,
+              },
+              getCheckoutIdempotencyKey(checkoutSource, cartSnapshot, values),
+              freshSession.accessToken,
+            );
+            handlePaymentResult(retryResponse.data, paymentMethod, payNow);
+            return;
+          }
+        } catch {
+          // Token refresh failed
+        }
         useCustomerAuthStore.getState().clearSession();
         setForceGuest(true);
-        toast.error("Your account session has expired. Review your details, then choose Continue as guest.");
+        toast.error("Your account session has expired. Please sign in again to continue.");
         return;
       }
       toast.error(
