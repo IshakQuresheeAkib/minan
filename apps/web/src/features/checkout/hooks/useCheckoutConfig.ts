@@ -27,7 +27,7 @@ export function useCheckoutConfig() {
     async () => {
       const response = await apiRequest<{ data: unknown }>(
         `/api/checkout/config${query}`,
-        session?.accessToken ? { accessToken: session.accessToken } : {},
+        session?.accessToken ? { accessToken: session.accessToken, _retrying: true } : {},
       );
       return checkoutConfigSchema.parse(response.data);
     },
@@ -39,11 +39,11 @@ export function useCheckoutConfig() {
     configLoading: status === "unknown" || (swrKey !== null && isLoading),
     configValidating: isValidating,
     configError: error,
-    retryConfig: () => {
+    retryConfig: async () => {
       if (status === "unknown") {
-        void restoreCustomerSession().catch(() => undefined);
+        await restoreCustomerSession().catch(() => undefined);
       }
-      void mutate().catch(() => undefined);
+      await mutate().catch(() => undefined);
     },
   };
 }

@@ -163,7 +163,11 @@ export function CheckoutForm({
     );
     let session = forceGuest ? null : useCustomerAuthStore.getState().session;
     if (!forceGuest && useCustomerAuthStore.getState().status === "unknown") {
-      session = await restoreCustomerSession();
+      try {
+        session = await restoreCustomerSession();
+      } catch {
+        session = null;
+      }
     }
     const checkoutIdentityMode = session ? "customer" : "guest";
     try {
@@ -184,9 +188,14 @@ export function CheckoutForm({
         ? error.status
         : undefined;
       if (checkoutIdentityMode === "customer" && status === 401) {
+        let freshSession = null;
         try {
-          const freshSession = await restoreCustomerSession();
-          if (freshSession) {
+          freshSession = await restoreCustomerSession();
+        } catch {
+          // Token refresh failed
+        }
+        if (freshSession) {
+          try {
             const retryResponse = await startCheckoutPayment(
               {
                 ...values,
@@ -200,9 +209,18 @@ export function CheckoutForm({
             );
             handlePaymentResult(retryResponse.data, paymentMethod, payNow);
             return;
+          } catch (retryError) {
+            const retryStatus = retryError instanceof ApiError || retryError instanceof OrderTrackingApiError
+              ? retryError.status
+              : undefined;
+            if (retryStatus !== 401) {
+              const message = retryError instanceof ApiError || retryError instanceof OrderTrackingApiError
+                ? retryError.message
+                : "Failed to start bKash payment.";
+              toast.error(message);
+              return;
+            }
           }
-        } catch {
-          // Token refresh failed
         }
         useCustomerAuthStore.getState().clearSession();
         setForceGuest(true);
@@ -210,7 +228,7 @@ export function CheckoutForm({
         return;
       }
       toast.error(
-        error instanceof ApiError
+        error instanceof ApiError || error instanceof OrderTrackingApiError
           ? error.message
           : "Failed to start bKash payment.",
       );
