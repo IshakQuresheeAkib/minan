@@ -122,4 +122,25 @@ describe("checkout ownership controller", () => {
     delete process.env.BKASH_RESTRICT_ACCESS;
     delete process.env.BKASH_UAT_ALLOWED_EMAILS;
   });
+
+  it("blocks guest checkout even if guest types the UAT email when bKash is restricted", async () => {
+    process.env.BKASH_RESTRICT_ACCESS = "true";
+    process.env.BKASH_UAT_ALLOWED_EMAILS = "bkash-uat@minan.com";
+    const res = response();
+    const next = vi.fn();
+
+    await createBkashPaymentHandler(
+      {
+        body: { ...input, checkout_identity_mode: "guest", email: "bkash-uat@minan.com" },
+        get: vi.fn(() => "x".repeat(16)),
+      } as unknown as Request,
+      res,
+      next,
+    );
+
+    expect(mocks.start).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
+    delete process.env.BKASH_RESTRICT_ACCESS;
+    delete process.env.BKASH_UAT_ALLOWED_EMAILS;
+  });
 });

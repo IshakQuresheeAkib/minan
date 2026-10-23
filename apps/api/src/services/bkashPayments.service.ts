@@ -920,10 +920,29 @@ export async function handleBkashCallback(input: BkashCallbackInput): Promise<st
 
   if (attempt.status !== "completed") {
     if (input.status === "failure" || input.status === "cancel") {
-      if (!expected) {
+      const terminalStatus = input.status === "cancel" ? "cancelled" : "failed";
+
+      if (attempt.status === "verification_pending") {
+        // Execute was already dispatched and timed out/was silent. Money may have moved,
+        // so query bKash to verify if it completed before marking as terminal.
         await queryAndApplyVerification(attempt);
+        if ((attempt.status as PaymentAttemptStatus) !== "completed") {
+          attempt.status = terminalStatus;
+          attempt.terminal_confirmed_at = new Date();
+          if (input.errorCode) {
+            attempt.provider_status_code = input.errorCode;
+          }
+          attempt.provider_status_message =
+            getBkashErrorMessage(input.errorCode) ??
+            input.errorMessage ??
+            (input.status === "cancel" ? "Payment was cancelled" : "Payment failed");
+          await attempt.save();
+          await syncOrderFeeStatus(attempt);
+        }
       } else {
-        attempt.status = input.status === "cancel" ? "cancelled" : "failed";
+        // Execute was never called (e.g. status was "initiated"). No funds moved.
+        // Mark terminal directly without querying bKash, preventing delay & UAT failures.
+        attempt.status = terminalStatus;
         attempt.terminal_confirmed_at = new Date();
         if (input.errorCode) {
           attempt.provider_status_code = input.errorCode;

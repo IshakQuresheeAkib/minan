@@ -58,7 +58,9 @@ export function getAllowedUatEmails(): string[] {
 
 export function isCustomerAllowedForBkash(email?: string, uatToken?: string): boolean {
   if (!isBkashRestricted()) return true;
-  if (uatToken === "bkash" || uatToken === "true") return true;
+  if (process.env.NODE_ENV !== "production" && (uatToken === "bkash" || uatToken === "true")) {
+    return true;
+  }
   if (!email) return false;
   const normalized = email.trim().toLowerCase();
   const allowed = getAllowedUatEmails();

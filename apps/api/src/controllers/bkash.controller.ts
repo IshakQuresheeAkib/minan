@@ -40,10 +40,10 @@ export async function createBkashPaymentHandler(
     }
     if (isBkashRestricted()) {
       const uatToken = (req.query?.uat as string) || req.cookies?.bkash_uat || req.get?.("x-bkash-uat");
-      const allowed = isCustomerAllowedForBkash(ownership?.email ?? input.email, uatToken);
+      const allowed = isCustomerAllowedForBkash(ownership?.email, uatToken);
       if (!allowed) {
         throw new AppError(
-          "bKash online payment is currently restricted during testing. Please sign in with an authorized test account or use the UAT link.",
+          "bKash online payment is currently restricted during testing. Please sign in with an authorized test account.",
           403,
         );
       }

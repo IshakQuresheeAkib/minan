@@ -773,23 +773,64 @@ describe("bKash Order lifecycle", () => {
   it.each([
     "failure",
     "cancel",
-  ] as const)("retains provider query path when an unauthenticated %s callback lacks a verified signature", async (status) => {
+  ] as const)("marks %s callback as terminal directly without Query when attempt is in initiated state", async (status) => {
     const pending = attempt("initiated");
     vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
-    mocks.queryPayment.mockResolvedValue({
-      statusCode: "0000",
-      transactionStatus: "Initiated",
-      paymentID: "TR001",
-    });
 
     await handleBkashCallback({
       paymentID: "TR001",
       status,
     });
 
+    expect(mocks.queryPayment).not.toHaveBeenCalled();
+    expect(pending.status).toBe(status === "cancel" ? "cancelled" : "failed");
+    expect(pending.terminal_confirmed_at).toBeDefined();
+  });
+
+  it("queries bKash and settles payment if a verification_pending attempt receives a cancel callback after bKash completed", async () => {
+    const pending = attempt("verification_pending");
+    vi.spyOn(Order, "findById").mockResolvedValue(order() as never);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Completed",
+      paymentID: "TR001",
+      paymentId: "TR001",
+      trxID: "TRX_LATE_123",
+      amount: "60.00",
+      currency: "BDT",
+      merchantInvoiceNumber: pending.merchant_invoice_number,
+    });
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status: "cancel",
+    });
+
     expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
-    expect(pending.status).toBe("initiated");
-    expect(pending.terminal_confirmed_at).toBeUndefined();
+    expect(pending.status).toBe("completed");
+    expect(pending.bkash_trx_id).toBe("TRX_LATE_123");
+  });
+
+  it("queries bKash and marks terminal if a verification_pending attempt receives cancel and bKash did not complete", async () => {
+    const pending = attempt("verification_pending");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+      paymentId: "TR001",
+    });
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status: "cancel",
+    });
+
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(pending.status).toBe("cancelled");
+    expect(pending.terminal_confirmed_at).toBeDefined();
   });
 
   it("recovers verification-pending payments through Execute then query", async () => {
