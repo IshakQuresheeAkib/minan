@@ -833,6 +833,21 @@ describe("bKash Order lifecycle", () => {
     expect(pending.terminal_confirmed_at).toBeDefined();
   });
 
+  it("leaves terminal_confirmed_at undefined if query itself fails on a verification_pending cancel callback", async () => {
+    const pending = attempt("verification_pending");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    mocks.queryPayment.mockRejectedValue(new Error("TimeoutError"));
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status: "cancel",
+    });
+
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(pending.status).toBe("cancelled");
+    expect(pending.terminal_confirmed_at).toBeUndefined();
+  });
+
   it("recovers verification-pending payments through Execute then query", async () => {
     const pending = attempt("verification_pending");
     vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
