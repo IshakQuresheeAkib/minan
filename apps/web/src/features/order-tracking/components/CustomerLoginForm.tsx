@@ -3,6 +3,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { mutate } from "swr";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ export function CustomerLoginForm() {
     try {
       const session = await loginCustomer({ email, password });
       setSession(session);
+      void mutate((key) => typeof key === "string" && key.startsWith("checkout-config")).catch(() => undefined);
       router.push(getSafeNextPath(searchParams.get("next")));
       router.refresh();
     } catch (loginError) {

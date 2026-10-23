@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,6 +10,7 @@ import { publicRoutes } from "@/constants/routes";
 import { CheckoutForm } from "@/features/checkout/components/CheckoutForm";
 import { CheckoutConfigStatus } from "@/features/checkout/components/CheckoutConfigStatus";
 import { useCheckoutConfig } from "@/features/checkout/hooks/useCheckoutConfig";
+import { useCustomerAuthStore } from "@/store/customer-auth.store";
 import { getPaymentSplit } from "@/features/checkout/lib/paymentContract";
 import type {
   CartSnapshot,
@@ -164,9 +166,21 @@ export function BuyNowCheckoutClient() {
           onRetry={retryConfig}
         />
         {config && !config.payment_contract ? (
-          <p className="mt-3 text-sm font-medium text-destructive" role="status">
-            Online checkout is temporarily in maintenance mode. Please try again later.
-          </p>
+          <div className="mt-3 text-sm font-medium text-destructive" role="status">
+            <p>Online checkout is temporarily in maintenance mode. Please try again later.</p>
+            {useCustomerAuthStore.getState().status !== "authenticated" ? (
+              <p className="mt-1 text-xs text-foreground/70">
+                Testing bKash integration?{" "}
+                <Link
+                  href={`${publicRoutes.customerLogin}?next=${encodeURIComponent(publicRoutes.buyNowCheckout)}`}
+                  className="font-semibold underline hover:text-foreground"
+                >
+                  Sign in with an authorized account
+                </Link>
+                .
+              </p>
+            ) : null}
+          </div>
         ) : null}
         {!item.isAvailable ? (
           <p className="mt-3 text-sm font-medium text-destructive">
