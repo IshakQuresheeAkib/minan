@@ -41,3 +41,31 @@ export function getBkashConfig(): BkashConfig {
     frontendUrl: normalizedUrl("FRONTEND_URL"),
   };
 }
+
+export function isBkashRestricted(): boolean {
+  return process.env.BKASH_RESTRICT_ACCESS === "true";
+}
+
+export function getAllowedUatEmails(): string[] {
+  const raw =
+    process.env.BKASH_UAT_ALLOWED_EMAILS?.trim() ||
+    "bkash-uat@minan.com";
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isCustomerAllowedForBkash(email?: string, uatToken?: string): boolean {
+  if (!isBkashRestricted()) return true;
+  if (
+    process.env.BKASH_ENABLE_UAT_BYPASS === "true" &&
+    (uatToken === "bkash" || uatToken === "true")
+  ) {
+    return true;
+  }
+  if (!email) return false;
+  const normalized = email.trim().toLowerCase();
+  const allowed = getAllowedUatEmails();
+  return allowed.includes(normalized);
+}

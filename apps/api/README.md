@@ -16,12 +16,11 @@ Customer-owned reads are available under `/api/customer-orders` and query only t
 
 `DELIVERY_FEE_INSIDE_SYLHET_BDT` and `DELIVERY_FEE_OUTSIDE_SYLHET_BDT` are the required positive-integer shipping fee sources. `GET /api/checkout/config` exposes the ordered `inside_sylhet` and `outside_sylhet` options, BDT currency, non-refundable policy, and payment contract v2 with ETag/cache metadata. Zone-aware checkout requests submit the `shipping_zone` ID and `payment_method`. The API resolves and freezes every amount: `bkash_full` charges `overall_order_value`, while `cod` charges only the delivery fee and leaves merchandise due on delivery. Retries preserve the original attempt purpose and amount.
 
-`DELIVERY_FEE_BDT=100` remains required during the compatibility release. The config response includes it as the legacy `delivery_fee`, and zone-less requests from the previous storefront snapshot that value with `shipping_zone` unspecified. The new storefront uses `shipping_options` when present and falls back to the single legacy fee when paired with the previous API. Deploy the API first when possible, then the web; either deployment order and either single-service rollback remain checkout-safe during this release. Remove this compatibility field and make `shipping_zone` required in a later cleanup release only after the previous storefront can no longer send traffic.
+`shipping_zone` is strictly required on checkout requests. `GET /api/checkout/config` exposes the authoritative `shipping_options` for shipping fee resolution:
 
 ```json
 {
   "data": {
-    "delivery_fee": 100,
     "shipping_options": [
       { "id": "inside_sylhet", "label": "Inside Sylhet Shipping Cost", "delivery_fee": 60 },
       { "id": "outside_sylhet", "label": "Outside Sylhet Shipping Cost", "delivery_fee": 120 }

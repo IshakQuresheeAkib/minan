@@ -10,9 +10,10 @@ import { loginCustomer, OrderTrackingApiError } from "@/features/order-tracking/
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
 function getSafeNextPath(value: string | null): string {
-  return value?.startsWith("/orders") || value?.startsWith("/account/orders")
-    ? value
-    : "/orders";
+  if (value && value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) {
+    return value;
+  }
+  return "/account/orders";
 }
 
 export function CustomerLoginForm() {

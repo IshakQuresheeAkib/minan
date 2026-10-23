@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { checkoutConfigSchema } from "./checkout-config.schema";
 
 const validConfig = {
-  delivery_fee: 100,
   shipping_options: [
     {
       id: "inside_sylhet",
@@ -29,14 +28,13 @@ describe("checkout configuration validation", () => {
     expect(checkoutConfigSchema.parse(validConfig)).toEqual(validConfig);
   });
 
-  it("accepts the previous single-fee API contract", () => {
-    const legacyConfig = {
-      delivery_fee: 100,
+  it("rejects configuration missing shipping options", () => {
+    const withoutOptions = {
       currency: "BDT",
       refundable: false,
     };
 
-    expect(checkoutConfigSchema.parse(legacyConfig)).toEqual(legacyConfig);
+    expect(checkoutConfigSchema.safeParse(withoutOptions).success).toBe(false);
   });
 
   it("rejects an unknown payment contract version or method order", () => {

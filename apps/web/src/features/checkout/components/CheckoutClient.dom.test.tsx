@@ -4,6 +4,7 @@ import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ apiRequest: vi.fn(), start: vi.fn(), quoteSettled: false, track: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("@/lib/api/client", async (original) => ({
   ...await original<typeof import("@/lib/api/client")>(), apiRequest: mocks.apiRequest,
 }));
@@ -28,7 +29,15 @@ vi.mock("@/store/cart.store", () => {
 import { CheckoutClient } from "./CheckoutClient";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
-const config = { delivery_fee: 100, currency: "BDT", refundable: false };
+const config = {
+  shipping_options: [
+    { id: "inside_sylhet", label: "Inside Sylhet Shipping Cost", delivery_fee: 60 },
+    { id: "outside_sylhet", label: "Outside Sylhet Shipping Cost", delivery_fee: 120 },
+  ],
+  currency: "BDT",
+  refundable: false,
+  payment_contract: { version: 2 as const, methods: ["bkash_full", "cod"] as ["bkash_full", "cod"] },
+};
 beforeEach(() => {
   vi.clearAllMocks();
   useCustomerAuthStore.getState().clearSession();
@@ -51,7 +60,7 @@ describe("checkout configuration loading", () => {
     expect(mocks.start).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Loading delivery and payment options")).toBeTruthy();
     await act(async () => resolveConfig({ data: config }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /Pay Tk 100/ }).hasAttribute("disabled")).toBe(false));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Select a payment method/ }).hasAttribute("disabled")).toBe(false));
     expect(screen.getByLabelText("Name")).toBe(name);
     expect(name.value).toBe("Test Buyer");
   });

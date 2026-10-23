@@ -19,7 +19,6 @@ describe("new checkout Order tracking fields", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
-    process.env.DELIVERY_FEE_BDT = "100";
     process.env.DELIVERY_FEE_INSIDE_SYLHET_BDT = "60";
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = "120";
     vi.spyOn(mongoose.connection, "transaction").mockImplementation(async (work) => work(DB_SESSION));

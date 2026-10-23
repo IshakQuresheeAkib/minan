@@ -48,9 +48,7 @@ export function BuyNowCheckoutClient() {
   const selectedShippingOption = config?.shipping_options?.find(
     (option) => option.id === shippingZone,
   );
-  const payableDeliveryFee =
-    selectedShippingOption?.delivery_fee ??
-    (config?.shipping_options ? undefined : config?.delivery_fee);
+  const payableDeliveryFee = selectedShippingOption?.delivery_fee;
   const summaryPaymentMethod = config?.payment_contract
     ? paymentMethod
     : config
@@ -93,7 +91,6 @@ export function BuyNowCheckoutClient() {
           <CheckoutForm
             cartSnapshot={cartSnapshot ?? { items: [], total: 0 }}
             checkoutSource="buy_now"
-            deliveryFee={config?.delivery_fee ?? 0}
             disabled
             pricingPending={configLoading}
             merchandiseTotal={total}
@@ -147,10 +144,9 @@ export function BuyNowCheckoutClient() {
         <CheckoutForm
           cartSnapshot={cartSnapshot}
           checkoutSource="buy_now"
-          deliveryFee={config?.delivery_fee ?? 0}
           disabled={
             !item.isAvailable ||
-            !config ||
+            !config?.payment_contract ||
             configValidating ||
             Boolean(configError)
           }
@@ -167,6 +163,11 @@ export function BuyNowCheckoutClient() {
           error={configError}
           onRetry={retryConfig}
         />
+        {config && !config.payment_contract ? (
+          <p className="mt-3 text-sm font-medium text-destructive" role="status">
+            Online checkout is temporarily in maintenance mode. Please try again later.
+          </p>
+        ) : null}
         {!item.isAvailable ? (
           <p className="mt-3 text-sm font-medium text-destructive">
             This product is currently unavailable. Choose another product to

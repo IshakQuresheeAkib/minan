@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { getBkashConfig } from "../config/bkash.js";
+import { getBkashConfig, isBkashRestricted, isCustomerAllowedForBkash } from "../config/bkash.js";
 import { AppError } from "../lib/errors.js";
 import { parseBody } from "../lib/parseBody.js";
 import { resolveCustomerSession } from "../middleware/requireCustomerAuth.js";
@@ -18,7 +18,7 @@ import {
 } from "../services/bkashPayments.service.js";
 
 function idempotencyKey(req: Request): string {
-  const value = req.get("Idempotency-Key")?.trim();
+  const value = req.get?.("Idempotency-Key")?.trim();
   if (!value || value.length < 16 || value.length > 128) {
     throw new AppError("A valid Idempotency-Key header is required", 400);
   }
@@ -37,6 +37,16 @@ export async function createBkashPaymentHandler(
       : null;
     if (input.checkout_identity_mode === "customer" && !ownership) {
       throw new AppError("Unauthorized", 401);
+    }
+    if (isBkashRestricted()) {
+      const uatToken = (req.query?.uat as string) || req.cookies?.bkash_uat || req.get?.("x-bkash-uat");
+      const allowed = isCustomerAllowedForBkash(ownership?.email, uatToken);
+      if (!allowed) {
+        throw new AppError(
+          "bKash online payment is currently restricted during testing. Please sign in with an authorized test account.",
+          403,
+        );
+      }
     }
     res.json({
       data: await startBkashPayment(

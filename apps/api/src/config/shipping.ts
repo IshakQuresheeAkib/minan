@@ -15,7 +15,6 @@ export type ShippingOption = {
 };
 
 export type ShippingConfig = {
-  delivery_fee: number;
   shipping_options: [ShippingOption, ShippingOption];
   currency: "BDT";
   refundable: false;
@@ -37,7 +36,6 @@ function requiredPositiveInteger(name: string): number {
 
 export function getShippingConfig(): ShippingConfig {
   return {
-    delivery_fee: requiredPositiveInteger("DELIVERY_FEE_BDT"),
     shipping_options: [
       {
         id: "inside_sylhet",
@@ -64,9 +62,8 @@ export function getDeliveryFeeForShippingZone(zone: ShippingZone): number {
   return option.delivery_fee;
 }
 
-export function getDeliveryFeeForCheckout(zone?: ShippingZone): number {
-  if (zone) return getDeliveryFeeForShippingZone(zone);
-  return getShippingConfig().delivery_fee;
+export function getDeliveryFeeForCheckout(zone: ShippingZone): number {
+  return getDeliveryFeeForShippingZone(zone);
 }
 
 export function shippingAreaLabel(zone?: ShippingZone): string {

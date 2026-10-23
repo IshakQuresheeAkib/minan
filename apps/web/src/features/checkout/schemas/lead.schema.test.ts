@@ -12,13 +12,12 @@ const validInput = {
 };
 
 describe("checkout form validation", () => {
-  it("requires a known shipping method only for the zone-aware contract", () => {
+  it("strictly requires a known shipping method", () => {
     const missingZone = Object.fromEntries(
       Object.entries(validInput).filter(([key]) => key !== "shipping_zone"),
     );
-    expect(leadInputSchema.safeParse(missingZone).success).toBe(true);
-    expect(getLeadInputSchema(true).safeParse(missingZone).success).toBe(false);
-    expect(getLeadInputSchema(false).safeParse(missingZone).success).toBe(true);
+    expect(leadInputSchema.safeParse(missingZone).success).toBe(false);
+    expect(getLeadInputSchema().safeParse(missingZone).success).toBe(false);
     expect(leadInputSchema.safeParse({
       ...validInput,
       shipping_zone: "near_sylhet",
@@ -31,8 +30,8 @@ describe("checkout form validation", () => {
       Object.entries(validInput).filter(([key]) => key !== "payment_method"),
     );
 
-    expect(getLeadInputSchema(true, true).safeParse(missingMethod).success).toBe(false);
-    expect(getLeadInputSchema(true, false).safeParse(missingMethod).success).toBe(true);
-    expect(getLeadInputSchema(true, true).safeParse(validInput).success).toBe(true);
+    expect(getLeadInputSchema(true).safeParse(missingMethod).success).toBe(false);
+    expect(getLeadInputSchema(false).safeParse(missingMethod).success).toBe(true);
+    expect(getLeadInputSchema(true).safeParse(validInput).success).toBe(true);
   });
 });

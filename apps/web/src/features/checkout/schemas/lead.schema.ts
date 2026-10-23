@@ -9,25 +9,15 @@ export const leadInputSchema = z.object({
   address: z.string().trim().min(8).max(400),
   shipping_zone: z.enum(["inside_sylhet", "outside_sylhet"], {
     error: "Select a shipping method.",
-  }).optional(),
+  }),
   payment_method: z.enum(["bkash_full", "cod"], {
     error: "Select a payment method.",
   }).optional(),
   notes: z.string().trim().max(500).optional(),
 });
 
-export function getLeadInputSchema(
-  requireShippingZone: boolean,
-  requirePaymentMethod = false,
-) {
+export function getLeadInputSchema(requirePaymentMethod = false) {
   return leadInputSchema.superRefine((input, context) => {
-    if (requireShippingZone && input.shipping_zone === undefined) {
-      context.addIssue({
-        code: "custom",
-        message: "Select a shipping method.",
-        path: ["shipping_zone"],
-      });
-    }
     if (requirePaymentMethod && input.payment_method === undefined) {
       context.addIssue({
         code: "custom",

@@ -773,22 +773,78 @@ describe("bKash Order lifecycle", () => {
   it.each([
     "failure",
     "cancel",
-  ] as const)("retains provider query path when an unauthenticated %s callback lacks a verified signature", async (status) => {
+  ] as const)("marks %s callback as terminal directly without Query when attempt is in initiated state", async (status) => {
     const pending = attempt("initiated");
     vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
-    mocks.queryPayment.mockResolvedValue({
-      statusCode: "0000",
-      transactionStatus: "Initiated",
-      paymentID: "TR001",
-    });
 
     await handleBkashCallback({
       paymentID: "TR001",
       status,
     });
 
+    expect(mocks.queryPayment).not.toHaveBeenCalled();
+    expect(pending.status).toBe(status === "cancel" ? "cancelled" : "failed");
+    expect(pending.terminal_confirmed_at).toBeDefined();
+  });
+
+  it("queries bKash and settles payment if a verification_pending attempt receives a cancel callback after bKash completed", async () => {
+    const pending = attempt("verification_pending");
+    vi.spyOn(Order, "findById").mockResolvedValue(order() as never);
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Completed",
+      paymentID: "TR001",
+      paymentId: "TR001",
+      trxID: "TRX_LATE_123",
+      amount: "60.00",
+      currency: "BDT",
+      merchantInvoiceNumber: pending.merchant_invoice_number,
+    });
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status: "cancel",
+    });
+
     expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
-    expect(pending.status).toBe("initiated");
+    expect(pending.status).toBe("completed");
+    expect(pending.bkash_trx_id).toBe("TRX_LATE_123");
+  });
+
+  it("queries bKash and marks terminal if a verification_pending attempt receives cancel and bKash did not complete", async () => {
+    const pending = attempt("verification_pending");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+      paymentId: "TR001",
+    });
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status: "cancel",
+    });
+
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(pending.status).toBe("cancelled");
+    expect(pending.terminal_confirmed_at).toBeDefined();
+  });
+
+  it("stays verification_pending if query itself fails on a verification_pending cancel callback", async () => {
+    const pending = attempt("verification_pending");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    mocks.queryPayment.mockRejectedValue(new Error("TimeoutError"));
+
+    await handleBkashCallback({
+      paymentID: "TR001",
+      status: "cancel",
+    });
+
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(pending.status).toBe("verification_pending");
     expect(pending.terminal_confirmed_at).toBeUndefined();
   });
 
@@ -859,6 +915,66 @@ describe("bKash Order lifecycle", () => {
 
     expect(result.state).toBe("completed");
     expect(result.ecommerce).toBeUndefined();
+  });
+
+  it("does not call query Payment API when Execute responds with 2023 Insufficient Balance", async () => {
+    const pending = attempt("initiated");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockReturnValue(chainResult(pending) as never);
+    mocks.executePayment.mockResolvedValue({
+      statusCode: "2023",
+      statusMessage: "Insufficient Balance",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "success" });
+
+    expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(mocks.queryPayment).not.toHaveBeenCalled();
+    expect(pending.status).toBe("failed");
+    expect(pending.provider_status_code).toBe("2023");
+    expect(pending.provider_status_message).toBe("Insufficient Balance");
+    expect(pending.terminal_confirmed_at).toBeDefined();
+  });
+
+  it("does not call query Payment API when Execute responds with 2029 Duplicate Transaction", async () => {
+    const pending = attempt("initiated");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockReturnValue(chainResult(pending) as never);
+    mocks.executePayment.mockResolvedValue({
+      statusCode: "2029",
+      statusMessage: "Duplicate for all transactions",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "success" });
+
+    expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(mocks.queryPayment).not.toHaveBeenCalled();
+    expect(pending.status).toBe("failed");
+    expect(pending.provider_status_code).toBe("2029");
+    expect(pending.terminal_confirmed_at).toBeDefined();
+  });
+
+  it("calls query Payment API when Execute times out or fails to respond", async () => {
+    const pending = attempt("initiated");
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockReturnValue(chainResult(pending) as never);
+    mocks.executePayment.mockRejectedValue(new Error("TimeoutError"));
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    await handleBkashCallback({ paymentID: "TR001", status: "success" });
+
+    expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(pending.status).toBe("initiated");
   });
 
   it("blocks payment creation and retry during checkout maintenance", async () => {

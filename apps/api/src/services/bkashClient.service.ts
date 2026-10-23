@@ -281,7 +281,7 @@ async function requestToken(): Promise<string> {
   const executeGrantToken = async (): Promise<z.infer<typeof tokenResponseSchema> & { id_token: string }> => {
     if (!canCallGrantToken()) {
       throw new AppError(
-        "bKash Grant Token rate limit protection reached (max 2 requests per hour). Please retry in a few moments.",
+        "Payment service is temporarily unavailable. Please try again shortly.",
         429,
       );
     }
