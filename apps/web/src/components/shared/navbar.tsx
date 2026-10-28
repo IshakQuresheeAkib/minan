@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -28,7 +29,9 @@ export function Navbar() {
         </Link>
 
         <div className="hidden items-center justify-center lg:flex">
-          <NavPill />
+          <Suspense fallback={null}>
+            <NavPill />
+          </Suspense>
         </div>
 
         <div className="col-start-2 row-start-1 flex items-center justify-end self-center lg:col-auto lg:row-auto lg:relative lg:w-11">

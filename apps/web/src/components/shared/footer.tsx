@@ -1,14 +1,15 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { MapPin, Phone } from "lucide-react";
 
 import { FacebookPagePlugin } from "@/components/shared/FacebookPagePlugin";
+import { CurrentYear } from "@/components/shared/CurrentYear";
 import { siteConfig } from "@/config/site.config";
 import { publicRoutes } from "@/constants/routes";
 import { env } from "@/config/env";
 
 export function Footer() {
   const hasFacebookPage = Boolean(env.facebookPageUrl.trim());
-  const currentYear = new Date().getFullYear();
 
   return (
     <footer className="border-t border-border/80 bg-background/95">
@@ -150,7 +151,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-8 border-t border-border/60 pt-6 text-center text-xs text-foreground/60 sm:flex sm:items-center sm:justify-between sm:text-left">
-          <p>© {currentYear} MINAN. All rights reserved.</p>
+          <p>© <Suspense fallback={null}><CurrentYear /></Suspense> MINAN. All rights reserved.</p>
           <p className="mt-2 sm:mt-0">
             Kumarpara Point, Sylhet, Bangladesh · minanclothing.com
           </p>

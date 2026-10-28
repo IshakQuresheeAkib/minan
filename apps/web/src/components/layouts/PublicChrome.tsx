@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/shared/bottom-nav";
@@ -25,7 +26,9 @@ export function PublicChrome({ children }: PublicChromeProps) {
           {children}
         </main>
         <Footer />
-        <BottomNav />
+        <Suspense fallback={null}>
+          <BottomNav />
+        </Suspense>
         <SpeculationRules />
         <Toaster richColors position="top-right" />
       </div>
