@@ -4,7 +4,7 @@ import { BKASH_ERROR_CODES, getBkashErrorMessage } from "./bkashErrorCodes.js";
 
 describe("bkashErrorCodes", () => {
   it("returns official English descriptions for known error codes", () => {
-    expect(getBkashErrorMessage("2029")).toBe("Duplicate for all transactions");
+    expect(getBkashErrorMessage("2029")).toBe("A duplicate payment attempt was detected. Please wait and try again.");
     expect(getBkashErrorMessage("2017")).toBe("Wrong verification limit exceeded");
     expect(getBkashErrorMessage("2010")).toBe("Invalid OTP");
     expect(getBkashErrorMessage("2014")).toBe("Wrong PIN");

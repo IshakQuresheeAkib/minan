@@ -21,7 +21,7 @@ export function PublicChrome({ children }: PublicChromeProps) {
       </a>
       <div className="relative mx-auto w-full overflow-x-clip shadow-[0_0_40px_rgba(0,0,0,0.05)]">
         <Navbar />
-        <main id="main-content" tabIndex={-1} className="pb-24 outline-none lg:pb-0">
+        <main id="main-content" tabIndex={-1} className="outline-none">
           {children}
         </main>
         <Footer />

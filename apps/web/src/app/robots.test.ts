@@ -22,7 +22,6 @@ describe("robots", () => {
     expect(defaultRule?.allow).toBe("/");
     expect(defaultRule?.disallow).toContain("/admin/");
     expect(defaultRule?.disallow).toContain("/api/");
-    expect(defaultRule?.disallow).toContain("/checkout/");
 
     // AI Bots rule
     const aiRule = rules.find(
@@ -31,5 +30,6 @@ describe("robots", () => {
     expect(aiRule).toBeDefined();
     expect(aiRule?.allow).toContain("/llms.txt");
     expect(aiRule?.disallow).toContain("/admin/");
+    expect(aiRule?.disallow).toContain("/api/");
   });
 });

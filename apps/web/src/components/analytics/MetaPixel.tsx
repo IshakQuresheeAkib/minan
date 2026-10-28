@@ -17,12 +17,22 @@ export function MetaPixel() {
       return;
     }
 
-    if (!initialized.current) {
-      initializeMetaPixel(pixelId);
-      initialized.current = true;
+    const track = () => {
+      if (!initialized.current) {
+        initializeMetaPixel(pixelId);
+        initialized.current = true;
+      }
+      trackPixelEvent("PageView");
+    };
+
+    if (typeof document !== "undefined" && (document as { prerendering?: boolean }).prerendering) {
+      document.addEventListener("prerenderingchange", track, { once: true });
+      return () => {
+        document.removeEventListener("prerenderingchange", track);
+      };
     }
 
-    trackPixelEvent("PageView");
+    track();
   }, [pathname, pixelId]);
 
   return null;

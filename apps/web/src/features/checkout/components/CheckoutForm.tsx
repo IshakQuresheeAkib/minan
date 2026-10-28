@@ -395,15 +395,13 @@ export function CheckoutForm({
               payableDeliveryFee ?? 0,
             ).payNow.toLocaleString("en-BD")} with bKash`
             : "Select a payment method"
-          : payableDeliveryFee
-            ? `Pay Tk ${payableDeliveryFee.toLocaleString("en-BD")} delivery fee with bKash`
-            : "Continue to bKash"}
+          : "Online payment temporarily unavailable"}
       </Button>
-      <p className="text-sm font-medium text-foreground/70">
-        {supportsPaymentChoice
-          ? "The delivery fee is non-refundable. Full bKash payments cover total order value. If you selected cash on delivery, you need to pay delivery fee in advance."
-          : "The delivery fee is non-refundable. Merchandise is payable by cash on delivery."}
-      </p>
+      {supportsPaymentChoice ? (
+        <p className="text-sm font-medium text-foreground/70">
+          The delivery fee is non-refundable. Full bKash payments cover total order value. If you selected cash on delivery, you need to pay delivery fee in advance.
+        </p>
+      ) : null}
       {retryContext ? (
         <div className="grid gap-3" role="status">
           <Button

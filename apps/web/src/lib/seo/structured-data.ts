@@ -88,13 +88,13 @@ export function getHomeStructuredData(): JsonLdObject {
           areaServed: "BD",
           availableLanguage: ["English", "Bengali"],
         },
+        brand: { "@id": brandId },
       },
       {
         "@id": brandId,
         "@type": "Brand",
         name: siteConfig.name,
         url: siteConfig.url,
-        logo: getAbsoluteUrl("/logo.png"),
         description: siteConfig.description,
       },
       {
@@ -178,6 +178,7 @@ export function getProductStructuredData(
         sku: product._id,
         category: product.category?.name ?? "Fashion",
         brand: {
+          "@id": brandId,
           "@type": "Brand",
           name: siteConfig.name,
         },

@@ -247,7 +247,7 @@ function ProductDetailsContent({ children, product, routePending }: ProductDetai
         </button>
       </header>
 
-      <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-64 lg:px-8 lg:pb-16 lg:pt-6">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 lg:px-8 lg:pb-16 lg:pt-6">
         <ProductBreadcrumbs
           category={product.category}
           subcategory={product.subcategory}

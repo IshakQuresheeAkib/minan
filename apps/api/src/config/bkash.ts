@@ -58,10 +58,8 @@ export function getAllowedUatEmails(): string[] {
 
 export function isCustomerAllowedForBkash(email?: string, uatToken?: string): boolean {
   if (!isBkashRestricted()) return true;
-  if (
-    process.env.BKASH_ENABLE_UAT_BYPASS === "true" &&
-    (uatToken === "bkash" || uatToken === "true")
-  ) {
+  const bypassToken = process.env.BKASH_UAT_BYPASS_TOKEN?.trim();
+  if (bypassToken && uatToken === bypassToken) {
     return true;
   }
   if (!email) return false;

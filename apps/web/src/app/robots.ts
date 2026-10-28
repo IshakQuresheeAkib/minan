@@ -8,14 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: [
-          "/api/",
-          "/admin/",
-          "/checkout/",
-          "/payment/",
-          "/account/",
-          "/orders?*",
-        ],
+        disallow: ["/api/", "/admin/"],
       },
       {
         userAgent: [
@@ -27,13 +20,7 @@ export default function robots(): MetadataRoute.Robots {
           "Applebot-Extended",
         ],
         allow: ["/", "/products", "/collections/", "/llms.txt", "/llms-full.txt"],
-        disallow: [
-          "/api/",
-          "/admin/",
-          "/checkout/",
-          "/payment/",
-          "/account/",
-        ],
+        disallow: ["/api/", "/admin/"],
       },
     ],
     sitemap: getAbsoluteUrl("/sitemap.xml"),

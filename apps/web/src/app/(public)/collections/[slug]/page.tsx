@@ -1,15 +1,12 @@
 import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
-import { getImageProps } from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { preload } from "react-dom";
 
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getCollectionPath, publicRoutes } from "@/constants/routes";
-import { productCardImageSizes } from "@/features/products/components/ProductCard";
 import { ProductCatalog } from "@/features/products/components/ProductCatalog";
 import { ProductCatalogPending } from "@/features/products/components/CachedProductCatalog";
 import { RouteDataSkeleton } from "@/components/shared/RouteDataSkeleton";
@@ -180,24 +177,6 @@ async function CollectionProducts({ filters, filterOptions, categorySlug }: {
     page: 1,
     limit: 20,
   });
-
-  const imageUrl = products.data[0]?.images[0];
-
-  if (imageUrl) {
-    const { props } = getImageProps({
-      src: imageUrl,
-      alt: "",
-      fill: true,
-      sizes: productCardImageSizes,
-    });
-
-    preload(props.src, {
-      as: "image",
-      fetchPriority: "high",
-      imageSizes: props.sizes,
-      imageSrcSet: props.srcSet,
-    });
-  }
 
   return <ProductCatalog filters={filters} filterOptions={filterOptions} fixedCategorySlug={categorySlug} initialData={toCatalogProductList(products)} />;
 }

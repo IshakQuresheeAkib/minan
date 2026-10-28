@@ -87,12 +87,19 @@ export function Ga4Analytics() {
 window['dataLayer'] = window['dataLayer'] || [];
 function gtag(){window['dataLayer'].push(arguments);}
 gtag('js', new Date());
-if (typeof window !== 'undefined' && window.location) {
-  const referrer = document.referrer ? new URL(document.referrer) : null;
-  gtag('config', '${measurementId}', {
-    page_location: window.location.origin + window.location.pathname,
-    page_referrer: referrer ? referrer.origin + referrer.pathname : undefined
-  });
+function initGa() {
+  if (typeof window !== 'undefined' && window.location) {
+    var referrer = document.referrer ? new URL(document.referrer) : null;
+    gtag('config', '${measurementId}', {
+      page_location: window.location.origin + window.location.pathname,
+      page_referrer: referrer ? referrer.origin + referrer.pathname : undefined
+    });
+  }
+}
+if (document.prerendering) {
+  document.addEventListener('prerenderingchange', initGa, { once: true });
+} else {
+  initGa();
 }
 `,
         }}

@@ -68,9 +68,9 @@ export function FacebookPagePlugin() {
     <section
       aria-describedby="facebook-page-description"
       aria-labelledby="facebook-page-heading"
-      className="grid w-full max-w-[560px] overflow-hidden rounded-xl border border-secondary/70 bg-foreground/[0.06] md:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)]"
+      className="grid w-full max-w-[560px] overflow-hidden rounded-xl border border-secondary/70 bg-foreground/[0.06]"
     >
-      <div className="flex min-w-0 items-center border-b border-secondary/70 px-4 py-4 sm:px-5 md:border-r md:border-b-0">
+      <div className="flex min-w-0 items-center border-b border-secondary/70 px-4 py-3 sm:px-5">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span
             aria-hidden="true"
@@ -103,7 +103,7 @@ export function FacebookPagePlugin() {
         </a>
       </div>
 
-      <div className="bg-background p-2 sm:p-3 md:border-l md:border-secondary/70">
+      <div className="bg-background p-2 sm:p-3">
         <div ref={containerRef} className="min-h-[130px] w-full overflow-hidden rounded-md">
           <Script
             id="facebook-page-plugin-sdk"
