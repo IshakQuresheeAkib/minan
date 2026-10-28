@@ -1,10 +1,8 @@
-import { Suspense } from "react";
 import type { ReactNode } from "react";
 
-import {
-  PublicFooterSlot,
-  PublicNavbarSlot,
-} from "@/components/layouts/PublicRouteChrome";
+import { BottomNav } from "@/components/shared/bottom-nav";
+import { Footer } from "@/components/shared/footer";
+import { Navbar } from "@/components/shared/navbar";
 import { SpeculationRules } from "@/components/layouts/SpeculationRules";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -22,15 +20,12 @@ export function PublicChrome({ children }: PublicChromeProps) {
         Skip to content
       </a>
       <div className="relative mx-auto w-full overflow-x-clip shadow-[0_0_40px_rgba(0,0,0,0.05)]">
-        <Suspense fallback={null}>
-          <PublicNavbarSlot />
-        </Suspense>
+        <Navbar />
         <main id="main-content" tabIndex={-1} className="pb-24 outline-none lg:pb-0">
           {children}
         </main>
-        <Suspense fallback={null}>
-          <PublicFooterSlot />
-        </Suspense>
+        <Footer />
+        <BottomNav />
         <SpeculationRules />
         <Toaster richColors position="top-right" />
       </div>
