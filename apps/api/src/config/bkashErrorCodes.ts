@@ -27,7 +27,7 @@ export const BKASH_ERROR_CODES: Record<string, string> = {
   "2026": "The reversal amount cannot be greater than the original transaction amount",
   "2027": "The mandate corresponding to the payer reference number already exists and cannot be created again",
   "2028": "Reverse failed because the transaction serial number does not exist",
-  "2029": "A duplicate payment attempt was detected. Please wait and try again.",
+  "2029": "This payment looks like a duplicate. Check your bKash statement before you try again.",
   "2030": "Invalid mandate request type",
   "2031": "Invalid merchant invoice number",
   "2032": "Invalid transfer type",

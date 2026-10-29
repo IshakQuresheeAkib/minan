@@ -848,17 +848,18 @@ describe("bKash Order lifecycle", () => {
     expect(pending.terminal_confirmed_at).toBeUndefined();
   });
 
-  it("recovers verification-pending payments through Execute then query", async () => {
+  it("rechecks verification-pending payments through query without re-executing", async () => {
     const pending = attempt("verification_pending");
+    pending.execute_started_at = new Date();
     vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
-    mocks.executePayment.mockResolvedValue({ statusCode: "2062", statusMessage: "Already completed" });
     mocks.queryPayment.mockResolvedValue({ statusCode: "0000", transactionStatus: "Initiated", paymentID: "TR001" });
 
     await recheckPendingPayment(pending.order_id!.toString());
 
-    expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
+    expect(mocks.executePayment).not.toHaveBeenCalled();
     expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
-    expect(pending.status).toBe("initiated");
+    expect(pending.status).toBe("failed");
+    expect(pending.terminal_confirmed_at).toBeDefined();
   });
 
   it("keeps ambiguous gateway errors verification-pending", async () => {
@@ -900,6 +901,26 @@ describe("bKash Order lifecycle", () => {
       items: [{ item_id: "product-1", item_name: "Linen Shirt", price: 600, quantity: 2, item_variant: "M / Black" }],
     });
     expect(JSON.stringify(result.ecommerce)).not.toContain("MINAN Customer");
+  });
+
+  it("keeps fresh initiated attempt initiated during result query before execute was called", async () => {
+    const fresh = attempt("initiated");
+    fresh.result_token_hash = "stored";
+    fresh.last_query_at = undefined;
+    fresh.execute_started_at = undefined;
+    vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(fresh) as never);
+    vi.spyOn(Order, "findById").mockResolvedValue(order() as never);
+    mocks.queryPayment.mockResolvedValue({
+      statusCode: "0000",
+      transactionStatus: "Initiated",
+      paymentID: "TR001",
+    });
+
+    const result = await resolvePaymentResult("r".repeat(43));
+
+    expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
+    expect(fresh.status).toBe("initiated");
+    expect(result.state).toBe("initiated");
   });
 
   it("does not expose a purchase for a duplicate completed attempt", async () => {
@@ -958,11 +979,15 @@ describe("bKash Order lifecycle", () => {
     expect(pending.terminal_confirmed_at).toBeDefined();
   });
 
-  it("calls query Payment API when Execute times out or fails to respond", async () => {
+  it("calls query Payment API and fails attempt when Execute times out and query returns Initiated", async () => {
     const pending = attempt("initiated");
     vi.spyOn(PaymentAttempt, "findOne").mockReturnValue(chainResult(pending) as never);
     vi.spyOn(PaymentAttempt, "findById").mockResolvedValue(pending);
-    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockReturnValue(chainResult(pending) as never);
+    vi.spyOn(PaymentAttempt, "findOneAndUpdate").mockImplementation((() => {
+      pending.status = "verification_pending";
+      pending.execute_started_at = new Date();
+      return chainResult(pending);
+    }) as never);
     mocks.executePayment.mockRejectedValue(new Error("TimeoutError"));
     mocks.queryPayment.mockResolvedValue({
       statusCode: "0000",
@@ -974,7 +999,8 @@ describe("bKash Order lifecycle", () => {
 
     expect(mocks.executePayment).toHaveBeenCalledWith("TR001");
     expect(mocks.queryPayment).toHaveBeenCalledWith("TR001");
-    expect(pending.status).toBe("initiated");
+    expect(pending.status).toBe("failed");
+    expect(pending.terminal_confirmed_at).toBeDefined();
   });
 
   it("blocks payment creation and retry during checkout maintenance", async () => {

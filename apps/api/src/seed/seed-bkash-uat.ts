@@ -30,6 +30,7 @@ export async function seedBkashUat(): Promise<{
     category = await Category.create({
       name: "bKash UAT Test Category",
       slug: "bkash-uat",
+      image_url: "https://picsum.photos/seed/bkash-uat-category/600/600",
       is_active: true,
     });
   }

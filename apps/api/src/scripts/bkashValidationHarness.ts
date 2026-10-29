@@ -143,8 +143,8 @@ async function runCreate() {
   const invoiceNumber = `MINAN-${Date.now()}`;
   const createBody = {
     mode: "0011",
-    payerReference: "01619777283",
-    callbackURL: `${API_PUBLIC_URL}/api/bkash/callback`,
+    payerReference: "01770618575",
+    callbackURL: `${API_PUBLIC_URL}/api/bkash/harness-callback`,
     amount: "10",
     currency: "BDT",
     intent: "sale",

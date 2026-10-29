@@ -11,7 +11,7 @@ describe("bKash validation harness response handling", () => {
   it.each([
     [{ statusCode: "0000", trxId: "TX-1" }, "completed"],
     [{ transactionStatus: "Completed", trxID: "TX-1" }, "completed"],
-    [{ statusCode: "0000", transactionStatus: "Initiated", trxID: "TX-1" }, "completed"],
+    [{ statusCode: "0000", transactionStatus: "Initiated", trxID: "TX-1" }, "query"],
     [{ statusCode: "2062" }, "query"],
     [{ statusCode: "2068" }, "query"],
     [{ statusCode: "2117" }, "query"],

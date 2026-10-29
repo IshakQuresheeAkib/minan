@@ -9,8 +9,10 @@ export function classifyExecuteResponse(response: GatewayResponse): "completed" 
   const transactionStatus = typeof response.transactionStatus === "string"
     ? response.transactionStatus.toLowerCase()
     : "";
-  if (statusCode === "0000" || (!statusCode && transactionStatus === "completed")) return "completed";
   if (ALREADY_COMPLETED_STATUS_CODES.has(statusCode)) return "query";
+  if (statusCode === "0000") return transactionStatus === "initiated" ? "query" : "completed";
+  if (!statusCode && transactionStatus === "completed") return "completed";
+  if (transactionStatus === "initiated") return "query";
   return "failed";
 }
 

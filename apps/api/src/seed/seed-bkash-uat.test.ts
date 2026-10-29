@@ -98,6 +98,23 @@ describe("seedBkashUat", () => {
     expect(result.user.password).toBe("MinanBkashUAT2026!");
   });
 
+  it("creates dedicated UAT category with required image_url when not found", async () => {
+    const fakeCategoryId = new Types.ObjectId();
+    mocks.categoryFindOne.mockResolvedValue(null);
+    mocks.categoryCreate.mockResolvedValue({ _id: fakeCategoryId, slug: "bkash-uat" });
+
+    await seedBkashUat();
+
+    expect(mocks.categoryCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "bKash UAT Test Category",
+        slug: "bkash-uat",
+        image_url: expect.any(String),
+        is_active: true,
+      }),
+    );
+  });
+
   it("refuses production seeding unless explicitly enabled with a unique password", async () => {
     process.env.NODE_ENV = "production";
 
