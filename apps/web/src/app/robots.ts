@@ -2,13 +2,22 @@ import type { MetadataRoute } from "next";
 
 import { getAbsoluteUrl, siteConfig } from "@/config/site.config";
 
+const privateDisallowPaths = [
+  "/api/",
+  "/admin/",
+  "/checkout/",
+  "/payment/",
+  "/account/",
+  "/orders?*",
+];
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/admin/"],
+        disallow: privateDisallowPaths,
       },
       {
         userAgent: [
@@ -20,7 +29,7 @@ export default function robots(): MetadataRoute.Robots {
           "Applebot-Extended",
         ],
         allow: ["/", "/products", "/collections/", "/llms.txt", "/llms-full.txt"],
-        disallow: ["/api/", "/admin/"],
+        disallow: privateDisallowPaths,
       },
     ],
     sitemap: getAbsoluteUrl("/sitemap.xml"),
