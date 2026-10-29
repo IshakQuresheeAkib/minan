@@ -4,7 +4,12 @@ const rules = {
       source: "document",
       where: {
         and: [
-          { href_matches: "/products*" },
+          {
+            or: [
+              { href_matches: "/products*" },
+              { href_matches: "/collections/*" },
+            ],
+          },
           { not: { selector_matches: "[data-no-prerender]" } },
         ],
       },

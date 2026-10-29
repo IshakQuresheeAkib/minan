@@ -4,6 +4,8 @@ import { connection } from "next/server";
 
 import { JsonLd } from "@/components/seo/JsonLd";
 import { siteConfig } from "@/config/site.config";
+import { BrandFaqSection } from "@/features/home/components/BrandFaqSection";
+import { BrandIntroSection } from "@/features/home/components/BrandIntroSection";
 import { HomeCatalog } from "@/features/home/components/HomeCatalog";
 import {
   HeroCarousel,
@@ -13,13 +15,14 @@ import { preloadResponsiveBannerImage } from "@/features/home/components/Respons
 import { fallbackHomeBanners } from "@/features/home/data/home-banners";
 import { getCachedHomeBanners } from "@/features/home/services/home-banner.cache";
 
-import { ProductGridSkeleton } from "@/features/products/components/ProductGridSkeleton";
+import { HomeCatalogSkeleton } from "@/features/home/components/HomeCatalogSkeleton";
 import { getCachedHomeCatalog } from "@/features/products/services/product.cache";
 import { getHomeStructuredData } from "@/lib/seo/structured-data";
 
 export const metadata: Metadata = {
   title: { absolute: siteConfig.title },
   description: siteConfig.description,
+  keywords: [...siteConfig.keywords],
   alternates: { canonical: "/" },
   openGraph: {
     title: siteConfig.title,
@@ -33,15 +36,17 @@ export default function HomePage() {
     <>
       <JsonLd data={getHomeStructuredData()} />
       <h1 className="sr-only">
-        MINAN premium fashion clothing in Bangladesh
+        MINAN — Official Store | Premium Fashion &amp; Clothing in Bangladesh
       </h1>
       <Suspense fallback={<HeroFirstSlideShell />}>
         <HomeHeroContent />
       </Suspense>
       <div className="mx-auto w-full max-w-11/12 pt-8 pb-10 sm:px-6 lg:px-10 lg:py-12">
-        <Suspense fallback={<ProductGridSkeleton />}>
+        <Suspense fallback={<HomeCatalogSkeleton />}>
           <HomeCatalogContent />
         </Suspense>
+        <BrandIntroSection />
+        <BrandFaqSection />
       </div>
     </>
   );

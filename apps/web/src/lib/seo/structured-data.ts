@@ -16,10 +16,44 @@ export type JsonLdValue =
 
 const organizationId = `${siteConfig.url}/#organization`;
 const websiteId = `${siteConfig.url}/#website`;
+const brandId = `${siteConfig.url}/#brand`;
 
 export function serializeJsonLd(data: JsonLdObject): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
+
+export type BrandFaqItem = {
+  question: string;
+  answer: string;
+};
+
+export const brandFaqs: readonly BrandFaqItem[] = [
+  {
+    question: "What is MINAN?",
+    answer:
+      "MINAN is a modern Bangladeshi fashion house and clothing brand headquartered in Sylhet, Bangladesh. MINAN crafts high-quality menswear, ethnic panjabis, formal and casual shirts, trousers, womenswear, and footwear for customers across Bangladesh.",
+  },
+  {
+    question: "Where is the official MINAN store located?",
+    answer:
+      "The official MINAN location is at Kumarpara Point, Opposite of Forid & Brothers, Sylhet, Bangladesh, 3100. Customers can visit or order online with nationwide home delivery.",
+  },
+  {
+    question: "Does MINAN deliver all across Bangladesh?",
+    answer:
+      "Yes, MINAN provides nationwide home delivery across all 64 districts in Bangladesh, including expedited 24-48 hour delivery inside Sylhet city and 2-4 business days nationwide.",
+  },
+  {
+    question: "What payment methods are accepted by MINAN?",
+    answer:
+      "MINAN accepts secure online prepayment via bKash as well as Cash on Delivery (COD) across Bangladesh with an advance delivery fee.",
+  },
+  {
+    question: "How can I contact MINAN customer support or order via WhatsApp?",
+    answer:
+      "You can contact MINAN directly by calling or messaging +8801799854465, or by connecting through the official Facebook page (@minanclothing) and Instagram (@minanf9).",
+  },
+] as const;
 
 export function getHomeStructuredData(): JsonLdObject {
   return {
@@ -29,22 +63,68 @@ export function getHomeStructuredData(): JsonLdObject {
         "@id": organizationId,
         "@type": "Organization",
         name: siteConfig.name,
+        legalName: "MINAN Clothing",
+        alternateName: ["MINAN", "MINAN Clothing", "MINAN Bangladesh", "মিনান"],
         url: siteConfig.url,
         logo: getAbsoluteUrl("/logo.png"),
+        image: getAbsoluteUrl("/logo.png"),
+        telephone: siteConfig.contact.phone,
+        sameAs: [
+          siteConfig.socials.facebook,
+          siteConfig.socials.instagram,
+          siteConfig.socials.tiktok,
+        ],
         address: {
           "@type": "PostalAddress",
-          addressCountry: "BD",
+          streetAddress: siteConfig.streetAddress,
           addressLocality: siteConfig.city,
+          postalCode: siteConfig.postalCode,
+          addressCountry: "BD",
         },
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: siteConfig.contact.phone,
+          contactType: "customer service",
+          areaServed: "BD",
+          availableLanguage: ["English", "Bengali"],
+        },
+        brand: { "@id": brandId },
+      },
+      {
+        "@id": brandId,
+        "@type": "Brand",
+        name: siteConfig.name,
+        url: siteConfig.url,
+        description: siteConfig.description,
       },
       {
         "@id": websiteId,
         "@type": "WebSite",
         name: siteConfig.name,
+        alternateName: "MINAN Clothing",
         url: siteConfig.url,
         description: siteConfig.description,
         inLanguage: "en-BD",
         publisher: { "@id": organizationId },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${siteConfig.url}/products?search={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: brandFaqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
       },
     ],
   };
@@ -98,6 +178,7 @@ export function getProductStructuredData(
         sku: product._id,
         category: product.category?.name ?? "Fashion",
         brand: {
+          "@id": brandId,
           "@type": "Brand",
           name: siteConfig.name,
         },

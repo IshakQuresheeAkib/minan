@@ -11,8 +11,17 @@ import {
   primaryNavItems,
 } from "@/constants/nav-items";
 
+function isProductDetailPath(pathname: string): boolean {
+  return /^\/products\/[^/]+$/.test(pathname);
+}
+
 export function BottomNav() {
   const pathname = usePathname();
+
+  if (isProductDetailPath(pathname)) {
+    return null;
+  }
+
   const items = primaryNavItems.map<LimelightNavItem>((item) => ({
     ...item,
     icon: <item.icon />,

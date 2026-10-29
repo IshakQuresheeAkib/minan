@@ -64,6 +64,9 @@ bkashRouter.post(
 );
 // bKash performs this browser redirect, so it intentionally bypasses XHR CSRF checks.
 bkashRouter.get("/callback", bkashCallbackHandler);
+bkashRouter.get("/harness-callback", (_req, res) => {
+  res.type("html").send(`<!DOCTYPE html><html><head><title>bKash UAT Harness</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;"><h2>bKash UAT Authorization Captured</h2><p>Please return to your terminal and execute: <code>npx tsx src/scripts/bkashValidationHarness.ts complete</code></p></body></html>`);
+});
 bkashRouter.post(
   "/results/resolve",
   resolveIpLimiter,

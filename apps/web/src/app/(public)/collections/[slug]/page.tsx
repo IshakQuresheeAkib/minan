@@ -177,5 +177,6 @@ async function CollectionProducts({ filters, filterOptions, categorySlug }: {
     page: 1,
     limit: 20,
   });
+
   return <ProductCatalog filters={filters} filterOptions={filterOptions} fixedCategorySlug={categorySlug} initialData={toCatalogProductList(products)} />;
 }

@@ -3,6 +3,13 @@ import os from "node:os";
 import path from "node:path";
 import dotenv from "dotenv";
 
+import {
+  classifyExecuteResponse,
+  queryConfirmsCompletion,
+  sanitizeApiResponse,
+  transactionId,
+} from "./bkashValidationHarness.logic.js";
+
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const BASE_URL = (process.env.BKASH_BASE_URL || "https://tokenized.sandbox.bka.sh/v2").replace(/\/+$/, "");
@@ -56,6 +63,7 @@ type State = {
   tokenRecord: {
     id_token: string;
     obtainedAt: number;
+    grantResponse?: Record<string, unknown>;
   };
   createRecord?: {
     requestBody: Record<string, unknown>;
@@ -93,12 +101,13 @@ async function getOrFetchToken(): Promise<State["tokenRecord"]> {
       password: PASSWORD,
     },
     body: JSON.stringify(grantBody),
+    signal: AbortSignal.timeout(30_000),
   });
 
   const grantData = (await grantRes.json()) as Record<string, unknown>;
-  const idToken = grantData.id_token as string;
+  const idToken = typeof grantData.id_token === "string" ? grantData.id_token : "";
   if (!idToken) {
-    console.error("Grant Token failed:", grantData);
+    console.error("Grant Token failed:", sanitizeApiResponse(grantData));
     process.exit(1);
   }
 
@@ -106,6 +115,7 @@ async function getOrFetchToken(): Promise<State["tokenRecord"]> {
   const record: State["tokenRecord"] = {
     id_token: idToken,
     obtainedAt: Date.now(),
+    grantResponse: sanitizeApiResponse(grantData),
   };
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(record, null, 2), "utf8");
@@ -133,15 +143,15 @@ async function runCreate() {
   const invoiceNumber = `MINAN-${Date.now()}`;
   const createBody = {
     mode: "0011",
-    payerReference: "01619777283",
-    callbackURL: `${API_PUBLIC_URL}/api/bkash/callback`,
+    payerReference: "01770618575",
+    callbackURL: `${API_PUBLIC_URL}/api/bkash/harness-callback`,
     amount: "10",
     currency: "BDT",
     intent: "sale",
     merchantInvoiceNumber: invoiceNumber,
   };
 
-  console.log("Calling Create Payment API for amount 100 BDT...");
+  console.log("Calling Create Payment API for amount 10 BDT...");
   const createRes = await fetch(createUrl, {
     method: "POST",
     headers: {
@@ -151,6 +161,7 @@ async function runCreate() {
       "X-App-Key": APP_KEY,
     },
     body: JSON.stringify(createBody),
+    signal: AbortSignal.timeout(30_000),
   });
 
   const createData = (await createRes.json()) as Record<string, unknown>;
@@ -158,7 +169,7 @@ async function runCreate() {
   const bkashURL = createData.bkashURL as string;
 
   if (!paymentID || !bkashURL) {
-    console.error("Create Payment failed:", createData);
+    console.error("Create Payment failed:", sanitizeApiResponse(createData));
     process.exit(1);
   }
 
@@ -166,7 +177,7 @@ async function runCreate() {
     tokenRecord,
     createRecord: {
       requestBody: createBody,
-      response: createData,
+      response: sanitizeApiResponse(createData),
       paymentID,
       invoiceNumber,
       bkashURL,
@@ -201,97 +212,140 @@ async function runComplete() {
   const paymentID = createRecord.paymentID;
   console.log(`Finalizing Payment ID: ${paymentID}...`);
 
-  // 3. EXECUTE
-  console.log("Calling Execute Payment API...");
-  const executeBody = { paymentId: paymentID, paymentID };
-  const executeRes = await fetch(executeUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: tokenRecord.id_token,
-      "X-App-Key": APP_KEY,
-    },
-    body: JSON.stringify(executeBody),
-  });
-
-  const executeData = (await executeRes.json()) as Record<string, unknown>;
-  console.log("Execute Response:", JSON.stringify(executeData, null, 2));
-  const trxID = ((executeData.trxID || executeData.trxId) as string) || "9I4001SA8D";
-
-  // 4. QUERY
-  console.log("\nCalling Query Payment API...");
-  const queryBody = { paymentId: paymentID, paymentID };
-  const queryRes = await fetch(queryUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: tokenRecord.id_token,
-      "X-App-Key": APP_KEY,
-    },
-    body: JSON.stringify(queryBody),
-  });
-
-  const queryData = (await queryRes.json()) as Record<string, unknown>;
-  console.log("Query Response:", JSON.stringify(queryData, null, 2));
-
-  // 5. SEARCH
-  console.log("\nCalling Search Transaction API...");
-  const searchBody = { trxId: trxID, trxID };
-  const searchRes = await fetch(searchUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: tokenRecord.id_token,
-      "X-App-Key": APP_KEY,
-    },
-    body: JSON.stringify(searchBody),
-  });
-
-  const searchData = (await searchRes.json()) as Record<string, unknown>;
-  console.log("Search Response:", JSON.stringify(searchData, null, 2));
-
-  const apis: CapturedApi[] = [
-    {
+  const apis: CapturedApi[] = [];
+  if (tokenRecord.grantResponse) {
+    apis.push({
       title: "Grant Token",
       url: grantUrl,
       requestBody: { app_key: "[REDACTED]", app_secret: "[REDACTED]" },
-      response: {
-        statusCode: "0000",
-        statusMessage: "Successful",
-        token_type: "Bearer",
-        id_token: "[REDACTED]",
-        refresh_token: "[REDACTED]",
-        expires_in: 3600,
+      response: tokenRecord.grantResponse,
+    });
+  } else {
+    console.log("Grant Token response omitted: this cached token predates response capture.");
+  }
+  apis.push({
+    title: "Create Payment",
+    url: createUrl,
+    requestBody: createRecord.requestBody,
+    response: createRecord.response,
+  });
+
+  const executeBody = { paymentId: paymentID, paymentID };
+  let executeData: Record<string, unknown> | undefined;
+  let executeResponseReceived = false;
+  try {
+    console.log("Calling Execute Payment API...");
+    const executeRes = await fetch(executeUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: tokenRecord.id_token,
+        "X-App-Key": APP_KEY,
       },
-    },
-    {
-      title: "Create Payment",
-      url: createUrl,
-      requestBody: createRecord.requestBody,
-      response: createRecord.response,
-    },
-    {
+      body: JSON.stringify(executeBody),
+      signal: AbortSignal.timeout(30_000),
+    });
+    executeResponseReceived = true;
+    executeData = (await executeRes.json()) as Record<string, unknown>;
+    apis.push({
       title: "Execute Payment",
       url: executeUrl,
       requestBody: executeBody,
-      response: executeData,
-    },
-    {
-      title: "Query Payment API",
-      url: queryUrl,
-      requestBody: queryBody,
-      response: queryData,
-    },
-    {
-      title: "Search Payment API",
-      url: searchUrl,
-      requestBody: searchBody,
-      response: searchData,
-    },
-  ];
+      response: sanitizeApiResponse(executeData),
+    });
+    console.log("Execute Response:", JSON.stringify(sanitizeApiResponse(executeData), null, 2));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Execute request failed";
+    apis.push({
+      title: "Execute Payment",
+      url: executeUrl,
+      requestBody: executeBody,
+      response: { transportError: message },
+    });
+    console.log(`Execute returned no usable response: ${message}`);
+  }
+
+  const classification = executeData ? classifyExecuteResponse(executeData) : "failed";
+  let transaction = classification === "completed" && executeData
+    ? transactionId(executeData)
+    : undefined;
+  const shouldQuery = !executeResponseReceived || classification === "query";
+
+  if (shouldQuery) {
+    const queryBody = { paymentId: paymentID, paymentID };
+    try {
+      console.log("Calling Query Payment API...");
+      const queryRes = await fetch(queryUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: tokenRecord.id_token,
+          "X-App-Key": APP_KEY,
+        },
+        body: JSON.stringify(queryBody),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const queryData = (await queryRes.json()) as Record<string, unknown>;
+      apis.push({
+        title: "Query Payment API",
+        url: queryUrl,
+        requestBody: queryBody,
+        response: sanitizeApiResponse(queryData),
+      });
+      console.log("Query Response:", JSON.stringify(sanitizeApiResponse(queryData), null, 2));
+      if (queryConfirmsCompletion(queryData)) transaction = transactionId(queryData);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Query request failed";
+      apis.push({
+        title: "Query Payment API",
+        url: queryUrl,
+        requestBody: queryBody,
+        response: { error: message },
+      });
+      console.log(`Query returned no usable response: ${message}`);
+    }
+  } else if (classification === "failed") {
+    console.log("Execute returned a failure response; Query and Search were not called.");
+  }
+
+  if (transaction) {
+    const searchBody = { trxId: transaction };
+    try {
+      console.log("Calling Search Transaction API...");
+      const searchRes = await fetch(searchUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: tokenRecord.id_token,
+          "X-App-Key": APP_KEY,
+        },
+        body: JSON.stringify(searchBody),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const searchData = (await searchRes.json()) as Record<string, unknown>;
+      apis.push({
+        title: "Search Transaction API",
+        url: searchUrl,
+        requestBody: searchBody,
+        response: sanitizeApiResponse(searchData),
+      });
+      console.log("Search Response:", JSON.stringify(sanitizeApiResponse(searchData), null, 2));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Search request failed";
+      apis.push({
+        title: "Search Transaction API",
+        url: searchUrl,
+        requestBody: searchBody,
+        response: { error: message },
+      });
+      console.log(`Search returned no usable response: ${message}`);
+    }
+  } else {
+    console.log("Search Transaction API skipped: no confirmed successful transaction ID.");
+  }
 
   let formattedText = "API Request/Response\n\n";
   for (const api of apis) {
@@ -330,11 +384,56 @@ async function runComplete() {
   console.log("==================================================");
 }
 
+async function runQuery(targetPaymentID?: string) {
+  const state = loadState();
+  const paymentID = targetPaymentID || state?.createRecord?.paymentID;
+  if (!paymentID) {
+    console.error("Please provide a Payment ID: npx tsx src/scripts/bkashValidationHarness.ts query <paymentID>");
+    process.exit(1);
+  }
+
+  const tokenRecord = await getOrFetchToken();
+  console.log(`Querying Payment ID: ${paymentID}...`);
+
+  const queryBody = { paymentId: paymentID, paymentID };
+  const queryRes = await fetch(queryUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: tokenRecord.id_token,
+      "X-App-Key": APP_KEY,
+    },
+    body: JSON.stringify(queryBody),
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  const queryData = (await queryRes.json()) as Record<string, unknown>;
+  const sanitized = sanitizeApiResponse(queryData);
+  console.log("Query Response:", JSON.stringify(sanitized, null, 2));
+
+  const outputDir = path.join(HARNESS_DIR, "output");
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  const textPath = path.join(outputDir, `bkash-sandbox-query-sample.txt`);
+  const formattedText = `Query Payment API\n• API Title : Query Payment API\n• API URL : ${queryUrl}\n• Request Body :\n${JSON.stringify(queryBody, null, 2)}\n\n• API Response :\n${JSON.stringify(sanitized, null, 2)}\n\n`;
+  fs.writeFileSync(textPath, formattedText, "utf8");
+
+  console.log("\n==================================================");
+  console.log("QUERY SAMPLE CAPTURED!");
+  console.log("Output saved to:");
+  console.log("  " + textPath);
+  console.log("==================================================");
+}
+
 const command = process.argv[2] || "create";
 if (command === "create") {
   runCreate().catch(console.error);
 } else if (command === "complete") {
   runComplete().catch(console.error);
+} else if (command === "query") {
+  runQuery(process.argv[3]).catch(console.error);
 } else {
-  console.log("Usage: npx tsx src/scripts/bkashValidationHarness.ts [create|complete]");
+  console.log("Usage: npx tsx src/scripts/bkashValidationHarness.ts [create|complete|query <paymentID>]");
 }

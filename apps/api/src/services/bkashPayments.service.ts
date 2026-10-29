@@ -807,7 +807,9 @@ async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void
 
 const ALREADY_COMPLETED_STATUS_CODES = new Set(["2062", "2068", "2117"]);
 const DEFINITIVE_FAILED_STATUS_CODES = new Set([
+  "2002", // Invalid Payment ID
   "2006", // Invalid amount
+  "2007", // Invalid currency
   "2009", // Invalid Wallet
   "2010", // Invalid OTP
   "2011", // Invalid PIN
@@ -820,7 +822,10 @@ const DEFINITIVE_FAILED_STATUS_CODES = new Set([
   "2018", // OTP verification time expired
   "2019", // PIN verification time expired
   "2023", // Insufficient Balance
+  "2025", // Invalid request body
   "2029", // Duplicate for all transactions
+  "2031", // Invalid merchant invoice number
+  "2049", // Invalid Merchant Callback URL
   "2057", // Not a bKash Account
   "2058", // Not a Customer Wallet
   "2059", // Multiple OTP request for a single session denied
@@ -854,7 +859,12 @@ async function applyVerification(
       attempt.status = "expired";
       attempt.terminal_confirmed_at = new Date();
     } else if (transactionStatus === "initiated") {
-      attempt.status = "initiated";
+      if (attempt.execute_started_at || attempt.status === "verification_pending") {
+        attempt.status = "failed";
+        attempt.terminal_confirmed_at = new Date();
+      } else {
+        attempt.status = "initiated";
+      }
     } else if (
       response.statusCode &&
       DEFINITIVE_FAILED_STATUS_CODES.has(response.statusCode)
@@ -1149,5 +1159,5 @@ export async function recheckPendingPayment(orderId: string): Promise<void> {
     }
     return;
   }
-  await executeOrQuery(attempt);
+  await queryAndApplyVerification(attempt);
 }

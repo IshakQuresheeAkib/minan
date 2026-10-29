@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ resolveCustomer: vi.fn(), start: vi.fn() }));
 vi.mock("../middleware/requireCustomerAuth.js", () => ({ resolveCustomerSession: mocks.resolveCustomer }));
@@ -43,6 +43,17 @@ describe("checkout ownership controller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.start.mockResolvedValue({ state: "completed" });
+    delete process.env.BKASH_RESTRICT_ACCESS;
+    delete process.env.BKASH_UAT_ALLOWED_EMAILS;
+    delete process.env.BKASH_UAT_BYPASS_TOKEN;
+    delete process.env.BKASH_ENABLE_UAT_BYPASS;
+  });
+
+  afterEach(() => {
+    delete process.env.BKASH_RESTRICT_ACCESS;
+    delete process.env.BKASH_UAT_ALLOWED_EMAILS;
+    delete process.env.BKASH_UAT_BYPASS_TOKEN;
+    delete process.env.BKASH_ENABLE_UAT_BYPASS;
   });
 
   it("requires a valid customer session before customer-mode Order creation", async () => {
@@ -142,5 +153,44 @@ describe("checkout ownership controller", () => {
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
     delete process.env.BKASH_RESTRICT_ACCESS;
     delete process.env.BKASH_UAT_ALLOWED_EMAILS;
+  });
+
+  it("allows guest UAT checkout with the configured secret bypass token", async () => {
+    process.env.BKASH_RESTRICT_ACCESS = "true";
+    process.env.BKASH_UAT_BYPASS_TOKEN = "private-uat-token";
+    const next = vi.fn();
+
+    await createBkashPaymentHandler(
+      {
+        body: { ...input, checkout_identity_mode: "guest" },
+        query: { uat: "private-uat-token" },
+        get: vi.fn((name: string) => name === "Idempotency-Key" ? "x".repeat(16) : undefined),
+      } as unknown as Request,
+      response(),
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mocks.start).toHaveBeenCalled();
+  });
+
+  it("rejects the old public bypass values and mismatched tokens", async () => {
+    process.env.BKASH_RESTRICT_ACCESS = "true";
+    process.env.BKASH_ENABLE_UAT_BYPASS = "true";
+    process.env.BKASH_UAT_BYPASS_TOKEN = "private-uat-token";
+    const next = vi.fn();
+
+    await createBkashPaymentHandler(
+      {
+        body: { ...input, checkout_identity_mode: "guest" },
+        query: { uat: "bkash" },
+        get: vi.fn((name: string) => name === "Idempotency-Key" ? "x".repeat(16) : undefined),
+      } as unknown as Request,
+      response(),
+      next,
+    );
+
+    expect(mocks.start).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403 }));
   });
 });

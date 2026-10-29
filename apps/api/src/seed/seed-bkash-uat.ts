@@ -11,14 +11,26 @@ export async function seedBkashUat(): Promise<{
   users: { email: string; password: string }[];
   products: { name: string; slug: string; price: number; purpose: string }[];
 }> {
+  const configuredPassword = process.env.BKASH_UAT_TEST_PASSWORD?.trim();
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_UAT_SEED !== "true") {
+    throw new Error("Refusing to seed bKash UAT data in production without ALLOW_PROD_UAT_SEED=true");
+  }
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!configuredPassword || configuredPassword === "MinanBkashUAT2026!")
+  ) {
+    throw new Error("BKASH_UAT_TEST_PASSWORD must be set to a unique value for production UAT");
+  }
+
   await connectDB();
 
-  // 1. Get or create Category
-  let category = await Category.findOne({ is_active: true });
+  // 1. Get or create the dedicated UAT category
+  let category = await Category.findOne({ slug: "bkash-uat" });
   if (!category) {
     category = await Category.create({
-      name: "UAT Test Category",
-      slug: "uat-test-category",
+      name: "bKash UAT Test Category",
+      slug: "bkash-uat",
+      image_url: "https://picsum.photos/seed/bkash-uat-category/600/600",
       is_active: true,
     });
   }
@@ -98,7 +110,7 @@ export async function seedBkashUat(): Promise<{
         .map((e) => (e as string).trim().toLowerCase()),
     ),
   );
-  const uatPassword = process.env.BKASH_UAT_TEST_PASSWORD || "MinanBkashUAT2026!";
+  const uatPassword = configuredPassword || "MinanBkashUAT2026!";
   const passwordHash = await hashCustomerPassword(uatPassword);
 
   for (const email of uatEmails) {
@@ -149,7 +161,12 @@ if (process.argv[1] && process.argv[1].includes("seed-bkash-uat")) {
       console.log("Test Customer Accounts:");
       for (const u of result.users) {
         console.log(`  Email:    ${u.email}`);
-        console.log(`  Password: ${u.password}`);
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`  Password: ${u.password}`);
+        }
+      }
+      if (process.env.NODE_ENV === "production") {
+        console.log("  Password: use the configured BKASH_UAT_TEST_PASSWORD (not printed to deployment logs).");
       }
       console.log("\nTest Products:");
       for (const prod of result.products) {

@@ -71,6 +71,10 @@
 | SWR             | 2.x for catalog, checkout configuration, and customer Order history |
 | Vitest          | 4.x with Testing Library for frontend tests                     |
 | Cloudinary      | via signed uploads + `next/image`                                |
+| Structured Data | Schema.org JSON-LD (`Organization`, `Brand`, `WebSite`, `FAQPage`, `ItemList`, `Product`) |
+| Discovery / PWA | `/manifest.webmanifest`, `robots.ts` AI bot policy, `/llms.txt`, `/llms-full.txt` |
+| Font Strategy   | Google Fonts (`Manrope`, `Plus_Jakarta_Sans`) with `display: "swap"` |
+| Speculation     | Speculation Rules API for prerendering `/products*` and `/collections/*` |
 
 ### Backend
 
@@ -407,6 +411,7 @@ The single bundled fallback banner uses `/hero/desktop-fallback.webp` and `/hero
 | GET    | `/api/checkout/config` | Cacheable backend-authoritative ordered shipping options, BDT fees, and non-refundable policy |
 | POST   | `/api/bkash/payments` | Create/idempotently retrieve an Order and start its frozen full-Order or delivery-fee attempt, according to the payment method |
 | GET    | `/api/bkash/callback` | Verify and reconcile the provider redirect, including valid late completions |
+| GET    | `/api/bkash/harness-callback` | Render authorization confirmation page for the standalone bKash UAT validation harness |
 | POST   | `/api/bkash/results/resolve` | Resolve an opaque result reference to Order number, fee, COD, and transaction details |
 | POST   | `/api/bkash/payments/retry` | Create another attempt for the same frozen payment purpose and amount from an opaque retry token |
 | POST   | `/api/analytics`      | Log analytics event and forward mapped events to Meta CAPI, CSRF-header protected, rate-limited 60 req/15 min/IP |
@@ -490,6 +495,9 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `/account/orders`   | My Orders           | Authenticated customer history |
 | `/account/orders/[orderNumber]` | My Order Detail | Authenticated customer ownership |
 | `/payment/result`   | Payment Result      | Public result reference resolution |
+| `/manifest.webmanifest` | PWA Web App Manifest | Public static metadata |
+| `/llms.txt`         | LLM Quick Reference | Public markdown context |
+| `/llms-full.txt`    | LLM Full Documentation | Public comprehensive brand/product/policy context |
 | `/admin/login`      | Admin Login         | Public            |
 | `/admin`            | Dashboard           | Admin             |
 | `/admin/products`   | Product Management  | Admin             |
@@ -511,13 +519,22 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 - `app/(public)/` contains storefront routes.
 - `app/(admin)/admin/` contains protected admin routes and the admin shell layout.
 - `app/(public)/admin/login/page.tsx` is public so unauthenticated admins can reach it.
-- Public layout chrome is `components/layouts/PublicChrome.tsx`.
- - Admin layout chrome is `components/layouts/AdminShell.tsx`, featuring desktop sidebar branding with the MINAN logo, mobile header with a slide-out navigation drawer, and `features/admin/components/AdminTopBar.tsx` (dynamic section title, real-time Asia/Dhaka clock, product search, unread order notifications, and admin profile pill). Dedicated admin skeletons live in `features/admin/components/AdminSkeleton.tsx` (`AdminShellSkeleton` during session bootstrapping, `AdminDashboardSkeleton` during metrics hydration, and `AdminOrdersSkeleton` for orders page Suspense).
+- Public layout chrome is `components/layouts/PublicChrome.tsx`, which directly renders `Navbar`, `Footer`, `SpeculationRules`, `Toaster`, and a Suspense-wrapped `BottomNav`. `PublicNavbarSlot`, `PublicFooterSlot`, and `PublicRouteChrome.tsx` are retired.
+- `components/shared/bottom-nav.tsx` hides on product detail routes (`/products/[slug]`) to avoid UI conflicts with sticky mobile actions. It is wrapped in a `<Suspense fallback={null}>` boundary within `PublicChrome` to protect client navigation state.
+- `components/shared/navbar.tsx` wraps desktop navigation pills (`NavPill`) in `<Suspense fallback={null}>`.
+- `components/shared/footer.tsx` wraps dynamic year rendering (`<CurrentYear />`) in `<Suspense fallback={null}>` to prevent client-server hydration mismatch while avoiding stale hardcoded years.
+- Admin layout chrome is `components/layouts/AdminShell.tsx`, featuring desktop sidebar branding with the MINAN logo, mobile header with a slide-out navigation drawer, and `features/admin/components/AdminTopBar.tsx` (dynamic section title, real-time Asia/Dhaka clock, product search, unread order notifications, and admin profile pill). Dedicated admin skeletons live in `features/admin/components/AdminSkeleton.tsx` (`AdminShellSkeleton` during session bootstrapping, `AdminDashboardSkeleton` during metrics hydration, and `AdminOrdersSkeleton` for orders page Suspense).
 - `components/shared/SearchBar.tsx` provides unified search input with debounced suggestions across the storefront Navbar, product catalog, and `AdminTopBar`.
 - Admin order fulfillment decomposes the order detail view into modular subcomponents in `features/admin/components/order-detail/` (`OrderHeader`, `CustomerEditor`, `ItemsEditor`, `ExchangePanel`, `ReturnsRefunds`, `ActivityTimeline`, `OrderUtility`).
 - `features/admin/lib/orderTransitions.ts` defines allowed order state transitions: pre-shipment non-adjacent transitions (`new` -> `processing`, `confirmed` -> `new`) require an override reason (3-120 characters); reverting `processing` to `confirmed` is blocked when the delivery fee is unpaid.
 - `features/admin/lib/retryBackoff.ts` provides exponential backoff and jitter for order change polling (`OrdersNotificationProvider`), halting polling on terminal non-retryable errors (e.g., 401, 403, 404).
 - Storefront homepage organizes preview grids via `features/home/components/CategoryProductGrid.tsx`. Responsive hero banners support preloading via `preloadResponsiveBannerImage` (`ResponsiveBannerImage.tsx`), and `HeroCarousel.tsx` uses `activeAnimationsRef` to prevent overlapping GSAP animation conflicts.
+- Homepage catalog Suspense boundaries and loading states use `features/home/components/HomeCatalogSkeleton.tsx` rather than generic product skeletons to match the category strip and card grid layout without cumulative layout shifts (CLS).
+- Storefront homepage enriches crawlable brand content and physical store trust signals via `features/home/components/BrandIntroSection.tsx` and `BrandFaqSection.tsx` directly beneath the catalog grid.
+- `components/layouts/SpeculationRules.tsx` embeds browser speculation rules to prerender both `/products*` and `/collections/*` documents upon user hover or intent, while respecting `[data-no-prerender]` overrides.
+- `components/shared/footer.tsx` provides semantic footer navigation with Kumarpara Point physical store address, direct phone/WhatsApp contact (`01799-854465`), verified social profiles, nationwide delivery policy summary, and the official Facebook Page plugin.
+- `app/manifest.ts` generates `/manifest.webmanifest` defining standalone PWA execution, launcher icons, and brand colors (`#974822`, `#FBF7F4`).
+- `features/checkout/components/CheckoutClient.tsx`, `BuyNowCheckoutClient.tsx`, and `CheckoutForm.tsx` detect active customer sessions. When authenticated, the customer email is pre-filled and locked (`readOnly`) to prevent identity or ownership mismatches. `useCheckoutConfig` automatically restores sessions when authentication status is unverified and triggers configuration revalidation upon `CustomerLoginForm` submission to avoid feature downgrades.
 - `features/<domain>/` colocates domain components, hooks, actions, services, schemas, and types.
 - `features/<domain>/actions/*.actions.ts` are plain async functions calling Express. No `"use server"`.
 - `components/ui/` is shadcn/ui output.
@@ -544,7 +561,11 @@ Admin write routes require `requireAuth` and `requireCsrfHeader`.
 | `payment_method` | radio  | yes      | `bkash_full` or `cod`. Neither is preselected under payment contract v2 |
 | `notes`        | textarea | no       | max 500 |
 
-`GET /api/checkout/config` returns `inside_sylhet` and `outside_sylhet` in display order. The backend sets positive-integer fees, BDT currency, the non-refundable policy, payment contract v2 (`bkash_full`, `cod`), and ETag/revalidation metadata. During the compatibility release it also returns the legacy `delivery_fee`. Without `payment_contract`, the storefront keeps its previous fee-only COD behavior. Checkout stays disabled when the relevant fee contract is unavailable or invalid. Shipping and v2 payment choices begin unselected.
+`GET /api/checkout/config` returns `inside_sylhet` and `outside_sylhet` in display order. The backend sets positive-integer fees, BDT currency, the non-refundable policy, payment contract v2 (`bkash_full`, `cod`), and ETag/revalidation metadata. During the compatibility release it also returns the legacy `delivery_fee`. The current storefront disables checkout and shows a maintenance message when `payment_contract` is absent. Checkout also stays disabled when the relevant fee contract is unavailable or invalid. Shipping and v2 payment choices begin unselected.
+
+When an authenticated customer accesses checkout (`CheckoutClient` or `BuyNowCheckoutClient`), `CheckoutForm` pre-fills the email address from their customer session and marks the field `readOnly` to preserve customer ownership integrity and prevent session-to-order identity divergence. The `useCheckoutConfig` hook checks session presence, automatically restores unknown customer sessions on load, and triggers configuration revalidation when a customer logs in via `CustomerLoginForm`, preventing payment option downgrades.
+
+When `BKASH_RESTRICT_ACCESS=true` is enabled on the backend, bKash checkout is gated: only authenticated customer accounts whose session email (`ownership.email`) matches `BKASH_UAT_ALLOWED_EMAILS` can initiate bKash payment attempts. For other visitors, `GET /api/checkout/config` omits `payment_contract`, disabling checkout in the current storefront. A visitor cannot gain access by typing a whitelisted email into guest contact details. An optional developer bypass accepts the `bkash_uat` cookie, `?uat=` query parameter, or `x-bkash-uat` header only when its value matches the server-only `BKASH_UAT_BYPASS_TOKEN`; an unset token disables bypass access. Anyone who obtains the configured token can access UAT checkout while the restriction is enabled, so keep it private.
 
 `POST /api/bkash/payments` requires a shipping-zone ID for zone-aware requests and maps it to the current server configuration. It accepts `payment_method: bkash_full | cod`. Missing values temporarily use `cod` for the previous storefront. The server verifies products, variants, and prices, creates one frozen Order per idempotency key, and charges `overall_order_value` for full payment or `delivery_fee` for COD. The payment method is outside the browser idempotency fingerprint. A confirmed-terminal switch reuses the Order, while active or uncertain attempts block switching. Full payment sets online-paid merchandise to the frozen merchandise total and COD due to zero. COD completion pays the fee only. The fee is non-refundable and excluded from return, refund, and exchange-credit calculations. Retries keep the original purpose and exact amount. The first completion wins atomically. A late second completion triggers financial review without replacing settled balances. Callback Execute/query recovery, signature checks, amount, currency, invoice verification, result tokens, rate limits, and late-completion reconciliation are mandatory.
 
@@ -552,14 +573,21 @@ Backend integration uses the bKash Tokenized Checkout v2 API (`https://tokenized
 - Payment creation calls `/tokenized-checkout/payment/create` (mode `0011`).
 - Payment execution calls `/tokenized-checkout/payment/execute` (sending both `paymentId` and `paymentID`).
 - Query status calls `/tokenized-checkout/query/payment`. Following bKash guidelines, Query is primarily used as an Execute timeout recovery oracle (when Execute receives no response within 30 seconds) or to reconcile already-completed indicators (`2062`, `2068`, `2117`).
-- State-aware callback routing distinguishes between unexecuted attempts and timeout edge cases:
+- State-aware callback routing and verification resolution distinguishes between unexecuted attempts and timeout edge cases:
   - For `initiated` attempts (where Execute was never dispatched), cancel or failure callbacks mark the attempt terminal `cancelled` or `failed` with `terminal_confirmed_at = new Date()` immediately without querying bKash. This eliminates extra network latency and timeout risks, ensuring the customer sees "Payment Cancelled" or "Payment Failed" on screen-share UAT.
-  - For `verification_pending` attempts (where Execute was already dispatched and timed out), cancel callbacks call `queryAndApplyVerification`. If bKash completed the payment, it settles; if bKash confirmed it was not completed, it marks terminal with `terminal_confirmed_at`. If Query itself also fails or times out, it marks terminal but leaves `terminal_confirmed_at` undefined so background/retry reconciliation nets remain open.
+  - For `verification_pending` attempts (where Execute was dispatched and timed out), cancel callbacks invoke `queryAndApplyVerification`. If bKash completed the payment, it settles; if bKash confirmed it was not completed, it marks terminal with `terminal_confirmed_at`. If Query itself also fails or times out, status stays `verification_pending` (with `terminal_confirmed_at` undefined) so money is not lost and background/retry reconciliation nets keep polling bKash.
+  - When Query status returns `transactionStatus: "Initiated"`: if `execute_started_at` was set (Execute was dispatched and timed out) or the attempt was already `verification_pending`, `applyVerification` marks the attempt terminal `failed` with `terminal_confirmed_at = new Date()` (confirming bKash did not complete the payment during execution). If Execute was never dispatched (e.g. early query prior to execute), it remains `initiated`.
+  - Definitive provider failure codes (`DEFINITIVE_FAILED_STATUS_CODES`: `2002`, `2006`, `2007`, `2009`, `2010`, `2011`, `2012`, `2013`, `2014`, `2015`, `2016`, `2017`, `2018`, `2019`, `2023`, `2025`, `2029`, `2031`, `2049`, `2057`, `2058`, `2059`, `2060`, `2067`, `2069`) terminate immediately with `terminal_confirmed_at = new Date()` without querying.
+  - Background/admin payment rechecks (`recheckPendingPayment`) directly dispatch `queryAndApplyVerification(attempt)` without re-dispatching Execute.
 - Authentication uses `/tokenized-checkout/auth/grant-token` and `/tokenized-checkout/auth/refresh-token`. Grant Token calls are protected by an in-memory rate-limit guard adhering to bKash's maximum 2 calls per hour restriction. Rate limit errors return a sanitized customer message ("Payment service is temporarily unavailable. Please try again shortly."). On 401 responses, the client sets `expires_at` to past in `bkash_tokens` rather than destroying the record, prioritizing refresh-token rotation before attempting a rate-limited grant token.
 - Operational client methods in `bkashClient.service.ts` also support transaction lookup (`/tokenized-checkout/general/search-transaction`) and transaction refunds (`/tokenized-checkout/refund/payment/transaction`, `/tokenized-checkout/refund/payment/status`).
-- Standard bKash error code mapping (`apps/api/src/config/bkashErrorCodes.ts`) maps provider error codes (e.g., `2010` Invalid OTP, `2017` Wrong verification limit exceeded, `2023` Insufficient Balance, `2029` Duplicate transaction) to human-readable explanations.
+- Standard bKash error code mapping (`apps/api/src/config/bkashErrorCodes.ts`) maps provider error codes (e.g., `2010` Invalid OTP, `2017` Wrong verification limit exceeded, `2023` Insufficient Balance, `2029` Duplicate transaction) to human-readable explanations. Code `2029` returns `"This payment looks like a duplicate. Check your bKash statement before you try again."`.
 - Provider status codes and error messages (`errorCode`, `errorMessage`, `statusCode`, `statusMessage`) are captured on callback and execution failures, persisted onto the `payment_attempts` document (`provider_status_code`, `provider_status_message`), and propagated through `PaymentResult` so customers see informative error details.
 - Immediate payment creation failures also mint and return an opaque result reference alongside the retry token, redirecting the user to `/payment/result?reference=...` with actionable error context rather than stalling silently.
+- Dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts` and `scripts/bkashValidationHarness.logic.ts`) provides standalone CLI-based UAT verification:
+  - `create`: calls `/tokenized-checkout/payment/create` with test payer reference (`01770618575`), callback URL `${API_PUBLIC_URL}/api/bkash/harness-callback`, and amount 10 BDT. Persists temporary token and payment metadata to the OS temporary directory (`os.tmpdir()`) to prevent git workspace pollution and credential leaks.
+  - Authorization redirect lands on `GET /api/bkash/harness-callback`, which confirms authorization capture in HTML and directs the developer back to terminal.
+  - `complete`: executes the payment, handles timeouts via Query status, records audit evidence, and uses `classifyExecuteResponse` where `statusCode === "0000"` with `transactionStatus === "initiated"` correctly routes to Query status rather than falsely assuming completion.
 
 The payment-result page resolves its opaque reference through the Express API on the server. For initiated or verification-pending attempts, **Check again** refreshes the route without a full page reload. For payment-contract-v2 results, retry checks the returned payment method and amount against the original result; a failed retry can provide a replacement token for that same result. Recheck and retry disable each other while active. Only a completed result clears the cart or buy-now selection and checkout idempotency key.
 
@@ -582,6 +610,13 @@ The payment-result page resolves its opaque reference through the Express API on
 - Polished admin UX with modular organic stat cards, topbar product search, live Dhaka time, unread order notifications, guarded order transitions requiring reasons for pre-shipment workflow jumps, modular order detail management, and dedicated loading skeletons (`AdminDashboardSkeleton`, `AdminShellSkeleton`, `AdminOrdersSkeleton`) eliminating layout shifts
 - Vercel Speed Insights is mounted in the root frontend layout
 - Public and customer order tracking use the customer-safe Order serializer.
+- Comprehensive Schema.org structured data (Organization, Brand, WebSite with SearchAction, FAQPage, ItemList, Product)
+- Progressive Web App (PWA) manifest support (`/manifest.webmanifest`) with standalone display mode
+- AI search crawler discoverability via `/llms.txt`, `/llms-full.txt`, and permissive AI user-agent policies in `robots.ts`
+- Homepage brand trust sections (`BrandIntroSection`, `BrandFaqSection`) and zero-CLS `HomeCatalogSkeleton`
+- Speculation Rules API for instant client prerendering of catalog and category collections
+- Public layout chrome Suspense boundaries (`BottomNav`, `CurrentYear`, `NavPill`) ensuring error-free hydration and smooth navigation
+- Standalone two-phase bKash UAT validation harness (`scripts/bkashValidationHarness.ts`) with dedicated `/api/bkash/harness-callback` endpoint and OS tempdir audit artifacts
 
 ---
 
@@ -631,9 +666,60 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 
 ---
 
-## 15. Performance
+## 15. SEO, PWA & AI/LLM Discoverability
+
+MINAN enforces modern search engine optimization, instant document prerendering, Progressive Web App (PWA) standards, and forward-looking LLM discoverability.
+
+### Schema.org Structured Data (JSON-LD)
+
+All structured data is generated through `lib/seo/structured-data.ts` and rendered via `components/seo/JsonLd.tsx`:
+
+- **Organization**: Official name `MINAN`, `legalName: "MINAN Clothing"`, aliases (`MINAN`, `MINAN Clothing`, `MINAN Bangladesh`, `মিনান`), official logo, customer service `ContactPoint` (`+8801799854465`, Bengali & English), physical `PostalAddress` (`Kumarpara Point, Opposite of Forid & Brothers, Sylhet, Bangladesh, 3100`), and `sameAs` social links (Facebook, Instagram, TikTok).
+- **Brand**: Dedicated `@type: "Brand"` entity (`#brand`) establishing brand identity and logo.
+- **WebSite & SearchAction**: Declares publisher as `#organization`, locale `en-BD`, and includes `potentialAction` (`SearchAction`) targeting `${siteConfig.url}/products?search={search_term_string}` to enable Google sitelinks search box.
+- **FAQPage**: Generated from canonical `brandFaqs` on the homepage answering core brand questions (identity, physical store address, nationwide delivery SLA, payment options, customer support).
+- **Collections & Products**: Category collection pages render `ItemList` schemas with ranked product URLs, while PDP pages render `Product` schemas with BDT offer pricing, availability, and Cloudinary image assets.
+
+### AI & Search Engine Crawling Policies (`robots.ts`)
+
+`apps/web/src/app/robots.ts` defines explicit crawler rules balancing discovery and security:
+
+- **AI Search Engines & Agents**: Specifically allows `GPTBot`, `OAI-SearchBot`, `PerplexityBot`, `ClaudeBot`, `Google-Extended`, and `Applebot-Extended` to crawl storefront content and documentation: `/`, `/products`, `/collections/`, `/llms.txt`, and `/llms-full.txt`.
+- **Protected Paths**: All bots (`*` and AI bots) are strictly disallowed from `/api/`, `/admin/`, `/checkout/`, `/payment/`, and `/account/`.
+- **Order Tracking**: Both standard crawlers (`*`) and AI bots can access the clean `/orders` lookup page, but `/orders?*` deep-link queries are explicitly disallowed for all crawler groups (RFC 9309 §2.2.1) to prevent customer lookup parameter indexing and automated data harvesting.
+- **Sitemap & Host**: Authoritatively specifies `host` and `sitemap: https://www.minanclothing.com/sitemap.xml`.
+
+### LLM Documentation Standards (`llms.txt` and `llms-full.txt`)
+
+Static discovery files in `apps/web/public/` provide standardized brand and platform context for LLM crawlers:
+
+- **`/llms.txt`**: Fast, compact overview detailing official brand aliases, flagship address, customer care contacts, customer-facing product pillars (Panjabi & ethnic wear, shirts, trousers, womenswear, footwear, mapped to the underlying database categories `T-Shirts, Shirts, Pants, Footwear, Accessories, Women, Kids` and subcategories), delivery timelines (24-48h Sylhet, 2-4 business days nationwide), and primary links.
+- **`/llms-full.txt`**: In-depth specification covering ordering flows, payment terms (bKash online prepayment vs COD with advance delivery fee), returns/exchanges, technical architecture, and customer service commitments.
+
+### Progressive Web App (PWA) Manifest
+
+`apps/web/src/app/manifest.ts` generates `/manifest.webmanifest`:
+
+- **Display**: `standalone` app mode.
+- **Branding**: Background `#FBF7F4`, theme color `#974822`.
+- **Icons**: Standardized 32x32 favicon, 192x192, and 512x512 app icons.
+
+### Speculation Rules
+
+`components/layouts/SpeculationRules.tsx` injects `<script type="speculationrules">` in the document head:
+
+- Prerenders `/products*` and `/collections/*` documents upon user hover or intent for instant page loads.
+- Respects `[data-no-prerender]` data attribute to prevent unintended background prefetching.
+
+---
+
+## 16. Performance
 
 - Mobile-first, optimized for Bangladesh 3G/4G users
+- Preconnect and DNS prefetch links for Cloudinary CDN (`https://res.cloudinary.com`) in root layout `<head>` accelerate image resource discovery.
+- Google Fonts (`Manrope`, `Plus_Jakarta_Sans`) use `display: "swap"` to eliminate render-blocking typography delays.
+- Speculation Rules API prerenders `/products*` and `/collections/*` documents on hover, providing instant page transitions across the storefront.
+- Homepage catalog uses `HomeCatalogSkeleton` matching category tabs and card grids, eliminating cumulative layout shift (CLS) during client SWR hydration.
 - Public home/catalog/product data uses explicit `"use cache"` Cache Component functions with the shared `catalog` tag. Client reuse and server revalidation are both 300 seconds; expiry is 3600 seconds. Admin mutations still invalidate the server tag immediately; already-open browsers can reuse their existing catalog for up to five minutes before checking for updates.
 - Storefront navigation has no root or public full-screen loading boundary. Route shells stay visible, and local Suspense boundaries show placeholders only for pending content. Catalog and product-detail pending regions reuse matching browser-cached results when available; `/orders` and `/payment/result` use the shared `RouteDataSkeleton` for pending request data.
 - `useProducts` uses SWR Infinite with normalized filter keys, 20-item pages, server-data seeding, and cached page-count restoration. Catalog/category results refresh after five minutes on remount, focus, or reconnect while keeping existing content visible. These browser caches last for the current document session, not across browser reloads.
@@ -649,7 +735,7 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 
 ---
 
-## 16. Security
+## 17. Security
 
 | Concern          | Mitigation |
 | ---------------- | ---------- |
@@ -671,11 +757,11 @@ Duplicate analytics `event_id` values are ignored before insert, so retries do n
 
 ---
 
-## 17. Deployment & Env Vars
+## 18. Deployment & Env Vars
 
 | Service  | Platform              | Domain          |
 | -------- | --------------------- | --------------- |
-| Frontend | Vercel                | `app.minan.com` |
+| Frontend | Vercel                | `minanclothing.com` (or `app.minan.com`) |
 | Backend  | Render, Node 24.16.0  | `api.minan.com` |
 | Database | MongoDB Atlas 8.3     | -               |
 | Images   | Cloudinary            | -               |
@@ -723,7 +809,7 @@ CUSTOMER_JWT_ACCESS_SECRET=
 CUSTOMER_JWT_REFRESH_SECRET=
 # Set only when the browser frontend and API use minan.com subdomains.
 AUTH_COOKIE_DOMAIN=.minan.com
-ALLOWED_ORIGINS=http://localhost:3000,https://minan-web.vercel.app, https://minanclothing.com
+ALLOWED_ORIGINS=http://localhost:3000,https://minan-web.vercel.app,https://minanclothing.com,https://app.minan.com
 META_CAPI_TOKEN=
 META_PIXEL_ID=
 CLOUDINARY_URL=
@@ -732,7 +818,7 @@ CLOUDINARY_HOME_BANNER_UPLOAD_PRESET=
 ADMIN_EMAIL=
 ADMIN_PASSWORD=
 NODE_ENV=
-STOREFRONT_REVALIDATE_URL=https://app.minan.com/api/revalidate
+STOREFRONT_REVALIDATE_URL=https://minanclothing.com/api/revalidate
 STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
 BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v2
 BKASH_APP_KEY=
@@ -740,12 +826,14 @@ BKASH_APP_SECRET=
 BKASH_USERNAME=
 BKASH_PASSWORD=
 BKASH_RESTRICT_ACCESS=false
-BKASH_UAT_ALLOWED_EMAILS=bkash-uat@minan.com,akibqureshee11@gmail.com
-BKASH_ENABLE_UAT_BYPASS=false
+BKASH_UAT_ALLOWED_EMAILS=bkash-uat@minan.com
+BKASH_UAT_BYPASS_TOKEN=
+BKASH_UAT_TEST_PASSWORD=MinanBkashUAT2026!
+ALLOW_PROD_UAT_SEED=false
 DELIVERY_FEE_INSIDE_SYLHET_BDT=60
 DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120
 API_PUBLIC_URL=https://api.minan.com
-FRONTEND_URL=https://app.minan.com
+FRONTEND_URL=https://minanclothing.com
 ```
 
 - Set `AUTH_COOKIE_DOMAIN=.minan.com` only when the browser frontend is also on a `minan.com` subdomain. Omit it for the default `*.vercel.app` rewrite deployment; otherwise, browsers reject the cookie.
@@ -759,13 +847,15 @@ FRONTEND_URL=https://app.minan.com
 - `CHECKOUT_MAINTENANCE_MODE=true` blocks payment creation and retry during migration while preserving callbacks, result resolution, and admin recheck.
 - The payment result Server Component calls `API_PROXY_TARGET` as an absolute server-to-server URL. It does not depend on the browser rewrite.
 - Use bKash sandbox credentials (`https://tokenized.sandbox.bka.sh/v2`) until the full Create, redirect, callback, Execute, failure, cancellation, and retry flows pass. Tokenized Checkout v2 enforces strict Grant Token rate limits (max 2 calls/hr), handled automatically via in-memory rate-limit tracking and refresh-token caching. Replace the base URL and credentials together for production.
-- `BKASH_RESTRICT_ACCESS=true` gates production bKash payment initialization so public customers cannot initiate bKash transactions prior to official go-ahead. Only authenticated customer accounts listed in `BKASH_UAT_ALLOWED_EMAILS` (comma-separated, default `bkash-uat@minan.com,akibqureshee11@gmail.com`) can initiate bKash payments. Guest checkout cannot bypass this gate even if typing a UAT email in the contact field; an authenticated customer session (`ownership.email`) is strictly required.
-- `BKASH_ENABLE_UAT_BYPASS=true` is an explicit, fail-closed opt-in flag strictly intended for local development or non-production environments to allow `?uat=bkash` / cookie bypass without logging into a test account. It must remain `false` (or unset) in production.
+- `BKASH_RESTRICT_ACCESS=true` gates bKash checkout before official go-ahead. Only authenticated customer accounts listed in `BKASH_UAT_ALLOWED_EMAILS` or a visitor presenting the exact server-only `BKASH_UAT_BYPASS_TOKEN` can see the payment contract and initiate checkout. Never use a guest-supplied email as identity.
+- `BKASH_UAT_BYPASS_TOKEN` is optional; leave it unset to disable token bypass. Any holder can access UAT checkout while restrictions are enabled, so keep it private and remove it after UAT.
+- `BKASH_UAT_TEST_PASSWORD` configures the seeded UAT test customer password (defaults to `MinanBkashUAT2026!`).
+- `seed:bkash-uat` refuses production by default. For a deliberate one-off production UAT seed, set `ALLOW_PROD_UAT_SEED=true` and provide a unique `BKASH_UAT_TEST_PASSWORD`; the seed does not print that password to production logs, and automatically ensures the dedicated UAT test category exists with required `image_url`.
 - `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` names a signed preset configured for JPEG/PNG/WebP images with a 5 MB maximum. Banner signature requests return `503` until it is configured.
 
 ---
 
-## 18. Admin Dashboard Metrics
+## 19. Admin Dashboard Metrics
 
 `GET /api/admin/dashboard` returns comprehensive, live MongoDB aggregations calculated in Bangladesh time (UTC+6). When an authenticated admin session is present, the handler passes `req.admin?.email` to retrieve personalized admin profile details.
 
@@ -825,7 +915,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 
 ---
 
-## 19. Future Roadmap
+## 20. Future Roadmap
 
 - Automated merchandise refunds and return credits (underlying bKash Tokenized Checkout v2 search and refund APIs implemented in `bkashClient.service.ts`)
 - Inventory per SKU with atomic reservation/decrement
@@ -837,7 +927,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 
 ---
 
-## 20. Backend Structure Rules
+## 21. Backend Structure Rules
 
 - `apps/api/src/models/` contains Mongoose models for products, categories, subcategories, Orders/counters, legacy Leads, payment attempts, analytics events, admins, and customers/customer sessions.
 - `apps/api/src/schemas/` contains backend Zod schemas. Backend schemas are independent from frontend schemas.
@@ -850,7 +940,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 - API startup validates configuration and connects to MongoDB before listening. A listen error, including `EADDRINUSE`, is logged; startup disconnects from MongoDB and exits.
 - Dashboard metrics logic in `services/dashboard.service.ts` calculates real-time metrics across orders and analytics using Bangladesh timezone boundaries without synthetic placeholders. bKash payment client integration in `services/bkashClient.service.ts` enforces Tokenized Checkout v2 contracts, Grant Token rate limits (max 2/hr), and refresh-first retry recovery.
 - bKash error code resolution (`config/bkashErrorCodes.ts`) maps PGW error numbers to customer-friendly descriptions and enriches callback error flows (`errorCode`, `errorMessage`). A dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts`) generates audit evidence and captures request/response lifecycle artifacts for merchant compliance, persisting temporary token caches and execution state to the OS temporary directory (`os.tmpdir()`) to prevent git workspace pollution and credential leaks.
-- bKash Production UAT compliance enforces that Query Payment API is only called if Execute Payment API has no response within 30 seconds (timeout or connection failure) or for already-completed indicators (`2062`, `2068`, `2117`), while definitive customer failure codes (`2023`, `2029`, `2010`, etc.) terminate immediately without querying. Cancel and failure callbacks are state-aware: `initiated` attempts (Execute never dispatched) transition directly to terminal `cancelled`/`failed` with `terminal_confirmed_at` without querying; `verification_pending` attempts (Execute timed out) call Query to protect settled payments, and if Query also fails, mark terminal but leave `terminal_confirmed_at` undefined so background/retry recovery nets remain active. Production access is restricted via `BKASH_RESTRICT_ACCESS=true` and `BKASH_UAT_ALLOWED_EMAILS`, unlocking bKash checkout only for authenticated customer sessions matching allowed emails (`ownership.email`, preventing guest email spoofing), with seed script `seed:bkash-uat` generating the test customer and required test products. Developer query/cookie bypass requires explicit `BKASH_ENABLE_UAT_BYPASS=true` and is fail-closed by default.
+- bKash Production UAT compliance enforces that Query Payment API is only called if Execute Payment API has no response within 30 seconds (timeout or connection failure) or for already-completed indicators (`2062`, `2068`, `2117`), while definitive customer failure codes (`2002`, `2006`, `2007`, `2009`, `2010`, `2011`, `2012`, `2013`, `2014`, `2015`, `2016`, `2017`, `2018`, `2019`, `2023`, `2025`, `2029`, `2031`, `2049`, `2057`, `2058`, `2059`, `2060`, `2067`, `2069`) terminate immediately without querying. Cancel and failure callbacks are state-aware: `initiated` attempts (Execute never dispatched) transition directly to terminal `cancelled`/`failed` with `terminal_confirmed_at` without querying; `verification_pending` attempts (Execute timed out) call Query to protect settled payments, and if Query also fails, the attempt stays `verification_pending` so background/retry recovery nets remain active. When Query returns `transactionStatus: "Initiated"` on an attempt where Execute was dispatched (`execute_started_at` is set) or that is `verification_pending`, `applyVerification` marks it terminal `failed` with `terminal_confirmed_at = new Date()`, while fresh unexecuted attempts remain `initiated`. Background/admin payment rechecks (`recheckPendingPayment`) invoke `queryAndApplyVerification(attempt)` without re-dispatching Execute. Production access is restricted via `BKASH_RESTRICT_ACCESS=true` and `BKASH_UAT_ALLOWED_EMAILS`, with optional token access through the private `BKASH_UAT_BYPASS_TOKEN`. The `seed:bkash-uat` script creates the dedicated UAT category (with required `image_url`), test customer, and products; production runs require `ALLOW_PROD_UAT_SEED=true` and a unique `BKASH_UAT_TEST_PASSWORD`. The standalone validation harness (`scripts/bkashValidationHarness.ts` and `logic.ts`) provides two-phase execution (`create`/`complete`), captures sanitized API responses with 30-second timeouts, utilizes `GET /api/bkash/harness-callback` for browser redirect capture, and routes `statusCode: "0000"` with `transactionStatus: "Initiated"` to Query status.
 - Non-admin router mounts include products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, admin auth, customer auth, public Order tracking, and customer-owned Order reads.
 - Admin router is mounted at `/api/admin`.
 - All admin routes require a valid Bearer access token. Admin `is_active` status is enforced during login and refresh. The system does not query the database on every request.
@@ -860,7 +950,7 @@ Top product and category IDs are resolved to their current names. Missing view d
 
 ---
 
-## 21. Cloudinary Image Upload Flow
+## 22. Cloudinary Image Upload Flow
 
 Admin image uploads use signed uploads. Express generates the signature, the browser posts the file directly to Cloudinary, and MongoDB stores only the resulting `secure_url`.
 

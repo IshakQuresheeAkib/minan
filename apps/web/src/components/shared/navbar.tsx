@@ -1,5 +1,4 @@
-"use client";
-
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -23,13 +22,16 @@ export function Navbar() {
             alt="MINAN"
             width={364}
             height={353}
+            priority
             sizes="(min-width: 1024px) 68px, (min-width: 640px) 58px, 50px"
             className="h-12 w-auto sm:h-14 lg:h-16"
           />
         </Link>
 
         <div className="hidden items-center justify-center lg:flex">
-          <NavPill />
+          <Suspense fallback={null}>
+            <NavPill />
+          </Suspense>
         </div>
 
         <div className="col-start-2 row-start-1 flex items-center justify-end self-center lg:col-auto lg:row-auto lg:relative lg:w-11">

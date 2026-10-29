@@ -57,6 +57,8 @@ describe("getCheckoutConfigHandler", () => {
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = "120";
     delete process.env.BKASH_RESTRICT_ACCESS;
     delete process.env.BKASH_UAT_ALLOWED_EMAILS;
+    delete process.env.BKASH_UAT_BYPASS_TOKEN;
+    delete process.env.BKASH_ENABLE_UAT_BYPASS;
   });
 
   afterEach(() => {
@@ -64,6 +66,8 @@ describe("getCheckoutConfigHandler", () => {
     process.env.DELIVERY_FEE_OUTSIDE_SYLHET_BDT = originalFees.DELIVERY_FEE_OUTSIDE_SYLHET_BDT;
     delete process.env.BKASH_RESTRICT_ACCESS;
     delete process.env.BKASH_UAT_ALLOWED_EMAILS;
+    delete process.env.BKASH_UAT_BYPASS_TOKEN;
+    delete process.env.BKASH_ENABLE_UAT_BYPASS;
   });
 
   it("returns payment_contract when bKash is unrestricted", async () => {
@@ -132,5 +136,26 @@ describe("getCheckoutConfigHandler", () => {
       methods: ["bkash_full", "cod"],
     });
     expect(res.getHeader("Cache-Control")).toBe("private, no-cache");
+  });
+
+  it("includes payment_contract for a visitor with the configured UAT bypass token", async () => {
+    process.env.BKASH_RESTRICT_ACCESS = "true";
+    process.env.BKASH_UAT_BYPASS_TOKEN = "private-uat-token";
+    mocks.resolveCustomer.mockResolvedValue(null);
+
+    const req = {
+      query: { uat: "private-uat-token" },
+      get: vi.fn(() => undefined),
+    } as unknown as Request;
+    const res = mockResponse();
+    const next = vi.fn();
+
+    await getCheckoutConfigHandler(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.getBody().data.payment_contract).toEqual({
+      version: 2,
+      methods: ["bkash_full", "cod"],
+    });
   });
 });
