@@ -104,7 +104,7 @@
 | Render            | Express API, Node 24.16.0                 | Target             |
 | MongoDB Atlas     | Managed MongoDB 8.3                       | Target             |
 | Cloudinary        | Image storage + CDN                       | Implemented        |
-| Meta Pixel + CAPI | Client helpers + server CAPI              | Partial            |
+| Meta Pixel + CAPI | Client helpers + server CAPI (with user agent & IP forwarding) | Implemented for posted events |
 | GA4               | Page views + storefront commerce events   | Implemented for current storefront flows |
 | Microsoft Clarity | Session recordings + heatmaps             | Planned            |
 | Vercel Speed Insights | Frontend performance telemetry         | Implemented        |
@@ -584,6 +584,7 @@ Backend integration uses the bKash Tokenized Checkout v2 API (`https://tokenized
 - Standard bKash error code mapping (`apps/api/src/config/bkashErrorCodes.ts`) maps provider error codes (e.g., `2010` Invalid OTP, `2017` Wrong verification limit exceeded, `2023` Insufficient Balance, `2029` Duplicate transaction) to human-readable explanations. Code `2029` returns `"This payment looks like a duplicate. Check your bKash statement before you try again."`.
 - Provider status codes and error messages (`errorCode`, `errorMessage`, `statusCode`, `statusMessage`) are captured on callback and execution failures, persisted onto the `payment_attempts` document (`provider_status_code`, `provider_status_message`), and propagated through `PaymentResult` so customers see informative error details.
 - Immediate payment creation failures also mint and return an opaque result reference alongside the retry token, redirecting the user to `/payment/result?reference=...` with actionable error context rather than stalling silently.
+- Authoritative tokenized checkout documentation, API schemas, and compliance blueprints live in `context/bkash-payment-gateway-guide.md`.
 - Dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts` and `scripts/bkashValidationHarness.logic.ts`) provides standalone CLI-based UAT verification:
   - `create`: calls `/tokenized-checkout/payment/create` with test payer reference (`01770618575`), callback URL `${API_PUBLIC_URL}/api/bkash/harness-callback`, and amount 10 BDT. Persists temporary token and payment metadata to the OS temporary directory (`os.tmpdir()`) to prevent git workspace pollution and credential leaks.
   - Authorization redirect lands on `GET /api/bkash/harness-callback`, which confirms authorization capture in HTML and directs the developer back to terminal.
@@ -616,7 +617,8 @@ The payment-result page resolves its opaque reference through the Express API on
 - Homepage brand trust sections (`BrandIntroSection`, `BrandFaqSection`) and zero-CLS `HomeCatalogSkeleton`
 - Speculation Rules API for instant client prerendering of catalog and category collections
 - Public layout chrome Suspense boundaries (`BottomNav`, `CurrentYear`, `NavPill`) ensuring error-free hydration and smooth navigation
-- Standalone two-phase bKash UAT validation harness (`scripts/bkashValidationHarness.ts`) with dedicated `/api/bkash/harness-callback` endpoint and OS tempdir audit artifacts
+- Standalone two-phase bKash UAT validation harness (`scripts/bkashValidationHarness.ts`) with dedicated `/api/bkash/harness-callback` endpoint, OS tempdir audit artifacts, and architecture guide (`context/bkash-payment-gateway-guide.md`)
+- Meta Conversions API (CAPI) server pipeline forwarding client IP address and user-agent alongside Pixel event IDs for enhanced Event Match Quality (EMQ)
 
 ---
 
@@ -663,6 +665,14 @@ Events that need deduplication follow this sequence:
 Current browser-to-Express-to-CAPI live path: `whatsapp_click`.
 
 Duplicate analytics `event_id` values are ignored before insert, so retries do not create duplicate MongoDB analytics rows.
+
+### Meta Conversions API (CAPI) Integration
+
+The server-side Meta CAPI integration (`apps/api/src/lib/metaCapi.ts`) dispatches events to Meta Graph API v19.0 (`https://graph.facebook.com/v19.0/{pixel_id}/events`):
+
+- **Event Payload**: Includes `event_name`, `event_time` (epoch seconds), `event_id` (matching Pixel for deduplication), `action_source: "website"`, and `event_source_url` (derived from referer or request host).
+- **User Data & Match Quality**: Captures `client_user_agent` (`req.get("user-agent")`) and `client_ip_address` (`req.ip`) to optimize Event Match Quality (EMQ). In production, `req.ip` is resolved using strict trusted proxy ranges (`loopback`, `linklocal`, `uniquelocal`) stopping at the first public hop.
+- **Error Resiliency**: CAPI requests are wrapped in safe error handling to prevent tracking or network timeouts from degrading client responses.
 
 ---
 
@@ -935,11 +945,11 @@ Top product and category IDs are resolved to their current names. Missing view d
 - `apps/api/src/controllers/` owns Express request/response handling.
 - `apps/api/src/routes/` declares route wiring and middleware order.
 - `apps/api/src/middleware/` owns auth, CSRF, and error middleware.
-- `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI, slugify, pagination, and Mongo error handling.
+- `apps/api/src/lib/` owns shared backend helpers such as tokens, Cloudinary, Meta CAPI (Graph API v19.0 with client user-agent and IP match parameters), slugify, pagination, and Mongo error handling.
 - `apps/api/src/utils/` owns response serializers.
 - API startup validates configuration and connects to MongoDB before listening. A listen error, including `EADDRINUSE`, is logged; startup disconnects from MongoDB and exits.
 - Dashboard metrics logic in `services/dashboard.service.ts` calculates real-time metrics across orders and analytics using Bangladesh timezone boundaries without synthetic placeholders. bKash payment client integration in `services/bkashClient.service.ts` enforces Tokenized Checkout v2 contracts, Grant Token rate limits (max 2/hr), and refresh-first retry recovery.
-- bKash error code resolution (`config/bkashErrorCodes.ts`) maps PGW error numbers to customer-friendly descriptions and enriches callback error flows (`errorCode`, `errorMessage`). A dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts`) generates audit evidence and captures request/response lifecycle artifacts for merchant compliance, persisting temporary token caches and execution state to the OS temporary directory (`os.tmpdir()`) to prevent git workspace pollution and credential leaks.
+- bKash error code resolution (`config/bkashErrorCodes.ts`) maps PGW error numbers to customer-friendly descriptions and enriches callback error flows (`errorCode`, `errorMessage`). Tokenized checkout compliance blueprints and architecture are authoritatively detailed in `context/bkash-payment-gateway-guide.md`. A dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts`) generates audit evidence and captures request/response lifecycle artifacts for merchant compliance, persisting temporary token caches and execution state to the OS temporary directory (`os.tmpdir()`) to prevent git workspace pollution and credential leaks.
 - bKash Production UAT compliance enforces that Query Payment API is only called if Execute Payment API has no response within 30 seconds (timeout or connection failure) or for already-completed indicators (`2062`, `2068`, `2117`), while definitive customer failure codes (`2002`, `2006`, `2007`, `2009`, `2010`, `2011`, `2012`, `2013`, `2014`, `2015`, `2016`, `2017`, `2018`, `2019`, `2023`, `2025`, `2029`, `2031`, `2049`, `2057`, `2058`, `2059`, `2060`, `2067`, `2069`) terminate immediately without querying. Cancel and failure callbacks are state-aware: `initiated` attempts (Execute never dispatched) transition directly to terminal `cancelled`/`failed` with `terminal_confirmed_at` without querying; `verification_pending` attempts (Execute timed out) call Query to protect settled payments, and if Query also fails, the attempt stays `verification_pending` so background/retry recovery nets remain active. When Query returns `transactionStatus: "Initiated"` on an attempt where Execute was dispatched (`execute_started_at` is set) or that is `verification_pending`, `applyVerification` marks it terminal `failed` with `terminal_confirmed_at = new Date()`, while fresh unexecuted attempts remain `initiated`. Background/admin payment rechecks (`recheckPendingPayment`) invoke `queryAndApplyVerification(attempt)` without re-dispatching Execute. Production access is restricted via `BKASH_RESTRICT_ACCESS=true` and `BKASH_UAT_ALLOWED_EMAILS`, with optional token access through the private `BKASH_UAT_BYPASS_TOKEN`. The `seed:bkash-uat` script creates the dedicated UAT category (with required `image_url`), test customer, and products; production runs require `ALLOW_PROD_UAT_SEED=true` and a unique `BKASH_UAT_TEST_PASSWORD`. The standalone validation harness (`scripts/bkashValidationHarness.ts` and `logic.ts`) provides two-phase execution (`create`/`complete`), captures sanitized API responses with 30-second timeouts, utilizes `GET /api/bkash/harness-callback` for browser redirect capture, and routes `statusCode: "0000"` with `transactionStatus: "Initiated"` to Query status.
 - Non-admin router mounts include products (catalog, home groups, filters, quotes, PDP), checkout configuration, bKash payments, analytics, whatsapp-click, admin auth, customer auth, public Order tracking, and customer-owned Order reads.
 - Admin router is mounted at `/api/admin`.

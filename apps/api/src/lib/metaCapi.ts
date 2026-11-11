@@ -6,6 +6,7 @@ type MetaCapiEventPayload = {
 
 type MetaCapiUserData = {
   clientUserAgent?: string;
+  clientIpAddress?: string;
 };
 
 export async function sendMetaCapiEvent(
@@ -29,6 +30,9 @@ export async function sendMetaCapiEvent(
         event_source_url: payload.eventSourceUrl,
         user_data: {
           client_user_agent: userData.clientUserAgent,
+          ...(userData.clientIpAddress
+            ? { client_ip_address: userData.clientIpAddress }
+            : {}),
         },
       },
     ],

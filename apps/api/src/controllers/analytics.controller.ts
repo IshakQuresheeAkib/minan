@@ -27,6 +27,7 @@ export async function createAnalyticsEventHandler(
 
     await logAnalyticsEvent(input, {
       clientUserAgent: req.get("user-agent"),
+      clientIpAddress: req.ip,
       eventSourceUrl: getEventSourceUrl(req),
     });
 
@@ -46,6 +47,7 @@ export async function createWhatsappClickHandler(
 
     await logWhatsappClick(input, {
       clientUserAgent: req.get("user-agent"),
+      clientIpAddress: req.ip,
       eventSourceUrl: getEventSourceUrl(req),
     });
 
