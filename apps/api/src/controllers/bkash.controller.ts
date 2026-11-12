@@ -48,11 +48,18 @@ export async function createBkashPaymentHandler(
         );
       }
     }
+    const attribution = {
+      fbp: req.cookies?._fbp,
+      fbc: req.cookies?._fbc,
+      client_ip: (req.headers?.["x-real-ip"] as string) || req.ip,
+      client_user_agent: req.get?.("user-agent"),
+    };
     res.json({
       data: await startBkashPayment(
         input,
         idempotencyKey(req),
         ownership ? { mode: "customer", customerId: ownership.id } : { mode: "guest" },
+        attribution,
       ),
     });
   } catch (error) {

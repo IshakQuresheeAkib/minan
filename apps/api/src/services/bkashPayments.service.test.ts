@@ -33,6 +33,7 @@ import { PaymentAttempt, type PaymentAttemptDocument } from "../models/PaymentAt
 import { bkashCallbackSchema, type PaymentCreateInput } from "../schemas/bkash.schemas.js";
 import type { BkashPaymentResponse } from "./bkashClient.service.js";
 import {
+  dispatchOrderMetaPurchase,
   handleBkashCallback,
   paymentResponseIsCompleted,
   recheckPendingPayment,
@@ -1007,5 +1008,20 @@ describe("bKash Order lifecycle", () => {
     process.env.CHECKOUT_MAINTENANCE_MODE = "true";
     await expect(startBkashPayment(input, "idempotency-key-with-safe-length")).rejects.toMatchObject({ statusCode: 503 });
     await expect(retryBkashPayment({ retry_token: "x".repeat(43) })).rejects.toMatchObject({ statusCode: 503 });
+  });
+
+  describe("dispatchOrderMetaPurchase", () => {
+    it("skips dispatch if order is already marked sent", async () => {
+      const existing = {
+        ...order(),
+        meta_purchase: { sent_at: new Date() },
+      };
+      vi.spyOn(Order, "findById").mockResolvedValue(existing as unknown as OrderDocument);
+      const updateOne = vi.spyOn(Order, "updateOne").mockResolvedValue({} as never);
+
+      await dispatchOrderMetaPurchase(existing._id);
+
+      expect(updateOne).not.toHaveBeenCalled();
+    });
   });
 });

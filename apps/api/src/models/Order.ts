@@ -31,6 +31,19 @@ export type CodStatus =
   | "partially_refunded"
   | "refunded";
 
+export type MetaAttribution = {
+  fbp?: string;
+  fbc?: string;
+  client_ip?: string;
+  client_user_agent?: string;
+};
+
+export type MetaPurchaseState = {
+  event_id?: string;
+  sent_at?: Date;
+  error?: string;
+};
+
 export type OrderLine = {
   line_id: string;
   product_id: string;
@@ -118,6 +131,8 @@ export interface OrderDocument extends Document {
   activity: OrderActivity[];
   refunds: OrderRefund[];
   financial_review_required: boolean;
+  meta_attribution?: MetaAttribution;
+  meta_purchase?: MetaPurchaseState;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -252,6 +267,17 @@ const orderSchema = new Schema<OrderDocument>(
     activity: { type: [activitySchema], default: [] },
     refunds: { type: [refundSchema], default: [] },
     financial_review_required: { type: Boolean, default: false },
+    meta_attribution: {
+      fbp: { type: String, trim: true },
+      fbc: { type: String, trim: true },
+      client_ip: { type: String, trim: true },
+      client_user_agent: { type: String, trim: true },
+    },
+    meta_purchase: {
+      event_id: { type: String, trim: true },
+      sent_at: { type: Date },
+      error: { type: String, trim: true },
+    },
   },
   { timestamps: true },
 );

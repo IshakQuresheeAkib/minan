@@ -9,7 +9,12 @@ import {
   type PaymentMethod,
 } from "../config/checkoutPayment.js";
 import { AppError } from "../lib/errors.js";
-import { Order, type OrderDocument } from "../models/Order.js";
+import { sendMetaPurchaseEvent } from "../lib/metaCapi.js";
+import {
+  type MetaAttribution,
+  Order,
+  type OrderDocument,
+} from "../models/Order.js";
 import {
   PaymentAttempt,
   type PaymentAttemptDocument,
@@ -549,12 +554,13 @@ export async function startBkashPayment(
   input: PaymentCreateInput,
   idempotencyKey: string,
   ownership: CheckoutOwnershipContext = { mode: "guest" },
+  attribution?: MetaAttribution,
 ): Promise<StartPaymentResponse> {
   if (process.env.CHECKOUT_MAINTENANCE_MODE === "true") {
     throw new AppError("Checkout payment is temporarily unavailable for maintenance", 503);
   }
   const idempotencyHash = hash(idempotencyKey);
-  const order = await createOrLoadCheckoutOrder(input, idempotencyHash, ownership);
+  const order = await createOrLoadCheckoutOrder(input, idempotencyHash, ownership, attribution);
 
   if (!checkoutRequestMatchesOrder(input, order)) {
     throw new AppError(
@@ -624,6 +630,40 @@ function feeStatusForAttempt(status: PaymentAttemptStatus) {
   if (status === "verification_pending") return "verification_pending" as const;
   if (status === "expired") return "expired" as const;
   return "failed" as const;
+}
+
+export async function dispatchOrderMetaPurchase(orderId: Types.ObjectId | string): Promise<void> {
+  try {
+    const order = await Order.findById(orderId);
+    if (!order || order.meta_purchase?.sent_at) {
+      return;
+    }
+    const result = await sendMetaPurchaseEvent(order);
+    if (result.ok) {
+      await Order.updateOne(
+        { _id: order._id },
+        {
+          $set: {
+            "meta_purchase.sent_at": new Date(),
+            "meta_purchase.event_id": order.order_number,
+          },
+          $unset: { "meta_purchase.error": 1 },
+        },
+      );
+    } else {
+      await Order.updateOne(
+        { _id: order._id },
+        {
+          $set: {
+            "meta_purchase.error": result.error ?? "Failed to send Meta Purchase event",
+            "meta_purchase.event_id": order.order_number,
+          },
+        },
+      );
+    }
+  } catch (error) {
+    console.error("Meta Purchase dispatch failed:", error);
+  }
 }
 
 async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void> {
@@ -756,6 +796,7 @@ async function syncOrderFeeStatus(attempt: PaymentAttemptDocument): Promise<void
           },
         },
       );
+      void dispatchOrderMetaPurchase(attempt.order_id);
     } else {
       const duplicate = await Order.exists({
         _id: attempt.order_id,
@@ -1031,6 +1072,9 @@ export async function resolvePaymentResult(reference: string): Promise<PaymentRe
   const isSettledStorefrontPurchase = attempt.status === "completed" &&
     order.settled_payment_attempt_id?.toString() === attempt._id.toString() &&
     (order.checkout_source === "cart" || order.checkout_source === "buy_now");
+  if (isSettledStorefrontPurchase && !order.meta_purchase?.sent_at) {
+    void dispatchOrderMetaPurchase(order._id);
+  }
   return {
     state: attempt.status,
     message: isDuplicateCompletion

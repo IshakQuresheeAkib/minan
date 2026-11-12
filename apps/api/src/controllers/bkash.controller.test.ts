@@ -76,6 +76,7 @@ describe("checkout ownership controller", () => {
       expect.objectContaining({ checkout_identity_mode: "customer" }),
       "x".repeat(16),
       { mode: "customer", customerId: "66f000000000000000000003" },
+      expect.anything(),
     );
   });
 
@@ -88,7 +89,7 @@ describe("checkout ownership controller", () => {
     } as unknown as Request, res, vi.fn());
 
     expect(mocks.resolveCustomer).not.toHaveBeenCalled();
-    expect(mocks.start).toHaveBeenCalledWith(expect.anything(), "x".repeat(16), { mode: "guest" });
+    expect(mocks.start).toHaveBeenCalledWith(expect.anything(), "x".repeat(16), { mode: "guest" }, expect.anything());
   });
 
   it("blocks unauthenticated / unauthorized checkout when bKash is restricted for UAT", async () => {
