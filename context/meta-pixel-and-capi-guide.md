@@ -1,191 +1,105 @@
 # Meta Pixel and Conversions API (CAPI) Integration Guide
 
-A complete, beginner-friendly manual and developer blueprint for custom Next.js and Express.js websites.
+A manual and implementation blueprint for Next.js and Express.js websites.
 
 ---
 
-## 1. Executive Summary & Mental Model
+## 1. Core Architecture and Deduplication
 
-### What is Meta Pixel?
-Meta Pixel is a client-side JavaScript snippet that runs in the visitor's web browser. It tracks browser actions like page visits, button clicks, and product views. It relies on browser cookies (`_fbp` and `_fbc`).
+Meta tracking works best through two parallel channels:
 
-**The Limitation:** Ad blockers, Safari ITP (Intelligent Tracking Prevention), iOS privacy settings, and network drops block or strip 20% to 40% of browser pixel events.
+1. **Meta Pixel (Client):** JavaScript runs in the browser. It records actions like page views, button clicks, and cart updates with `_fbp` and `_fbc` cookies.
+2. **Conversions API (Server):** Express sends HTTP POST requests directly to Meta Graph API.
 
-### What is Meta Conversions API (CAPI)?
-Conversions API (CAPI) is a server-to-server HTTP connection between your website backend (Express.js) and Meta's Graph API. When a user buys a product or completes an order, your server sends an HTTP POST request directly to Meta.
+Ad blockers and browser privacy tools drop up to 40% of browser events. Server traffic bypasses ad blockers. The hybrid model runs both channels together to capture all conversions.
 
-**The Advantage:** Ad blockers cannot see or block server-to-server traffic. It guarantees critical conversion delivery.
+### How Deduplication Works
 
-### Why You Must Run Both (Hybrid Setup)
-Running only Pixel loses data. Running only CAPI misses top-of-funnel browsing interactions and fast browser attribution.
+Each user action triggers a client event and a server event with an identical `event_id` and `event_name`, which allows Meta to drop the duplicate automatically.
 
-When you run both:
-1. Browser Pixel sends the event from the client.
-2. Server CAPI sends the same event from the backend.
-3. Both events carry the identical `event_id` and `event_name`.
-4. Meta's servers receive both, match them via `event_id`, discard the duplicate, and keep the richest data. This process is called **Event Deduplication**.
-
----
-
-## 2. Meta Events Manager & Business Portfolio Walkthrough
-
-For developers opening Meta Business Suite for the first time, here is what each term and screen means.
-
-### Key Terminology
-* **Business Portfolio (formerly Business Manager):** The top-level account that owns your Facebook pages, ad accounts, payment methods, and datasets.
-* **Events Manager:** The control center inside your Business Portfolio where you inspect, configure, and monitor web tracking data.
-* **Dataset (formerly Pixel):** In 2024–2026, Meta replaced the term "Pixel" with "Dataset". A Dataset is an identifier (Dataset ID) that unifies both client-side Pixel events and server-side Conversions API events into one stream. Your Dataset ID is your Pixel ID.
-* **Access Token:** A secret string created in Events Manager that allows your Express backend to post server events to your Dataset. Treat it like a database password.
-* **Event Match Quality (EMQ):** A score from 1 to 10 in Events Manager. It measures how effectively your customer data (hashed email, phone, IP, user agent, cookies) links to real Meta accounts. A score of 8.0+ is considered high quality.
-
----
-
-### Step-by-Step Setup in Meta Events Manager
-
-#### Screen 1: Connecting Your Data Source
-1. Navigate to **business.facebook.com** and open **Events Manager**.
-2. In the left navigation, click **Connect data** (the green plus icon).
-3. Select **Web** and click **Connect**.
-4. Enter a name for your dataset (e.g., `MINAN Web Dataset`) and click **Create**.
-
-#### Screen 2: Choosing Your Conversions API Setup Method
-Meta presents three options:
-1. **Set up Conversions API Gateway with Birch (or AWS):**
-   * *What it is:* A paid, third-party hosted cloud container that duplicates browser events into server events.
-   * *Should you choose it?* **No.** You have a custom Next.js and Express codebase. Birch adds recurring monthly fees, third-party vendor lock-in, and complicates debugging.
-2. **Set up with partner integration:**
-   * *What it is:* Pre-built plugins for Shopify, WooCommerce, or WordPress.
-   * *Should you choose it?* **No.** This is only for turnkey CMS platforms.
-3. **Set up manually:**
-   * *What it is:* Direct implementation via the official Meta Graph API from your code.
-   * *Should you choose it?* **YES.** Select **Set up manually**. This gives you full control, zero extra monthly fees, and deterministic deduplication.
-
-#### Screen 3: Selecting Standard Events
-When prompted to select events for your industry (e-commerce):
-* Select only the events that correspond to actual interactions in your application:
-  * `ViewContent`: Triggered on product detail pages.
-  * `AddToCart`: Triggered when an item is added to cart.
-  * `InitiateCheckout`: Triggered when starting the checkout step.
-  * `Purchase`: Triggered when payment or order confirmation succeeds.
-  * `Contact` or `Lead`: Triggered on contact forms or WhatsApp order links.
-* Do not select events you do not support (e.g., `Subscribe`, `StartTrial`, `Schedule`, `FindLocation`). Selecting an event in the wizard does not send it; your code must send it.
-
-#### Screen 4: Automatic Advanced Matching
-* Turn on **Automatic Advanced Matching**.
-* What it does: The browser Pixel automatically inspects form fields (such as checkout inputs) for email, phone, and name data, hashes them with SHA-256 in the browser, and attaches them to browser events.
-* Recommended configuration toggles:
-  * **Email:** Turn ON.
-  * **Phone number:** Turn ON.
-  * **First and last name:** Turn ON.
-  * **Country:** Turn ON.
-  * **External ID:** Turn ON (if you have internal user IDs).
-  * **City, State, Zip:** Turn OFF unless you collect discrete city/state fields in checkout.
-  * **Date of birth, Gender:** Turn OFF. Never collect or share sensitive personal data you do not need.
-* Form Field Best Practice: Give your checkout input elements standard `type` and `name` attributes (e.g., `type="email" name="email" autocomplete="email"`, `type="tel" name="phone" autocomplete="tel"`). This enables the Pixel script to locate them reliably.
-
-#### Screen 5: The "Set Up Events" Greyed-Out Checklist
-* After finishing the wizard, the setup checklist often displays "Set up events" as greyed out.
-* **Do not worry:** Meta keeps this step disabled until it receives its very first live `PageView` event from your site. Once your Next.js frontend sends its first PageView, the status updates automatically.
-
-#### Screen 6: Generating the Conversions API Access Token
-1. In Events Manager, click your **Dataset**.
-2. Open the **Settings** tab.
-3. Scroll down to the **Conversions API** section.
-4. Under "Set up manually", click **Generate access token**.
-5. Copy the generated token immediately and store it in your backend environment variables:
-   ```env
-   META_CAPI_TOKEN=EAA...
-   META_PIXEL_ID=123456789012345
-   ```
-6. **Security Rule:** Never place `META_CAPI_TOKEN` in frontend code, git commits, or `NEXT_PUBLIC_` variables.
-
-#### Screen 7: Domain Verification
-1. In Business Settings, go to **Brand safety and suitability** > **Domains**.
-2. Click **Add** > **Create a new domain**.
-3. Enter your bare domain (e.g., `minanclothing.com` without `https://` or `www`).
-4. Select **Add a DNS TXT record to your domain host**.
-5. Copy the TXT value (`facebook-domain-verification=...`).
-6. In your DNS provider (Cloudflare, Namecheap, cPanel), create a TXT record with host `@` and paste the verification string.
-7. Click **Verify domain** in Meta Business Manager.
-
----
-
-## 3. Core Technical Architecture & Data Rules
+Meta drops the duplicate. It keeps the combined parameters from both events.
 
 ```
-+-------------------------------------------------------------------------+
-|                              CLIENT BROWSER                              |
-|                                                                         |
-|  1. User adds item to cart                                              |
-|  2. Generate event_id = crypto.randomUUID()                             |
-|  3. Read _fbp and _fbc cookies                                          |
-|                                                                         |
-|         |                                              |                |
-|  [Pixel fbq("track")]                           [fetch POST]            |
-|         |                                              |                |
-+---------|----------------------------------------------|----------------+
-          | Browser Event                                | JSON Payload
-          | (event_name, event_id, _fbp, _fbc)           | (event_id, fbp, fbc, data)
-          v                                              v
-+-----------------------+                    +----------------------------+
-|                       |                    |     EXPRESS.JS BACKEND     |
-|                       |                    |                            |
-|                       |                    | 1. Capture req.ip & UA     |
-|                       |                    | 2. Normalize & SHA-256 PII |
-|                       |                    | 3. Save to MongoDB log     |
-|                       |                    | 4. Dispatch CAPI request   |
-|                       |                    +----------------------------+
-|   META EVENT SERVER   |                                  |
-|   (Events Manager)    |                                  | Server Event
-|                       | <--------------------------------+ (Graph API v21.0/v22.0)
-|                       |
-| 1. Matches event_id   |
-| 2. Deduplicates event |
-| 3. Scores EMQ (8.0+)  |
-+-----------------------+
+Browser Action (User clicks Add to Cart)
+   │
+   ├──> Client Pixel: fbq('track', 'AddToCart', ..., { eventID: id })
+   │
+   └──> POST /api/events ──> Express Server ──> Meta CAPI (Graph API v21.0)
+                                                    │
+                                                    ▼
+                                          Meta Events Manager
+                                          Matches event_id
+                                          Records 1 deduplicated event
 ```
 
-### Event Deduplication Rules
-1. Every event sent through both Pixel and CAPI must have:
-   * The identical `event_name` (e.g., both use `Purchase`).
-   * The identical `event_id` (a unique string generated at the time of the action).
-2. For browsing actions (like `AddToCart` or `Lead`), generate a UUID v4 on the client: `crypto.randomUUID()`.
-3. For orders, use the unique Order Number (e.g., `MN-20261112-0001`) as the `event_id`.
-4. Never bake static event IDs into server-rendered HTML or static caches. Every action must produce a new unique ID.
+---
 
-### Meta Data Hashing Rules (SHA-256)
-Meta requires all PII (Personally Identifiable Information) strings to be normalized and hashed using **SHA-256** before being sent to CAPI.
+## 2. Meta Events Manager Configuration
 
-| Field | JSON Key | Normalization Format Before SHA-256 | Hashing Required? | Example Input | Normalized Before Hash |
-|---|---|---|---|---|---|
-| Email | `em` | Trim whitespace, convert to lowercase | **YES** | `" User@Example.COM "` | `"user@example.com"` |
-| Phone | `ph` | Remove all non-digit characters (`+`, `-`, spaces, `()`). Must include country code without `+` or leading zeros | **YES** | `"+880 1712-345678"` | `"8801712345678"` |
-| First Name | `fn` | Trim whitespace, convert to lowercase, remove punctuation | **YES** | `" John "` | `"john"` |
-| Last Name | `ln` | Trim whitespace, convert to lowercase, remove punctuation | **YES** | `" Doe "` | `"doe"` |
-| Country | `country` | Two-letter ISO 3166-1 alpha-2 code, lowercase | **YES** | `"BD"` or `"Bangladesh"` | `"bd"` |
-| City | `ct` | Lowercase, trim, remove all spaces and special characters | **YES** | `" Sylhet "` | `"sylhet"` |
-| External ID | `external_id` | Trim, string format of internal customer database ID | **YES** | `"654321"` | `"654321"` |
-| Browser ID | `fbp` | Raw `_fbp` cookie string (`fb.1.<time>.<rand>`) | **NO** | Raw cookie value | Do not hash |
-| Click ID | `fbc` | Raw `_fbc` cookie string (`fb.1.<time>.<fbclid>`) | **NO** | Raw cookie value | Do not hash |
-| Client IP | `client_ip_address` | Raw IPv4 or IPv6 address | **NO** | `"103.205.71.4"` | Do not hash |
-| User Agent | `client_user_agent` | Raw browser User-Agent string | **NO** | `"Mozilla/5.0..."` | Do not hash |
+### Key Terms
 
-> **Crucial Warning:** Never hash `client_ip_address`, `client_user_agent`, `fbp`, or `fbc`. Hashing them causes Meta to reject the match keys and drops your EMQ score.
+* **Business Portfolio:** The top account that owns your pages, ad accounts, and datasets.
+* **Events Manager:** The dashboard where you configure datasets and inspect event traffic.
+* **Dataset:** Meta's current name for a Pixel. Your Dataset ID is your Pixel ID.
+* **Access Token:** The secret bearer key generated in Events Manager Settings. It authorizes backend CAPI calls. Store it on your server only.
+* **Event Match Quality (EMQ):** A score from 1 to 10 that indicates how well user parameters link to active Meta accounts. Aim for 8.0 or higher.
 
-### Understanding `_fbp` and `_fbc` Cookies
-* **`_fbp` (Browser ID):** Meta Pixel automatically creates this first-party cookie on the visitor's browser. Format: `fb.1.[timestamp].[random_number]`.
-* **`_fbc` (Click ID):** Created when a user clicks a Facebook/Instagram ad containing a `fbclid` query parameter in the URL. Format: `fb.1.[timestamp].[fbclid]`.
-* If a visitor arrives from a Facebook ad, the URL contains `?fbclid=XYZ`. If the Pixel has not yet set `_fbc` in `document.cookie`, your code can assemble it manually:
+### Setup Steps in Events Manager
+
+1. Open **business.facebook.com** and select **Events Manager**.
+2. Click **Connect data**, pick **Web**, and click **Connect**.
+3. Name your dataset and click **Create**.
+4. Choose **Set up manually**. Skip third-party gateways and CMS partner plugins. Manual code gives direct control with zero added fees.
+5. Select the standard events you use:
+   * `ViewContent` (product page view)
+   * `AddToCart` (cart addition)
+   * `InitiateCheckout` (checkout start)
+   * `Purchase` (paid order confirmation)
+   * `Lead` (contact or WhatsApp link click)
+   * Do not select events you do not support (e.g., `Subscribe`, `StartTrial`, `Schedule`, `FindLocation`). Selecting an event in the wizard does not send it; your code must send it.
+6. Turn on **Automatic Advanced Matching**. Enable email, phone, name, and country. Disable gender and date of birth. Give your checkout input elements standard `type` and `name` attributes (e.g., `type="email" name="email" autocomplete="email"`, `type="tel" name="phone" autocomplete="tel"`). This enables the Pixel script to locate them reliably. After finishing the wizard, the setup checklist often displays "Set up events" as greyed out. **Do not worry:** Meta keeps this step disabled until it receives its very first live `PageView` event from your site. Once your Next.js frontend sends its first PageView, the status updates automatically.
+7. Generating the Conversions API Access Token: In Events Manager, click your **Dataset**. Then Open the **Settings** tab. Scroll down to the **Conversions API** section.Under "Set up manually", click **Generate access token**. Save it to your backend environment variables as `META_CAPI_TOKEN`. **Security Rule:** Never place `META_CAPI_TOKEN` in frontend code, git commits, or `NEXT_PUBLIC_` variables.
+8. Verify your domain in **Business Settings** > **Brand safety and suitability** > **Domains** with a DNS TXT record. Domain will be  `minanclothing.com` without `https://` or `www`. Copy the TXT value (`facebook-domain-verification=...`). In your DNS provider (Cloudflare, Namecheap, cPanel), create a TXT record with host `@` and paste the verification string. Click **Verify domain** in Meta Business Manager.
+
+The "Set up events" checklist item stays greyed out until your site sends its first live `PageView`. Meta marks it active once traffic arrives.
+
+---
+
+## 3. Data Formatting and Hash Rules (SHA-256)
+
+Meta requires all personal data fields in lowercase and hashed with SHA-256 before delivery to CAPI. Browser identifiers, IP addresses, and user agents remain unhashed.
+
+| Field | JSON Key | Format Before Hash | Hash Needed? | Raw Example |
+|---|---|---|---|---|
+| Email | `em` | Trim spaces, lowercase | Yes | `user@example.com` |
+| Phone | `ph` | Digits only with country code, no leading zeros | Yes | `8801712345678` |
+| First Name | `fn` | Trim spaces, lowercase, letters only | Yes | `john` |
+| Last Name | `ln` | Trim spaces, lowercase, letters only | Yes | `doe` |
+| City | `ct` | Trim spaces, lowercase, no spaces | Yes | `sylhet` |
+| Country | `country` | Two-letter ISO code, lowercase | Yes | `bd` |
+| External ID | `external_id` | Trim spaces, string user ID | Yes | `usr_1234` |
+| Browser ID | `fbp` | Raw `_fbp` cookie string | No | `fb.1.1710000000.123456789` |
+| Click ID | `fbc` | Raw `_fbc` cookie string | No | `fb.1.1710000000.IwAR0...` |
+| Client IP | `client_ip_address` | Raw IPv4 or IPv6 string | No | `103.205.71.4` |
+| User Agent | `client_user_agent` | Raw browser User-Agent string | No | `Mozilla/5.0...` |
+
+Never hash IP addresses, user agents, `_fbp`, or `_fbc`. Hashing these parameters breaks attribution matching.
+
+### Cookie Handling
+
+* `_fbp` is created automatically by the Pixel script on your site.
+* `_fbc` is set when visitors arrive from an ad URL containing `?fbclid=...`. If the cookie is not yet set, build it manually:
   ```ts
   const fbc = `fb.1.${Date.now()}.${fbclid}`;
   ```
 
 ---
 
-## 4. Next.js Frontend Implementation (`apps/web`)
+## 4. Frontend Code (`apps/web`)
 
-### Step 1: Base Pixel Component
-Mount this component in your root layout (`apps/web/src/app/layout.tsx`).
+### Pixel Script Component
+
+Add this component to `apps/web/src/app/layout.tsx`. It runs the base script and tracks client route changes in Next.js App Router.
 
 ```tsx
 // apps/web/src/components/analytics/MetaPixel.tsx
@@ -201,102 +115,69 @@ export function MetaPixel() {
   const pathname = usePathname();
   const isFirstRender = useRef(true);
 
-  // Track page views on client-side route navigation in App Router
   useEffect(() => {
     if (!PIXEL_ID) return;
-
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-
-    if (typeof window !== "undefined" && window.fbq) {
-      window.fbq("track", "PageView");
-    }
+    window.fbq?.("track", "PageView");
   }, [pathname]);
 
   if (!PIXEL_ID) return null;
 
   return (
     <Script
-      id="meta-pixel-init"
+      id="meta-pixel"
       strategy="afterInteractive"
       dangerouslySetInnerHTML={{
-        __html: `
-          !function(f,b,e,v,n,t,s)
-          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-          n.queue=[];t=b.createElement(e);t.async=!0;
-          t.src=v;s=b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t,s)}(window, document,'script',
-          'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${PIXEL_ID}');
-          fbq('track', 'PageView');
-        `,
+        __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${PIXEL_ID}');fbq('track','PageView');`,
       }}
     />
   );
 }
 ```
 
-### Step 2: Client Tracking Helper & Cookie Reader
-Create reusable utilities to read Meta cookies and dispatch events with deduplication IDs.
+### Client Event Helper
 
 ```ts
 // apps/web/src/lib/analytics/pixel.ts
 
-export function getCookie(name: string): string | undefined {
-  if (typeof document === "undefined") return undefined;
-  const match = document.cookie.match(new RegExp("(^|;\\s*)" + name + "=([^;]*)"));
-  return match ? decodeURIComponent(match[2]) : undefined;
-}
-
 export function getMetaCookies(): { fbp?: string; fbc?: string } {
-  if (typeof window === "undefined") return {};
+  if (typeof document === "undefined") return {};
 
-  const fbp = getCookie("_fbp");
-  let fbc = getCookie("_fbc");
+  const cookies = Object.fromEntries(
+    document.cookie.split("; ").filter(Boolean).map((c) => {
+      const idx = c.indexOf("=");
+      return [c.slice(0, idx), decodeURIComponent(c.slice(idx + 1))];
+    })
+  );
 
-  // Fallback: build fbc if fbclid is in the current URL query params
-  if (!fbc) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const fbclid = urlParams.get("fbclid");
-    if (fbclid) {
-      fbc = `fb.1.${Date.now()}.${fbclid}`;
-    }
+  let fbc = cookies._fbc;
+  if (!fbc && typeof window !== "undefined") {
+    const fbclid = new URLSearchParams(window.location.search).get("fbclid");
+    if (fbclid) fbc = `fb.1.${Date.now()}.${fbclid}`;
   }
 
-  return { fbp, fbc };
+  return { fbp: cookies._fbp, fbc };
 }
 
-export function trackClientPixelEvent(
-  eventName: string,
-  params: Record<string, unknown> = {},
-  eventId?: string
-): void {
+export function trackPixel(name: string, data: Record<string, unknown> = {}, eventId?: string) {
   if (typeof window === "undefined" || !window.fbq) return;
-
-  if (eventId) {
-    window.fbq("track", eventName, params, { eventID: eventId });
-  } else {
-    window.fbq("track", eventName, params);
-  }
+  window.fbq("track", name, data, eventId ? { eventID: eventId } : undefined);
 }
 ```
 
-### Step 3: Triggering an Action (Example: Add to Cart)
+### Triggering an Action (Example: Add to Cart)
 
 ```ts
-// Example: Called inside product detail or cart line item
-import { trackClientPixelEvent, getMetaCookies } from "@/lib/analytics/pixel";
+import { trackPixel, getMetaCookies } from "@/lib/analytics/pixel";
 
 export async function handleAddToCart(product: { id: string; name: string; price: number }) {
   const eventId = crypto.randomUUID();
   const { fbp, fbc } = getMetaCookies();
 
-  // 1. Fire browser Pixel
-  trackClientPixelEvent(
+  trackPixel(
     "AddToCart",
     {
       content_ids: [product.id],
@@ -308,21 +189,16 @@ export async function handleAddToCart(product: { id: string; name: string; price
     eventId
   );
 
-  // 2. Post to Express backend for CAPI forwarding
   await fetch("/api/v1/analytics/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       event_type: "add_to_cart",
       event_id: eventId,
-      session_id: "user-session-id",
       product_id: product.id,
       fbp,
       fbc,
-      custom_data: {
-        value: product.price,
-        currency: "BDT",
-      },
+      custom_data: { value: product.price, currency: "BDT" },
     }),
   });
 }
@@ -330,77 +206,53 @@ export async function handleAddToCart(product: { id: string; name: string; price
 
 ---
 
-## 5. Express.js Backend Implementation (`apps/api`)
+## 5. Backend Code (`apps/api`)
 
-### Step 1: Normalization & SHA-256 Hashing Utilities
-Create a dedicated utility module for preparing user data according to Meta's strict specifications.
+### Hashing Helper
 
 ```ts
 // apps/api/src/lib/metaHash.ts
 import { createHash } from "node:crypto";
 
-export function sha256(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
+export const sha256 = (val: string) =>
+  createHash("sha256").update(val).digest("hex");
+
+export function hashEmail(val?: string) {
+  const clean = val?.trim().toLowerCase();
+  return clean ? sha256(clean) : undefined;
 }
 
-export function normalizeEmail(email?: string): string | undefined {
-  if (!email) return undefined;
-  const cleaned = email.trim().toLowerCase();
-  return cleaned ? sha256(cleaned) : undefined;
-}
-
-export function normalizePhone(phone?: string): string | undefined {
-  if (!phone) return undefined;
-  // Strip all non-digit characters
-  let digits = phone.replace(/\D/g, "");
-
-  // Bangladesh local normalization: convert 017... to 88017...
+export function hashPhone(val?: string) {
+  if (!val) return undefined;
+  let digits = val.replace(/\D/g, "");
   if (digits.startsWith("01") && digits.length === 11) {
     digits = "88" + digits;
   }
-
   return digits ? sha256(digits) : undefined;
 }
 
-export function normalizeName(name?: string): string | undefined {
-  if (!name) return undefined;
-  const cleaned = name.trim().toLowerCase().replace(/[^\p{L}\s]/gu, "");
-  return cleaned ? sha256(cleaned) : undefined;
-}
-
-export function normalizeCountry(countryCode?: string): string | undefined {
-  if (!countryCode) return undefined;
-  const cleaned = countryCode.trim().toLowerCase();
-  return cleaned ? sha256(cleaned) : undefined;
+export function hashText(val?: string) {
+  const clean = val?.trim().toLowerCase();
+  return clean ? sha256(clean) : undefined;
 }
 ```
 
-### Step 2: Meta Conversions API Client
-Build the direct HTTP client communicating with Meta Graph API.
+### Conversions API Dispatcher
 
 ```ts
 // apps/api/src/lib/metaCapi.ts
-import {
-  normalizeCountry,
-  normalizeEmail,
-  normalizeName,
-  normalizePhone,
-  sha256,
-} from "./metaHash.js";
+import { hashEmail, hashPhone, hashText } from "./metaHash.js";
 
-export type MetaCapiEventData = {
+type CapiParams = {
   eventName: string;
   eventId: string;
-  eventTime?: number;
   eventSourceUrl?: string;
   userData?: {
     email?: string;
     phone?: string;
     firstName?: string;
     lastName?: string;
-    country?: string;
     city?: string;
-    externalId?: string;
     clientIpAddress?: string;
     clientUserAgent?: string;
     fbp?: string;
@@ -416,170 +268,111 @@ export type MetaCapiEventData = {
   };
 };
 
-export async function sendMetaCapiEvent(event: MetaCapiEventData): Promise<void> {
+export async function sendMetaCapiEvent(params: CapiParams): Promise<void> {
   const token = process.env.META_CAPI_TOKEN;
   const pixelId = process.env.META_PIXEL_ID;
-  const testCode = process.env.META_TEST_EVENT_CODE; // Set during testing only
+  if (!token || !pixelId) return;
 
-  if (!token || !pixelId) {
-    return;
-  }
+  const u = params.userData || {};
+  const c = params.customData || {};
 
-  const u = event.userData ?? {};
-  const c = event.customData ?? {};
+  const userData: Record<string, unknown> = {
+    client_ip_address: u.clientIpAddress,
+    client_user_agent: u.clientUserAgent,
+    fbp: u.fbp,
+    fbc: u.fbc,
+    country: [hashText("bd")!],
+  };
 
-  // Construct hashed user data
-  const userDataPayload: Record<string, unknown> = {};
+  const em = hashEmail(u.email);
+  if (em) userData.em = [em];
 
-  const em = normalizeEmail(u.email);
-  if (em) userDataPayload.em = [em];
+  const ph = hashPhone(u.phone);
+  if (ph) userData.ph = [ph];
 
-  const ph = normalizePhone(u.phone);
-  if (ph) userDataPayload.ph = [ph];
+  const fn = hashText(u.firstName);
+  if (fn) userData.fn = fn;
 
-  const fn = normalizeName(u.firstName);
-  if (fn) userDataPayload.fn = fn;
+  const ln = hashText(u.lastName);
+  if (ln) userData.ln = ln;
 
-  const ln = normalizeName(u.lastName);
-  if (ln) userDataPayload.ln = ln;
+  const ct = hashText(u.city);
+  if (ct) userData.ct = ct;
 
-  const country = normalizeCountry(u.country ?? "bd");
-  if (country) userDataPayload.country = [country];
-
-  if (u.city) userDataPayload.ct = sha256(u.city.trim().toLowerCase());
-  if (u.externalId) userDataPayload.external_id = sha256(u.externalId.trim());
-
-  // Non-hashed parameters
-  if (u.clientIpAddress) userDataPayload.client_ip_address = u.clientIpAddress;
-  if (u.clientUserAgent) userDataPayload.client_user_agent = u.clientUserAgent;
-  if (u.fbp) userDataPayload.fbp = u.fbp;
-  if (u.fbc) userDataPayload.fbc = u.fbc;
-
-  const body = {
+  const payload = {
     data: [
       {
-        event_name: event.eventName,
-        event_time: event.eventTime ?? Math.floor(Date.now() / 1000),
-        event_id: event.eventId,
+        event_name: params.eventName,
+        event_time: Math.floor(Date.now() / 1000),
+        event_id: params.eventId,
         action_source: "website",
-        event_source_url: event.eventSourceUrl,
-        user_data: userDataPayload,
-        custom_data: {
-          currency: c.currency,
-          value: c.value,
-          order_id: c.orderId,
-          content_ids: c.contentIds,
-          content_name: c.contentName,
-          content_type: c.contentType,
-        },
+        event_source_url: params.eventSourceUrl,
+        user_data: userData,
+        custom_data: c,
       },
     ],
-    ...(testCode ? { test_event_code: testCode } : {}),
+    ...(process.env.META_TEST_EVENT_CODE
+      ? { test_event_code: process.env.META_TEST_EVENT_CODE }
+      : {}),
   };
 
   try {
     const url = `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${encodeURIComponent(token)}`;
-    const response = await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[Meta CAPI Error]", response.status, errorText);
+    if (!res.ok) {
+      console.error("[CAPI Error]", res.status, await res.text());
     }
   } catch (err) {
-    console.error("[Meta CAPI Network Error]", err);
+    console.error("[CAPI Network Error]", err);
   }
 }
 ```
 
-### Step 3: Analytics Route & Schema Validation
+---
 
-```ts
-// apps/api/src/schemas/analytics.schemas.ts
-import { z } from "zod";
+## 6. Purchase Flow and Attribution Rules
 
-export const postAnalyticsEventSchema = z.object({
-  event_type: z.enum([
-    "page_view",
-    "product_view",
-    "add_to_cart",
-    "checkout_start",
-    "lead_submit",
-    "whatsapp_click",
-    "purchase",
-  ]),
-  event_id: z.string().min(1),
-  session_id: z.string().min(1),
-  product_id: z.string().optional(),
-  fbp: z.string().optional(),
-  fbc: z.string().optional(),
-  custom_data: z
-    .object({
-      value: z.number().optional(),
-      currency: z.string().optional(),
-      content_name: z.string().optional(),
-    })
-    .optional(),
-});
-```
+Purchase events train Meta conversion delivery. Apply these rules:
+
+1. **Order Total as Value:** Send the full order total in BDT for both online payment and cash on delivery. Meta ad delivery uses gross order value to find higher-value buyers.
+2. **Deterministic City Match:** When `shipping_zone === "inside_sylhet"`, send `ct: hashText("sylhet")`. When `shipping_zone === "outside_sylhet"`, omit `ct`. Do not guess cities from free-text addresses.
+3. **Persist Attribution Cookies Across Payment Redirects:** Read `_fbp` and `_fbc` at checkout. Store them with client IP and user agent on the MongoDB order record. When bKash redirects to the webhook or callback, load the saved parameters from the order record to fire CAPI.
+4. **Order Number Deduplication:** Use `order.order_number` as the `event_id` on both server and client. Refreshing the confirmation page will not create duplicate purchases.
 
 ---
 
-## 6. E-Commerce Order & Purchase Flow (MINAN Project Specification)
+## 7. Testing and Verification
 
-The `Purchase` event is the single most valuable event for Facebook Ads optimization. In MINAN, payment involves bKash (full online payment or advance delivery fee for Cash on Delivery).
-
-### Architectural Decisions Approved for MINAN
-1. **Purchase Event Trigger & Value:**
-   * Both `bkash_full` and `cod` orders track a Meta `Purchase` event upon successful order placement and fee settlement.
-   * Both use the **full order total** as the `value` parameter (with currency `"BDT"`). This instructs Meta ad algorithms to optimize for actual gross merchandise value (GMV).
-2. **City Matching Rule:**
-   * When `shipping_zone === "inside_sylhet"`, the backend sends `ct: sha256("sylhet")`.
-   * When `shipping_zone === "outside_sylhet"`, the `ct` parameter is omitted entirely. Free-text address parsing is prohibited to avoid sending inaccurate city data.
-3. **Attribution Persistence Across Payment Gateways:**
-   * When the customer places an order, the frontend extracts `_fbp` and `_fbc` from browser cookies and sends them in the checkout payload.
-   * The Express API stores `meta_fbp`, `meta_fbc`, `client_ip`, and `client_user_agent` as optional fields on the MongoDB `Order` document.
-   * When the bKash callback or redirect executes on server-to-server endpoints, the server retrieves these saved attribution keys from the `Order` record and dispatches CAPI `Purchase` using the original customer identity.
-
-### Deduplication on Order Completion
-* **Backend:** Dispatches CAPI `Purchase` with `event_id: order.order_number`.
-* **Frontend:** If the user lands on the order confirmation screen, the browser Pixel fires `fbq('track', 'Purchase', ..., { eventID: order_number })`.
-* Meta matches `order_number` across both channels and records a single deduplicated purchase. Refreshing the confirmation page does not result in a second purchase count because the `order_number` remains identical.
-
----
-
-## 7. Testing, Verification, & Troubleshooting
-
-### How to Test Using Events Manager "Test Events"
-1. In Meta Events Manager, open your dataset and click the **Test events** tab.
+1. Open **Events Manager** > **open your dataset** > **Test events** tab.
 2. In the "Confirm your server events are set up correctly" card, copy the **Test Event Code** (e.g., `TEST12345`).
-3. Set `META_TEST_EVENT_CODE=TEST12345` in your Express `.env` file and restart the API.
-4. In the "Confirm your website events are set up correctly" card, enter your website URL and click **Open Website**.
+3. Set `META_TEST_EVENT_CODE=TEST12345` in your backend `.env` file and restart Express.
+4. Enter your website URL into the test box and open the site.
 5. Perform actions: view a product, add to cart, and place a test order.
-6. Check the Test Events stream in your browser window:
-   * You should see two entries for each action: one labeled **Browser**, one labeled **Server**.
-   * Under the Event column, a green badge should display **Deduplicated**.
-7. If only "Browser" appears: Check Express logs to verify CAPI requests are firing.
-8. If only "Server" appears: Verify the base Pixel script is loaded in Next.js without errors.
-9. If both appear but **not** deduplicated: The `event_id` or `event_name` values do not match exactly.
-
-### Verification Checklist Before Production
-- [ ] Base Pixel script present in root layout (`apps/web/src/app/layout.tsx`).
-- [ ] `NEXT_PUBLIC_META_PIXEL_ID` set in web environment.
-- [ ] `META_PIXEL_ID` and `META_CAPI_TOKEN` set in API environment.
-- [ ] `META_TEST_EVENT_CODE` removed from production environment.
-- [ ] Root domain verified via DNS TXT record.
-- [ ] SHA-256 normalization verified for phone numbers (`880...` prefix) and emails.
-- [ ] `_fbp` and `_fbc` cookies extracted and passed to backend.
-- [ ] Order Number used as `event_id` for Purchase events.
-- [ ] Event Match Quality (EMQ) monitored in Events Manager (target score 8.0+).
+6. Verify the event list in Events Manager:
+   * Each action displays two rows: one marked **Browser** and one marked **Server**.
+   * A green badge displays **Deduplicated**.
+7. If only Browser appears, verify your Express backend logs.
+8. If only Server appears, verify the Next.js script element loads without errors.
+9. If both appear without the deduplication badge, check that `event_id` and `event_name` match character-for-character.
 
 ---
 
-## 8. Common Mistakes to Avoid
+## 8. Production Verification Checklist
+
+- [ ] Set `NEXT_PUBLIC_META_PIXEL_ID` in web deployment settings.
+- [ ] Set `META_PIXEL_ID` and `META_CAPI_TOKEN` in API environment variables.
+- [ ] Remove `META_TEST_EVENT_CODE` before launching production.
+- [ ] Complete domain verification via DNS TXT record.
+- [ ] Normalize Bangladesh phone numbers to `8801...` before hashing.
+- [ ] Pass `_fbp`, `_fbc`, IP, and user agent unhashed.
+- [ ] Use `order_number` as `event_id` for Purchase events.
+- [ ] Verify Event Match Quality (EMQ) reaches 8.0 or higher in Events Manager.
+
+## 9. Common Mistakes to Avoid
 
 1. **Exposing the CAPI Token:** Never prefix your access token with `NEXT_PUBLIC_`. It must remain exclusively in the server environment.
 2. **Double Counting Purchases:** Never fire a `Purchase` event when an order fails or when a user simply clicks "Confirm Order". Fire it only upon true order creation or payment verification.
