@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { getBkashConfig, isBkashRestricted, isCustomerAllowedForBkash } from "../config/bkash.js";
+import { getAttributionIp } from "../lib/clientIp.js";
 import { AppError } from "../lib/errors.js";
 import { parseBody } from "../lib/parseBody.js";
 import { resolveCustomerSession } from "../middleware/requireCustomerAuth.js";
@@ -48,11 +49,18 @@ export async function createBkashPaymentHandler(
         );
       }
     }
+    const attribution = {
+      fbp: req.cookies?._fbp,
+      fbc: req.cookies?._fbc,
+      client_ip: getAttributionIp(req),
+      client_user_agent: req.get?.("user-agent"),
+    };
     res.json({
       data: await startBkashPayment(
         input,
         idempotencyKey(req),
         ownership ? { mode: "customer", customerId: ownership.id } : { mode: "guest" },
+        attribution,
       ),
     });
   } catch (error) {

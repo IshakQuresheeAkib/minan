@@ -136,4 +136,53 @@ describe("new checkout Order tracking fields", () => {
       { session: DB_SESSION },
     );
   });
+
+  it("persists meta_attribution on order creation when provided", async () => {
+    vi.spyOn(Order, "findOne").mockReturnValue({
+      select: vi.fn().mockResolvedValue(null),
+    } as never);
+    vi.spyOn(OrderCounter, "findOneAndUpdate").mockResolvedValue({ sequence: 1 } as never);
+    buildVerifiedCartSnapshotMock.mockResolvedValue({
+      items: [{
+        product_id: new Types.ObjectId().toString(),
+        name: "Shirt",
+        price: 1000,
+        size: "M",
+        color: "Black",
+        quantity: 1,
+      }],
+      total: 1000,
+    });
+    const create = vi.spyOn(Order, "create").mockResolvedValue([{
+      _id: new Types.ObjectId(),
+      createdAt: new Date(),
+      normalized_phone: "01700000000",
+      item_signature: "sig",
+    }] as never);
+    vi.spyOn(Order, "find").mockReturnValue({
+      select: vi.fn().mockResolvedValue([]),
+    } as never);
+
+    const attribution = {
+      fbp: "fb.1.123",
+      fbc: "fb.1.456",
+      client_ip: "103.1.2.3",
+      client_user_agent: "Mozilla/5.0",
+    };
+
+    await createOrLoadCheckoutOrder({
+      name: "Attribution Tester",
+      phone_number: "01700000000",
+      email: "buyer@example.com",
+      address: "Dhaka",
+      checkout_source: "cart",
+      shipping_zone: "inside_sylhet",
+      payment_method: "cod",
+      cart_snapshot: { items: [], total: 1000 },
+    }, "idempotency-attribution-hash", { mode: "guest" }, attribution);
+
+    expect(create).toHaveBeenCalledWith([expect.objectContaining({
+      meta_attribution: attribution,
+    })], { session: DB_SESSION });
+  });
 });

@@ -9,6 +9,7 @@ import type {
 
 type LogAnalyticsOptions = {
   clientUserAgent?: string;
+  clientIpAddress?: string;
   eventSourceUrl?: string;
 };
 
@@ -70,7 +71,10 @@ export async function logAnalyticsEvent(
       eventId: input.event_id,
       eventSourceUrl: options.eventSourceUrl,
     },
-    { clientUserAgent: options.clientUserAgent },
+    {
+      clientUserAgent: options.clientUserAgent,
+      clientIpAddress: options.clientIpAddress,
+    },
   );
 }
 

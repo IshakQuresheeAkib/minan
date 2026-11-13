@@ -6,6 +6,7 @@ import { getDeliveryFeeForCheckout } from "../config/shipping.js";
 import { AppError } from "../lib/errors.js";
 import { normalizeEmail } from "../lib/normalizeEmail.js";
 import {
+  type MetaAttribution,
   Order,
   type OrderDocument,
   type OrderFinancials,
@@ -196,6 +197,7 @@ export async function createOrLoadCheckoutOrder(
   input: PaymentCreateInput,
   idempotencyHash: string,
   ownership: CheckoutOwnershipContext = { mode: "guest" },
+  attribution?: MetaAttribution,
 ): Promise<OrderDocument> {
   let order = await Order.findOne({ checkout_idempotency_hash: idempotencyHash }).select(
     "+checkout_idempotency_hash",
@@ -249,6 +251,7 @@ export async function createOrLoadCheckoutOrder(
         delivery_fee_status: "awaiting",
         cod_status: cart.total > 0 ? "due" : "not_required",
         revision: 1,
+        ...(attribution ? { meta_attribution: attribution } : {}),
         activity: [{
           actor_type: "customer",
           event: "order_created",
