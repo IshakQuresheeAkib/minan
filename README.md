@@ -275,8 +275,6 @@ minan/
      JWT_REFRESH_SECRET=replace_with_min_32_char_secret_refresh
      CUSTOMER_JWT_ACCESS_SECRET=replace_with_min_32_char_customer_access
      CUSTOMER_JWT_REFRESH_SECRET=replace_with_min_32_char_customer_refresh
-     ADMIN_EMAIL=admin@minan.com
-     ADMIN_PASSWORD=replace_with_secure_admin_password
      BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v2
      BKASH_APP_KEY=your_bkash_key
      BKASH_APP_SECRET=your_bkash_secret

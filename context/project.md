@@ -839,8 +839,6 @@ META_TEST_EVENT_CODE=
 CLOUDINARY_URL=
 CLOUDINARY_UPLOAD_FOLDER=
 CLOUDINARY_HOME_BANNER_UPLOAD_PRESET=
-ADMIN_EMAIL=
-ADMIN_PASSWORD=
 NODE_ENV=
 STOREFRONT_REVALIDATE_URL=https://minanclothing.com/api/revalidate
 STOREFRONT_REVALIDATE_SECRET=<same value as REVALIDATE_SECRET>
@@ -863,7 +861,6 @@ FRONTEND_URL=https://minanclothing.com
 
 - `META_GRAPH_VERSION` configures the Graph API version for Meta CAPI requests, defaulting to `v27.0`.
 - `META_TEST_EVENT_CODE` routes server-side events directly to the Events Manager Test Events tab. Leave it empty in production.
-- `seed:admin` upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password and `is_active: true`.
 - `cleanup:inactive-admin-sessions` is a guarded legacy-maintenance command. Run it without `--apply` before reactivating an inactive legacy admin. After reviewing the count, rerun it with `-- --apply` to clear stale refresh-token hashes and advance `session_version`. Normal admin deactivation performs this revocation automatically.
 - `STOREFRONT_REVALIDATE_URL` and `STOREFRONT_REVALIDATE_SECRET` let admin product/category writes expire the public storefront cache without blocking or rolling back the saved mutation on webhook failure.
 - `API_PUBLIC_URL` must be the directly reachable Render API origin used for the bKash callback. `FRONTEND_URL` is the Vercel storefront origin used after callback verification.
