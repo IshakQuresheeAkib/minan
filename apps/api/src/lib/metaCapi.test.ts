@@ -188,13 +188,42 @@ describe("sendMetaPurchaseEvent", () => {
     const event = capturedBody?.data[0];
     expect(event?.event_name).toBe("Purchase");
     expect(event?.event_id).toBe("MINAN-2026-0001");
+    expect(event?.event_source_url).toBe("https://minanclothing.com/payment/result");
     expect(event?.custom_data.value).toBe(4200);
     expect(event?.custom_data.currency).toBe("BDT");
     expect(event?.custom_data.num_items).toBe(3);
-    expect(event?.custom_data.contents).toHaveLength(2);
+    expect(event?.custom_data.contents).toEqual([
+      { id: "prod_1", quantity: 2, item_price: 1500 },
+      { id: "prod_2", quantity: 1, item_price: 1200 },
+    ]);
     expect(event?.user_data.em).toEqual([sha256("buyer@example.com")]);
     expect(event?.user_data.ph).toEqual([sha256("8801712345678")]);
     expect(event?.user_data.client_ip_address).toBe("103.20.10.1");
     expect(event?.user_data.fbp).toBe("fb.1.999");
+  });
+
+  it("defaults event_source_url to FRONTEND_URL when NEXT_PUBLIC_SITE_URL is unset", async () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    process.env.FRONTEND_URL = "https://www.minanclothing.com";
+
+    let capturedBody: CapturedCapiBody | undefined;
+    global.fetch = vi.fn().mockImplementation(async (_, init) => {
+      capturedBody = JSON.parse(init.body as string) as CapturedCapiBody;
+      return new Response(JSON.stringify({ events_received: 1 }), { status: 200 });
+    });
+
+    const mockOrder = {
+      order_number: "MINAN-2026-0002",
+      email: "buyer@example.com",
+      phone_number: "01712345678",
+      financials: { merchandise_total: 1500 },
+      lines: [{ product_id: "prod_1", quantity: 1, unit_price: 1600, allocated_order_discount: 100 }],
+    };
+
+    const result = await sendMetaPurchaseEvent(mockOrder as unknown as OrderDocument);
+    expect(result.ok).toBe(true);
+    const event = capturedBody?.data[0];
+    expect(event?.event_source_url).toBe("https://www.minanclothing.com/payment/result");
+    expect(event?.custom_data.contents[0].item_price).toBe(1500);
   });
 });

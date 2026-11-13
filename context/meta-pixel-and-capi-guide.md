@@ -189,16 +189,17 @@ export async function handleAddToCart(product: { id: string; name: string; price
     eventId
   );
 
-  await fetch("/api/v1/analytics/events", {
+  await fetch("/api/analytics", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+    },
     body: JSON.stringify({
       event_type: "add_to_cart",
       event_id: eventId,
+      session_id: sessionId,
       product_id: product.id,
-      fbp,
-      fbc,
-      custom_data: { value: product.price, currency: "BDT" },
     }),
   });
 }
@@ -338,10 +339,9 @@ export async function sendMetaCapiEvent(params: CapiParams): Promise<void> {
 
 Purchase events train Meta conversion delivery. Apply these rules:
 
-1. **Order Total as Value:** Send the full order total in BDT for both online payment and cash on delivery. Meta ad delivery uses gross order value to find higher-value buyers.
-2. **Deterministic City Match:** When `shipping_zone === "inside_sylhet"`, send `ct: hashText("sylhet")`. When `shipping_zone === "outside_sylhet"`, omit `ct`. Do not guess cities from free-text addresses.
-3. **Persist Attribution Cookies Across Payment Redirects:** Read `_fbp` and `_fbc` at checkout. Store them with client IP and user agent on the MongoDB order record. When bKash redirects to the webhook or callback, load the saved parameters from the order record to fire CAPI.
-4. **Order Number Deduplication:** Use `order.order_number` as the `event_id` on both server and client. Refreshing the confirmation page will not create duplicate purchases.
+1. **Merchandise Total as Value:** Send the discounted merchandise total (`financials.merchandise_total`) in BDT for both online payment and cash on delivery. Meta ad delivery uses merchandise value to optimize for buyers.
+2. **Persist Attribution Cookies Across Payment Redirects:** Read `_fbp` and `_fbc` at checkout. Store them with client IP and user agent on the MongoDB order record. When bKash redirects to the webhook or callback, load the saved parameters from the order record to fire CAPI.
+3. **Server-Side Purchase Dispatch:** Dispatch CAPI `Purchase` server-side on order settlement with `event_id: order.order_number`. Client-side Pixel Purchase is omitted to prevent duplicate counts without browser-side attribution.
 
 ---
 

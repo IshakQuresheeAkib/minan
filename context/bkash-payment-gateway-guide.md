@@ -3211,7 +3211,8 @@ A developer copies production credentials into a local `.env` file. The file is 
 
 ```bash
 # .env.example
-BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v2/tokenized-checkout
+# The bKash client appends /tokenized-checkout, so the base URL must end at /v2
+BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v2
 BKASH_APP_KEY=
 BKASH_APP_SECRET=
 BKASH_USERNAME=

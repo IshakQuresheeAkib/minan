@@ -588,7 +588,7 @@ Backend integration uses the bKash Tokenized Checkout v2 API (`https://tokenized
 - Standard bKash error code mapping (`apps/api/src/config/bkashErrorCodes.ts`) maps provider error codes (e.g., `2010` Invalid OTP, `2017` Wrong verification limit exceeded, `2023` Insufficient Balance, `2029` Duplicate transaction) to human-readable explanations. Code `2029` returns `"This payment looks like a duplicate. Check your bKash statement before you try again."`.
 - Provider status codes and error messages (`errorCode`, `errorMessage`, `statusCode`, `statusMessage`) are captured on callback and execution failures, persisted onto the `payment_attempts` document (`provider_status_code`, `provider_status_message`), and propagated through `PaymentResult` so customers see informative error details.
 - Immediate payment creation failures also mint and return an opaque result reference alongside the retry token, redirecting the user to `/payment/result?reference=...` with actionable error context rather than stalling silently.
-- Authoritative tokenized checkout documentation, API schemas, and compliance blueprints live in `context/bkash-payment-gateway-guide.md`. Authoritative Meta Pixel and Conversions API (CAPI) architecture and verification blueprints live in `context/meta-pixel-and-capi-guide.md`.
+- Authoritative Meta Pixel and Conversions API (CAPI) architecture and verification blueprints live in `context/meta-pixel-and-capi-guide.md`. Educational tokenized checkout documentation lives in `context/bkash-payment-gateway-guide.md` (production state machine rules in section 21 take precedence).
 - Dedicated sandbox validation harness (`scripts/bkashValidationHarness.ts` and `scripts/bkashValidationHarness.logic.ts`) provides standalone CLI-based UAT verification:
   - `create`: calls `/tokenized-checkout/payment/create` with test payer reference (`01770618575`), callback URL `${API_PUBLIC_URL}/api/bkash/harness-callback`, and amount 10 BDT. Persists temporary token and payment metadata to the OS temporary directory (`os.tmpdir()`) to prevent git workspace pollution and credential leaks.
   - Authorization redirect lands on `GET /api/bkash/harness-callback`, which confirms authorization capture in HTML and directs the developer back to terminal.
@@ -622,7 +622,7 @@ The payment-result page resolves its opaque reference through the Express API on
 - Speculation Rules API for instant client prerendering of catalog and category collections
 - Public layout chrome Suspense boundaries (`BottomNav`, `CurrentYear`, `NavPill`) ensuring error-free hydration and smooth navigation
 - Standalone two-phase bKash UAT validation harness (`scripts/bkashValidationHarness.ts`) with dedicated `/api/bkash/harness-callback` endpoint, OS tempdir audit artifacts, and architecture guide (`context/bkash-payment-gateway-guide.md`)
-- Meta Conversions API (CAPI) server pipeline with client IP, user agent, and cookie attribution forwarding (EMQ optimization), phone normalization (880), deterministic city matching, SHA-256 data hashing, and automated server-side Purchase event dispatch on order settlement with order-number deduplication (documented in `context/meta-pixel-and-capi-guide.md`)
+- Meta Conversions API (CAPI) server pipeline with client IP, user agent, and cookie attribution forwarding (EMQ optimization), phone normalization (880), SHA-256 data hashing, and automated server-side Purchase event dispatch on order settlement (documented in `context/meta-pixel-and-capi-guide.md`)
 
 ---
 
@@ -649,7 +649,7 @@ GA4 records page views and the storefront commerce actions listed below. Meta ha
 | Add item from product detail or increase cart quantity | `add_to_cart` | No live event |
 | Remove cart line or decrease quantity | `remove_from_cart` | No live event |
 | Cart or buy-now checkout with available items and valid configuration | `begin_checkout` | No live event |
-| Completed, settled cart or buy-now payment result | `purchase` | Server CAPI dispatches `Purchase` on order settlement. Pixel fires client `Purchase`. Both share `order_number` as `event_id` |
+| Completed, settled cart or buy-now payment result | `purchase` | Server CAPI dispatches `Purchase` on order settlement with `order_number` as `event_id` (server-only tracking) |
 | WhatsApp order click | No GA4 event | Pixel `Lead` and Express CAPI `Lead` share an event ID |
 
 GA4 commerce events use BDT and item IDs, names, effective prices, quantities, and available variant labels. The completed payment result supplies the Order number as `transaction_id`, merchandise total as `value`, and delivery fee as `shipping`. The API includes that payload only for the first settled storefront payment attempt, so a duplicate or exchange completion does not produce a purchase payload. The result page removes its opaque reference before allowing GA4 page-view and purchase tracking. Unresolved or failed results stay excluded.
@@ -676,12 +676,11 @@ The server-side Meta CAPI integration (`apps/api/src/lib/metaCapi.ts`) dispatche
 
 - **API Version**: Defaults to `v27.0`, configurable through `META_GRAPH_VERSION`.
 - **Event Payload**: Includes `event_name`, `event_time` (epoch seconds), `event_id` (matching Pixel for deduplication), `action_source: "website"`, and `event_source_url` (derived from referer, request host, or site URL).
-- **User Data & Match Quality**: Captures `client_user_agent` (`req.get("user-agent")`) and `client_ip_address` (`req.ip` or `x-real-ip`). It normalizes and SHA-256 hashes personal customer data:
+- **User Data & Match Quality**: Captures `client_user_agent` (`req.get("user-agent")`) and originating `client_ip_address` (via `getAttributionIp`). It normalizes and SHA-256 hashes personal customer data:
   - Phone: normalizes Bangladesh numbers to international digits (`8801...`) before hashing (`ph`).
   - Email: trims, converts to lowercase, and hashes with SHA-256 (`em`).
   - Browser cookies: passes raw `_fbp` and `_fbc` unhashed.
-  - Location: passes country `bd` hashed with SHA-256. When shipping zone is `inside_sylhet`, passes hashed `sylhet` (`ct`).
-- **Automated Purchase Dispatch**: `dispatchOrderMetaPurchase` runs asynchronously in `syncOrderFeeStatus` and `resolvePaymentResult` when a payment attempt settles. It formats gross merchandise value, currency (`BDT`), line item contents, and customer match data. It updates the order document with `meta_purchase.sent_at` and `meta_purchase.event_id`, or records `meta_purchase.error` on failure.
+- **Automated Purchase Dispatch**: `dispatchOrderMetaPurchase` runs asynchronously in `syncOrderFeeStatus` and `resolvePaymentResult` when a payment attempt settles. It formats discounted merchandise total (`financials.merchandise_total`), currency (`BDT`), line item contents, and customer match data. It updates the order document with `meta_purchase.sent_at` and `meta_purchase.event_id`, or records `meta_purchase.error` on failure.
 - **Test Mode**: Backend `.env` accepts `META_TEST_EVENT_CODE`. When present, CAPI payloads include `test_event_code` to stream events into the Meta Events Manager Test Events tab.
 - **Error Resiliency**: CAPI requests use a 5-second timeout and handle network failures safely. External tracking timeouts never delay customer responses or abort database transactions.
 - **Documentation**: Implementation blueprints, Events Manager verification, and troubleshooting guides live in `context/meta-pixel-and-capi-guide.md`.

@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
+import { getAttributionIp } from "../lib/clientIp.js";
 import { parseBody } from "../lib/parseBody.js";
 import {
   analyticsEventSchema,
@@ -27,7 +28,7 @@ export async function createAnalyticsEventHandler(
 
     await logAnalyticsEvent(input, {
       clientUserAgent: req.get("user-agent"),
-      clientIpAddress: req.ip,
+      clientIpAddress: getAttributionIp(req),
       eventSourceUrl: getEventSourceUrl(req),
     });
 
@@ -47,7 +48,7 @@ export async function createWhatsappClickHandler(
 
     await logWhatsappClick(input, {
       clientUserAgent: req.get("user-agent"),
-      clientIpAddress: req.ip,
+      clientIpAddress: getAttributionIp(req),
       eventSourceUrl: getEventSourceUrl(req),
     });
 

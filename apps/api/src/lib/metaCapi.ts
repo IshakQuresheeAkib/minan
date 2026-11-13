@@ -132,7 +132,7 @@ export async function sendMetaPurchaseEvent(
     | "lines"
     | "meta_attribution"
   >,
-  siteUrl = process.env.NEXT_PUBLIC_SITE_URL,
+  siteUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_SITE_URL,
 ): Promise<MetaCapiResult> {
   const emailHash = hashMetaEmail(order.normalized_email || order.email);
   const phoneHash = hashMetaPhone(order.normalized_phone || order.phone_number);
@@ -144,7 +144,9 @@ export async function sendMetaPurchaseEvent(
     contents: order.lines.map((line) => ({
       id: line.product_id,
       quantity: line.quantity,
-      item_price: line.unit_price,
+      item_price: Number(
+        (line.unit_price - (line.allocated_order_discount || 0) / line.quantity).toFixed(2),
+      ),
     })),
     num_items: order.lines.reduce((sum, line) => sum + line.quantity, 0),
     order_id: order.order_number,

@@ -256,23 +256,33 @@ minan/
    ```
 
 3. **Configure Environment Variables:**
-   - Create `apps/web/.env.local` for the frontend:
-     ```env
-     NEXT_PUBLIC_API_URL=http://localhost:3001
-     NEXT_PUBLIC_SITE_URL=http://localhost:3000
-     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+   - Copy the example templates:
+     ```bash
+     cp apps/web/.env.example apps/web/.env.local
+     cp apps/api/.env.example apps/api/.env
      ```
-   - Create `apps/api/.env` for the backend API:
+   - Essential frontend keys in `apps/web/.env.local`:
+     ```env
+     API_PROXY_TARGET=http://localhost:3001
+     NEXT_PUBLIC_SITE_URL=http://localhost:3000
+     ```
+   - Essential backend keys in `apps/api/.env`:
      ```env
      PORT=3001
-     MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/minan
-     JWT_ADMIN_SECRET=your_admin_secret
-     JWT_CUSTOMER_SECRET=your_customer_secret
+     MONGODB_URI=mongodb://localhost:27017/minan
+     CUSTOMER_JWT_ACCESS_SECRET=replace_with_min_32_char_secret_access
+     CUSTOMER_JWT_REFRESH_SECRET=replace_with_min_32_char_secret_refresh
+     BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v2
      BKASH_APP_KEY=your_bkash_key
      BKASH_APP_SECRET=your_bkash_secret
      BKASH_USERNAME=your_bkash_username
      BKASH_PASSWORD=your_bkash_password
+     DELIVERY_FEE_INSIDE_SYLHET_BDT=60
+     DELIVERY_FEE_OUTSIDE_SYLHET_BDT=120
+     API_PUBLIC_URL=http://localhost:3001
+     FRONTEND_URL=http://localhost:3000
      ```
+     *(See `apps/api/.env.example` for the full reference).*
 
 4. **Seed database data:**
    ```bash
