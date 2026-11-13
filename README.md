@@ -265,13 +265,18 @@ minan/
      ```env
      API_PROXY_TARGET=http://localhost:3001
      NEXT_PUBLIC_SITE_URL=http://localhost:3000
+     JWT_ACCESS_SECRET=replace_with_min_32_char_secret_access
      ```
    - Essential backend keys in `apps/api/.env`:
      ```env
      PORT=3001
      MONGODB_URI=mongodb://localhost:27017/minan
-     CUSTOMER_JWT_ACCESS_SECRET=replace_with_min_32_char_secret_access
-     CUSTOMER_JWT_REFRESH_SECRET=replace_with_min_32_char_secret_refresh
+     JWT_ACCESS_SECRET=replace_with_min_32_char_secret_access
+     JWT_REFRESH_SECRET=replace_with_min_32_char_secret_refresh
+     CUSTOMER_JWT_ACCESS_SECRET=replace_with_min_32_char_customer_access
+     CUSTOMER_JWT_REFRESH_SECRET=replace_with_min_32_char_customer_refresh
+     ADMIN_EMAIL=admin@minan.com
+     ADMIN_PASSWORD=replace_with_secure_admin_password
      BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v2
      BKASH_APP_KEY=your_bkash_key
      BKASH_APP_SECRET=your_bkash_secret
@@ -282,7 +287,7 @@ minan/
      API_PUBLIC_URL=http://localhost:3001
      FRONTEND_URL=http://localhost:3000
      ```
-     *(See `apps/api/.env.example` for the full reference).*
+     *(See `apps/api/.env.example` and `apps/web/.env.example` for the full reference).*
 
 4. **Seed database data:**
    ```bash
