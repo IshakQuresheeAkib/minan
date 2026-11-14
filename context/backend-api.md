@@ -1,158 +1,136 @@
 # Backend API Architecture Guide (`apps/api`)
 
-## 1. Plain Concept & Overview
-`apps/api` is an Express 5 server. It is the only part of our application that connects directly to the MongoDB Atlas database. It handles user authentication, calculates order totals, processes bKash payments, creates audit logs, and sends conversion events to Meta. When the frontend needs data or saves an order, it sends an HTTP request to this API.
+## 1. Concept & Overview
+`apps/api` is an Express 5 application on Node 24. It is the only component in the architecture that connects to MongoDB Atlas. It handles authentication, catalog queries, order creation, bKash payment verification, and Meta Conversions API (CAPI) events. Next.js proxies client calls from `/api/*` to this service.
 
 ## 2. Visual Architecture & Request Flow
 
 ```
-Next.js Rewrite Proxy (or Direct Client)
+Next.js Proxy Rewrite (or Direct Client)
                  │
                  ▼
-        [Express Middleware]
+        [Express Middlewares]
          - Helmet (Security headers)
-         - CORS (Origin checks)
-         - Rate Limiter (Abuse protection)
-         - Auth Middleware (JWT validation)
+         - CORS (ALLOWED_ORIGINS)
+         - CSRF Check (requireCsrfHeader: X-Requested-With === "XMLHttpRequest")
+         - Rate Limiter (IP-based throttling)
+         - Auth Guard (requireAuth / requireCustomerAuth)
                  │
                  ▼
         [Controller Layer]
-         - Validates input with Zod
-         - Returns HTTP status codes (200, 201, 400, 404, 500)
+         - Parses inputs and validates with Zod
+         - Invokes services and sends JSON responses
                  │
                  ▼
         [Service Layer]
-         - Business logic (calculate order pricing, verify bKash token)
-         - Calls external APIs (Meta CAPI, Cloudinary, bKash)
+         - Business logic (allocate order number, verify bKash token)
+         - External APIs (bKash, Cloudinary, Meta Graph API)
                  │
                  ▼
         [Mongoose Models]
-         - Reads and writes to MongoDB Atlas collections
+         - MongoDB Atlas queries and atomic updates
 ```
 
 ## 3. Strict Technical Specifications
 
-### Tech Stack Versions
-| Package | Version | Purpose | Rule |
-| :--- | :--- | :--- | :--- |
-| **Node.js** | 24.16.0 | Runtime | Target production runtime on Render. |
-| **Express** | 5.2.1 | HTTP framework | Use native async route handlers. |
-| **MongoDB Atlas**| 8.3 | Managed database | Only persistence boundary. |
-| **Mongoose** | 9.7.3 | ODM / Data Modeling | Schemas define all database structure. |
-| **jsonwebtoken**| 9.x | Session tokens | Issue access tokens (15m) and refresh tokens (7d). |
-| **argon2** | 0.44.x | Password hashing | Never store plain text passwords. |
-| **express-rate-limit** | 8.x | Rate limiting | Protect public endpoints and checkout. |
-| **helmet** | 8.x | Security headers | Enforce standard web protection. |
-| **Zod** | 4.x | Request validation | Validate every body, query, and param. |
-| **Vitest** | 4.x | API test runner | Run tests via `npm --workspace @minan/api run test`. |
+### Server Framework & Boundaries
+- **Runtime:** Node 24.16.0 on Render.
+- **Framework:** Express 5.2.1.
+- **CORS:** Only allows origins listed in comma-separated `ALLOWED_ORIGINS`. Requests without an Origin header (e.g. server-to-server) are allowed. Credentials enabled (`credentials: true`).
+- **CSRF Protection:** All state-changing methods (`POST`, `PUT`, `PATCH`, `DELETE`) require the HTTP header:
+  ```http
+  X-Requested-With: XMLHttpRequest
+  ```
+- **Response Format:** Express controllers return specific operational JSON shapes. There is **no** universal `{ success: true, data: ... }` envelope. Real shapes returned include:
+  - `{ data: ... }` for catalog entities
+  - `{ order: ... }` or `{ orders: ... }` for order endpoints
+  - `{ accessToken: ... }` for auth refresh
+  - `{ ok: true }` for acknowledgments
+  - `{ error: string }` or `{ errors: [...] }` on error responses (HTTP 400, 401, 403, 404, 409, 500)
 
-### Project Directory Structure
-```
-apps/api/src/
-├── controllers/          # HTTP request handlers (parse inputs, call services, send responses)
-├── services/             # Pure business logic (orders, catalog, auth, bKash, meta)
-├── models/               # Mongoose schema definitions (User, Product, Order, Counter, AuditLog)
-├── routes/               # Express router modules
-├── middleware/           # Auth, role check, error handling, rate limiting
-├── schemas/              # Backend Zod validation schemas
-├── lib/                  # Shared utilities (jwt, logger, db connection)
-└── seed/                 # Database seed scripts for products and admin accounts
-```
-
-### Standard API Response Format
-All API responses must strictly follow this JSON envelope:
-```typescript
-// Success Response (200 OK, 201 Created)
-{
-  "success": true,
-  "data": { ... },
-  "meta"?: {
-    "page": 1,
-    "limit": 20,
-    "total": 120
-  }
-}
-
-// Error Response (400, 401, 403, 404, 500)
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Phone number must be a valid Bangladesh mobile number",
-    "details"?: [ ... ]
-  }
-}
-```
+---
 
 ### Complete API Route Catalog
 
-#### 1. Authentication (`/api/auth`)
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/login` | Public | Validates credentials with Argon2; sets HTTP-only refresh cookie; returns access token. |
-| `POST` | `/api/auth/refresh` | Cookie | Reads refresh cookie; verifies JWT; issues new access token. |
-| `POST` | `/api/auth/logout` | Public | Clears the HTTP-only refresh cookie. |
-| `POST` | `/api/auth/forgot-password`| Public | Generates time-limited reset token; sends password recovery instructions. |
-| `POST` | `/api/auth/reset-password` | Public | Validates reset token and sets new Argon2 hashed password. |
-| `GET` | `/api/auth/me` | Bearer | Returns the authenticated user profile and permissions. |
+#### Public Routes
+| Method | Route | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/products` | List active products. Query params: `category`, `subcategory`, `color`, `size`, `search`, `minPrice`, `maxPrice`, `sort`, `page`, `limit`, `exclude`. |
+| `GET` | `/api/products/home` | Active categories with up to 7 newest active products per category and group totals. |
+| `GET` | `/api/products/filters`| Active catalog filter options: categories with referenced subcategories, colors, sizes, min/max price. |
+| `POST` | `/api/products/quote` | Read-only availability and current discount-price quote for up to 50 product IDs. |
+| `GET` | `/api/products/:slug` | Single active product by slug. |
+| `GET` | `/api/home-banners` | Ordered homepage banners with responsive images and alt text. |
+| `GET` | `/api/checkout/config` | Authoritative shipping options, BDT fees, and non-refundable delivery fee policy. |
+| `POST` | `/api/bkash/payments` | **Order Creation Route.** Creates or retrieves an Order with frozen totals. Captures Meta cookies (`_fbp`, `_fbc`), client IP, and user agent for attribution tracking. |
+| `GET` | `/api/bkash/callback` | Reconciles provider redirect after bKash payment. |
+| `GET` | `/api/bkash/harness-callback`| Authorization confirmation page for bKash UAT harness. |
+| `POST` | `/api/bkash/results/resolve` | Resolves an opaque result reference to Order number, fee, COD, and transaction details. |
+| `POST` | `/api/bkash/payments/retry` | Creates another attempt for the same frozen payment purpose and amount from a retry token. |
+| `POST` | `/api/analytics` | Logs analytics event and forwards mapped events to Meta CAPI. Rate-limited (60 req/15 min/IP). |
+| `POST` | `/api/whatsapp-click` | Logs WhatsApp click and forwards to Meta CAPI. Rate-limited (60 req/15 min/IP). |
+| `POST` | `/api/order-tracking/search`| Public Order search by order number or paginated mobile number lookup. Rate-limited. |
+| `POST` | `/api/auth/login` | Admin login. Returns access token in body and sets HTTP-only cookies. Rate-limited (10 req/15 min/IP). |
+| `POST` | `/api/auth/refresh` | Rotates admin access and refresh tokens. |
+| `POST` | `/api/auth/logout` | Clears auth cookies and invalidates refresh token hash. |
+| `POST` | `/api/customer-auth/login` | Customer login. Sets customer session cookies. Rate-limited (10 req/15 min/IP). |
+| `POST` | `/api/customer-auth/refresh`| Rotates customer session cookies. Rate-limited (30 req/15 min/IP). |
+| `POST` | `/api/customer-auth/logout` | Clears customer cookies and revokes session. |
+| `GET` | `/api/customer-auth/me` | Current authenticated customer profile. |
+| `GET` | `/api/customer-orders` | Paginated orders owned by the authenticated customer. |
+| `GET` | `/api/customer-orders/:orderNumber`| Single order owned by the authenticated customer. |
 
-#### 2. Products (`/api/products`)
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/products` | Public | Returns paginated products. Query: `search`, `category`, `status`, `page`, `limit`, `sort`. |
-| `GET` | `/api/products/:slug` | Public | Returns a single active product by slug for storefront display. |
-| `POST` | `/api/products` | Staff | Creates a new product with variants, prices, and Cloudinary image URLs. |
-| `PUT` | `/api/products/:id` | Staff | Updates product details, prices, or inventory levels. |
-| `DELETE` | `/api/products/:id` | Staff | Deactivates or soft-deletes a product from the public catalog. |
+#### Health Route
+| Method | Route | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | API health check with MongoDB connection status (`200 ok` or `503 degraded`). |
 
-#### 3. Collections (`/api/collections`)
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/collections` | Public | Returns active collections for storefront navigation. |
-| `GET` | `/api/collections/:slug` | Public | Returns collection details and attached products. |
-| `POST` | `/api/collections` | Staff | Creates a new collection category. |
-| `PUT` | `/api/collections/:id` | Staff | Updates collection title, description, or banner image. |
-| `DELETE` | `/api/collections/:id` | Staff | Deletes a collection. |
+#### Protected Admin Routes (Require `requireAuth` & `requireCsrfHeader`)
+| Method | Route | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/admin/dashboard` | Sales summary, 7D/30D chart series, inventory snapshot, best-sellers, customer insights, workflow metrics. |
+| `GET` | `/api/admin/orders` | Paginated order summaries with search and status filtering. |
+| `GET` | `/api/admin/orders/changes` | Opaque-cursor polling for new orders. |
+| `GET` | `/api/admin/orders/export` | Filtered, injection-safe UTF-8 CSV export (10,000-row cap). |
+| `GET` | `/api/admin/orders/:id` | Full Order document, embedded activity audit trail, refunds, and payment attempts. |
+| `PATCH/POST`| `/api/admin/orders/:id/*` | Order mutations: customer info, workflow transition, courier tracking, COD, timeline notes, refunds, exchanges. |
+| `GET` | `/api/admin/products` | List all products (including inactive). Query params: `search`, `category_id`, `status`, `page`, `limit`. |
+| `POST` | `/api/admin/products` | Create a product. |
+| `PATCH` | `/api/admin/products/:id` | Update product details, pricing, discount, and variants. |
+| `PATCH` | `/api/admin/products/:id/deactivate` | Soft-delete product (`is_active: false`). |
+| `DELETE`| `/api/admin/products/:id` | Permanently delete product and delete unreferenced managed Cloudinary images. |
+| `GET` | `/api/admin/categories` | List all categories. |
+| `POST` | `/api/admin/categories` | Create a category. |
+| `PATCH` | `/api/admin/categories/:id` | Update category name, slug, or image. |
+| `PATCH` | `/api/admin/categories/:id/deactivate` | Soft-delete category (blocked if active products reference it). |
+| `GET` | `/api/admin/subcategories` | List subcategories (optionally filtered by `category_id`). |
+| `POST` | `/api/admin/subcategories` | Create a subcategory under a category. |
+| `PATCH` | `/api/admin/subcategories/reorder` | Replace complete display order for a category's subcategories. |
+| `PATCH` | `/api/admin/subcategories/:id` | Update subcategory name or slug. |
+| `PATCH` | `/api/admin/subcategories/:id/deactivate`| Soft-deactivate subcategory. |
+| `PATCH` | `/api/admin/subcategories/:id/reactivate`| Reactivate subcategory. |
+| `GET` | `/api/admin/admins` | List admin user accounts. |
+| `POST` | `/api/admin/admins` | Create an admin user account. |
+| `PATCH` | `/api/admin/admins/:id` | Update admin account (active status, password). |
+| `PATCH` | `/api/admin/admins/:id/deactivate` | Soft-disable admin account. |
+| `GET` | `/api/admin/uploads/signature` | Generate Cloudinary signed upload parameters. |
+| `POST` | `/api/admin/uploads/delete` | Delete unreferenced managed Cloudinary uploads by public ID. |
+| `GET` | `/api/admin/home-banners` | Get the versioned ordered banner set and sync state. |
+| `POST` | `/api/admin/home-banners` | Append a banner with alt text, desktop/mobile images, and optimistic revision check. |
+| `PATCH` | `/api/admin/home-banners/reorder` | Replace banner order using `expected_revision`. |
+| `POST` | `/api/admin/home-banners/sync` | Retry storefront cache revalidation and cleanup. |
+| `PATCH` | `/api/admin/home-banners/:id` | Update banner alt text or images using `expected_revision`. |
+| `DELETE`| `/api/admin/home-banners/:id` | Remove a banner using `expected_revision` (final banner is protected). |
 
-#### 4. Orders & Checkout (`/api/orders`)
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/orders` | Public / Rate-limited | Creates a customer order. Validates stock, calculates delivery fee, records customer IP/User Agent. |
-| `GET` | `/api/orders/track` | Public | Customer looks up order status using phone number and order number. |
-| `GET` | `/api/orders` | Staff | Admin paginated order list. Filters: `status`, `paymentStatus`, `search`, `page`, `limit`. |
-| `GET` | `/api/orders/:id` | Staff | Fetches full order details, delivery address, items, and status change audit history. |
-| `PATCH` | `/api/orders/:id/status` | Staff | Updates order status (e.g. `confirmed`, `shipped`, `delivered`). Appends audit log entry. |
-| `PATCH` | `/api/orders/:id/payment`| Staff | Manually updates payment status (e.g. verifying cash or manual bKash transaction ID). |
+---
 
-#### 5. Payments & bKash (`/api/payments/bkash`)
-Detailed flow is documented in [bkash-payment-gateway-guide.md](file:///c:/new%20projects/minan/context/bkash-payment-gateway-guide.md).
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/payments/bkash/create` | Public | Calls bKash Tokenized Checkout API to create payment URL for advance delivery fee or full payment. |
-| `POST` | `/api/payments/bkash/execute`| Public | Executes bKash payment with `paymentID`; updates order status to paid; triggers Meta CAPI Purchase event. |
-| `POST` | `/api/payments/bkash/webhook`| Public / Verified | Receives asynchronous bKash Instant Payment Notifications (IPN). |
+## 4. Common Beginner Pitfalls & Mistakes to Avoid
 
-#### 6. Admin, Staff & Audit (`/api/admin`)
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/admin/metrics` | Staff | Returns dashboard KPIs: total revenue, order count by status, average order value, conversion trends. |
-| `GET` | `/api/admin/audit-logs` | Super Admin | Returns paginated audit events: who changed which order or product, IP address, and timestamp. |
-| `GET` | `/api/admin/staff` | Super Admin | Lists staff accounts and active roles. |
-| `POST` | `/api/admin/staff` | Super Admin | Creates a new staff member account. |
-| `PATCH` | `/api/admin/staff/:id` | Super Admin | Updates staff status (active/disabled) or changes role. |
-
-#### 7. Media & Upload Signatures (`/api/media`)
-| Method | Endpoint | Auth | Purpose |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/media/sign-upload` | Staff | Generates a signed Cloudinary upload signature so admin client can upload images directly to CDN. |
-
-## 4. Beginner Pitfalls & Common Mistakes to Avoid
-
-- **Mistake:** Writing database queries directly inside an Express route file.
-  **Fix:** Keep routes clean. Routes map to controllers. Controllers parse inputs. Services execute database queries.
-- **Mistake:** Returning 200 OK when a validation error occurs.
-  **Fix:** Always return 400 Bad Request with a clear validation error message so frontend forms display field errors.
-- **Mistake:** Trusting prices sent from the browser client.
-  **Fix:** The frontend only submits product IDs and quantities. The Express `orders.service.ts` must fetch product prices from MongoDB and calculate the total.
-- **Mistake:** Forgetting to handle async errors in Express.
-  **Fix:** Express 5 handles rejected promises automatically, but always pass unhandled errors to the next middleware or throw custom application errors.
+- **Mistake:** Sending order creation to `POST /api/orders` or `POST /api/checkout`.
+  **Fix:** Order creation in MINAN is exclusively handled at `POST /api/bkash/payments`. The `checkoutRouter` only serves `GET /api/checkout/config`.
+- **Mistake:** Omitting the CSRF header on POST/PATCH requests.
+  **Fix:** Express rejects any state-changing request with `403 Forbidden` if `X-Requested-With: XMLHttpRequest` is missing.
+- **Mistake:** Assuming all API responses wrap payload in `{ success: true, data: ... }`.
+  **Fix:** Different controllers return domain-specific shapes (`{ order }`, `{ data }`, `{ ok: true }`). Unpack the response according to the endpoint specification.
+- **Mistake:** Calling `/api/collections` for category lists.
+  **Fix:** There is no `/api/collections` endpoint. Public category navigation is loaded from `/api/products/home` and `/api/products/filters`.

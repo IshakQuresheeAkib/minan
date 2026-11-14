@@ -37,7 +37,7 @@ describe("MetaPixel", () => {
   const originalPixelId = env.metaPixelId;
 
   beforeEach(() => {
-    Object.assign(env, { metaPixelId: "1973835693285548" });
+    Object.assign(env, { metaPixelId: "2335333213885429" });
     navigationState.pathname = "/";
     pixelMocks.initializeMetaPixel.mockReset();
     pixelMocks.trackPixelEvent.mockReset();
@@ -52,7 +52,7 @@ describe("MetaPixel", () => {
     renderToStaticMarkup(<MetaPixel />);
 
     expect(pixelMocks.initializeMetaPixel).toHaveBeenCalledWith(
-      "1973835693285548",
+      "2335333213885429",
     );
     expect(pixelMocks.trackPixelEvent).toHaveBeenCalledWith("PageView");
   });

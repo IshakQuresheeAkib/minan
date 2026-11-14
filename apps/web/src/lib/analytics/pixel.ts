@@ -63,6 +63,25 @@ export function initializeMetaPixel(pixelId: string): void {
   window.fbq("init", pixelId);
 }
 
+export function getMetaCookies(): { fbp?: string; fbc?: string } {
+  if (typeof document === "undefined") return {};
+
+  const cookies = Object.fromEntries(
+    document.cookie.split("; ").filter(Boolean).map((c) => {
+      const idx = c.indexOf("=");
+      return [c.slice(0, idx), decodeURIComponent(c.slice(idx + 1))];
+    }),
+  );
+
+  let fbc = cookies._fbc;
+  if (!fbc && typeof window !== "undefined") {
+    const fbclid = new URLSearchParams(window.location.search).get("fbclid");
+    if (fbclid) fbc = `fb.1.${Date.now()}.${fbclid}`;
+  }
+
+  return { fbp: cookies._fbp, fbc };
+}
+
 export function trackPixelEvent(
   eventName: string,
   params: Record<string, unknown> = {},

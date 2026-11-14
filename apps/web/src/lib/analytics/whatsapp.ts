@@ -1,6 +1,6 @@
 import { apiRequest } from "@/lib/api/client";
 import { getSessionId, getUtmParams } from "@/lib/analytics/session";
-import { trackWhatsappLead } from "@/lib/analytics/pixel";
+import { getMetaCookies, trackWhatsappLead } from "@/lib/analytics/pixel";
 
 type WhatsappClickPayload = {
   productId?: string;
@@ -60,6 +60,7 @@ export function openWhatsAppOrder(payload: WhatsappClickPayload): void {
     const eventId = crypto.randomUUID();
     const sessionId = getSessionId();
     const utm = getUtmParams();
+    const { fbp, fbc } = getMetaCookies();
 
     trackWhatsappLead(eventId, {
       content_name: payload.productName,
@@ -74,6 +75,8 @@ export function openWhatsAppOrder(payload: WhatsappClickPayload): void {
         session_id: sessionId,
         product_id: payload.productId,
         category_id: payload.categoryId,
+        fbp,
+        fbc,
         ...utm,
       },
     }).catch((error: unknown) => {

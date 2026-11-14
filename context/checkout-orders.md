@@ -1,144 +1,128 @@
 # Checkout, Orders & Payments Guide
 
-## 1. Plain Concept & Overview
-This document explains how a customer buys merchandise on MINAN and how orders move through fulfillment. Our checkout is a single-page form optimized for mobile shoppers in Bangladesh. Customers can pay the full amount via bKash, or pay an advance non-refundable delivery fee via bKash while paying for the clothes with Cash on Delivery (COD). This reduces fake orders and prevents delivery losses.
+## 1. Concept & Overview
+This document covers the single-page checkout flow, delivery fee rules, and order fulfillment states. Customers in Bangladesh can pay the entire order total via bKash, or pay an advance non-refundable delivery fee via bKash while paying for the merchandise with Cash on Delivery (COD). Prepaying the delivery fee stops courier return losses on fake orders.
 
-For the full bKash API token negotiation and callback setup, read [bkash-payment-gateway-guide.md](file:///c:/new%20projects/minan/context/bkash-payment-gateway-guide.md).
+For detailed tokenized bKash integration rules, read [bKash Gateway Guide](./bkash-payment-gateway-guide.md).
 
-## 2. Visual Checkout & Order Lifecycle
+## 2. Visual Checkout Flow & State Transitions
 
 ```
 Customer at /checkout
          │
-         ├── 1. Fills Name, Address, BD Phone Number
+         ├── 1. Fills Name, Address, BD Phone Number, selects Shipping Zone & Payment Method
          │
-         ├── 2. Selects Payment Method:
-         │      ├── A. Full bKash Payment (Merchandise + Delivery)
-         │      └── B. Advance Delivery Fee (bKash) + Merchandise COD
-         │
-         ├── 3. Submits Order -> POST /api/orders (Status: "pending")
-         │
-         ├── 4. bKash Gateway opens in iframe/redirect
-         │      └── On success -> paymentStatus = "paid" / "partial_advance_paid"
-         │      └── Order status moves to "confirmed"
+         ├── 2. Submits Form -> POST /api/bkash/payments
+         │      ├── Server creates Order with status: "new"
+         │      ├── Captures Meta cookies (_fbp, _fbc), IP, User Agent
+         │      └── If bKash: opens payment URL (full total or advance delivery fee)
          │
          ▼
-[Admin Fulfillment Flow]
-  "confirmed" ──> "processing" ──> "shipped" ──> "delivered"
-       │                              │
-       └── "cancelled"                └── "returned" (if delivery fails)
+[Payment Reconciled]
+   delivery_fee_status = "paid"
+         │
+         ▼
+[Admin Order State Machine]
+   new ──(fee paid)──> confirmed ──────> processing ──(courier+tracking)──> shipped ──────> delivered
+    │                      │                 │                                                  │
+    ├──(reason)────────────┼─────────────────┼──────────────────────────────> cancelled         └── (locked: returns &
+    │                      │                 │                                                        exchanges use
+    └──(reason)────────────┴─────────────────┴──────────────────────────────> on_hold (can resume)   dedicated workflows)
 ```
 
 ## 3. Strict Technical Specifications
 
 ### Bangladesh Phone Number Validation
-All phone numbers submitted at checkout or order tracking must match this regular expression:
+All phone numbers submitted at checkout or order lookup must match this regular expression:
 ```typescript
 export const BD_PHONE_REGEX = /^(?:\+?88)?01[3-9]\d{8}$/;
-
-// Normalization function (strips spaces, dashes, +88 prefix):
-export function normalizeBdPhone(phone: string): string {
-  const cleaned = phone.replace(/[\s\-]/g, "");
-  if (cleaned.startsWith("+8801")) return cleaned.slice(3);
-  if (cleaned.startsWith("8801")) return cleaned.slice(2);
-  return cleaned;
-}
 ```
 
-### Checkout Form Zod Schema (`apps/web/src/features/checkout/schemas/checkout.schema.ts`)
+### Checkout Input Zod Schema (`apps/web/src/features/checkout/schemas/lead.schema.ts`)
 ```typescript
 import { z } from "zod";
 
-export const checkoutFormSchema = z.object({
-  customerName: z.string().min(2, "Name must be at least 2 characters").max(60),
-  phone: z.string().regex(BD_PHONE_REGEX, "Enter a valid 11-digit Bangladeshi mobile number"),
-  email: z.string().email("Enter a valid email address").optional().or(z.literal("")),
-  district: z.string().min(1, "Select your district"),
-  city: z.string().min(1, "Enter your city or thana"),
-  streetAddress: z.string().min(5, "Enter your road, house, and area details"),
-  paymentMethod: z.enum(["cod", "bkash_full", "bkash_advance"]),
-  orderNotes: z.string().max(200).optional(),
+export const leadInputSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone_number: z.string().trim().regex(BD_PHONE_REGEX, "Enter a valid Bangladesh phone number."),
+  email: z.string().email("Enter a valid email address."),
+  address: z.string().trim().min(8).max(400),
+  shipping_zone: z.enum(["inside_sylhet", "outside_sylhet"], {
+    error: "Select a shipping method.",
+  }),
+  payment_method: z.enum(["bkash_full", "cod"], {
+    error: "Select a payment method.",
+  }).optional(),
+  notes: z.string().trim().max(500).optional(),
 });
 
-export type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
+export type LeadInput = z.infer<typeof leadInputSchema>;
 ```
 
-### Delivery Fee Calculation Rules
-Delivery fees are calculated based on the delivery location:
-- **Inside Sylhet City:** 80 BDT
-- **Outside Sylhet (All other districts in Bangladesh):** 130 BDT
+### Delivery Fee Calculation & Environment Variables
+Delivery fees are configured via backend environment variables and served to the client via `GET /api/checkout/config`:
+- **Inside Sylhet:** `DELIVERY_FEE_INSIDE_SYLHET_BDT` (default: 80 BDT)
+- **Outside Sylhet:** `DELIVERY_FEE_OUTSIDE_SYLHET_BDT` (default: 130 BDT)
+- **Policy:** The delivery fee is non-refundable (`refundable: false`).
 
-```typescript
-export function calculateOrderPricing(params: {
-  subtotal: number;
-  district: string;
-  paymentMethod: "cod" | "bkash_full" | "bkash_advance";
-  discount?: number;
-}) {
-  const isSylhet = params.district.trim().toLowerCase() === "sylhet";
-  const deliveryFee = isSylhet ? 80 : 130;
-  const discount = params.discount || 0;
-  const total = params.subtotal + deliveryFee - discount;
+The browser client never calculates or submits fee amounts. Express calculates all fees and merchandise totals server-side:
+- **`bkash_full`:** Customer pays total order amount (merchandise + delivery fee) via bKash. `amount_paid = total`, `merchandise_due = 0`.
+- **`cod`:** Customer prepays the delivery fee via bKash. `delivery_fee_status = "paid"`, `amount_paid = delivery_fee`, `merchandise_due = merchandise_subtotal - merchandise_discount`.
 
-  let advancePaid = 0;
-  let dueAmount = total;
-
-  if (params.paymentMethod === "bkash_full") {
-    advancePaid = total;
-    dueAmount = 0;
-  } else if (params.paymentMethod === "bkash_advance") {
-    advancePaid = deliveryFee;
-    dueAmount = params.subtotal - discount;
-  }
-
-  return { subtotal: params.subtotal, deliveryFee, discount, total, advancePaid, dueAmount };
-}
+### Order Creation Route
+Order creation is handled exclusively at:
+```http
+POST /api/bkash/payments
 ```
+Required headers: `X-Requested-With: XMLHttpRequest`.
+The endpoint:
+1. Validates input items, variants, stock, and contact info against `leadInputSchema`.
+2. Captures `_fbp`, `_fbc`, client IP, and browser user agent for Meta CAPI attribution.
+3. Allocates atomic daily order number `MN-YYYYMMDD-####`.
+4. Saves the order document with `status: "new"`.
+5. Initializes a bKash payment attempt and returns the payment gateway redirect URL.
 
 ---
 
 ### Order Status State Machine
-Orders follow a strict state transition path. Transitions outside this map are rejected by the API:
 
-```
-[pending] ──────> [confirmed] ──────> [processing] ──────> [shipped] ──────> [delivered]
-    │                 │                   │                  │
-    ▼                 ▼                   ▼                  ▼
-[cancelled]       [cancelled]         [cancelled]        [returned]
-                                                             │
-                                                             ▼
-                                                         [refunded]
-```
+The order lifecycle defines 9 statuses:
+`new` | `confirmed` | `processing` | `shipped` | `delivered` | `on_hold` | `cancelled` | `returned` | `exchanged`
 
-| Current Status | Allowed Next Statuses | Trigger Event |
+#### Complete Transition Rules Table
+(Enforced in `apps/web/src/features/admin/lib/orderTransitions.ts` and `apps/api/src/services/adminOrders.service.ts`)
+
+| Current Status | Permitted Target Status | Conditions / Requirements |
 | :--- | :--- | :--- |
-| `pending` | `confirmed`, `cancelled` | Customer completes bKash payment or staff verifies phone. |
-| `confirmed` | `processing`, `cancelled` | Warehouse starts picking and packaging items. |
-| `processing`| `shipped`, `cancelled` | Package handed to courier (Steadfast / Pathao). |
-| `shipped` | `delivered`, `returned` | Courier reports successful dropoff or customer refusal. |
-| `delivered` | None (Final state) | Cash collected; sale complete. |
-| `returned` | `refunded` | Parcel returns to inventory; any advance fee audited. |
-| `cancelled` | `refunded` | Order aborted before courier handover. |
-| `refunded` | None (Final state) | Refund sent back through bKash disbursement. |
+| `new` | `confirmed` | Requires delivery fee to be paid (`delivery_fee_status` is `paid` or `not_required`). |
+| `new` | `processing` | Non-adjacent skip: requires pre-shipment `override_reason`. |
+| `new` | `on_hold` | Requires hold `reason`. Saves `held_from_status = "new"`. |
+| `new` | `cancelled` | Requires cancellation `reason`. |
+| `confirmed` | `processing` | Normal linear transition. |
+| `confirmed` | `new` | Non-adjacent revert: requires `override_reason`. |
+| `confirmed` | `on_hold` | Requires hold `reason`. Saves `held_from_status = "confirmed"`. |
+| `confirmed` | `cancelled` | Requires cancellation `reason`. |
+| `processing` | `shipped` | Requires `courier_name` and `tracking_number`. |
+| `processing` | `confirmed` | Non-adjacent revert: requires `override_reason` and fee paid. |
+| `processing` | `on_hold` | Requires hold `reason`. Saves `held_from_status = "processing"`. |
+| `processing` | `cancelled` | Requires cancellation `reason`. |
+| `shipped` | `delivered` | Courier reports cash collection and successful handover. |
+| `delivered` | **Locked** | Cannot transition directly. Returns and exchanges use dedicated admin refund/exchange workflows. |
+| `on_hold` | Resume | Can only resume back to the exact `held_from_status` where it was held. |
+| `on_hold` | `cancelled` | Allowed with a cancellation `reason`. |
+| `cancelled` | **Terminal** | Cannot transition. |
+| `returned` | **Terminal** | Cannot transition. |
+| `exchanged` | **Terminal** | Cannot transition. |
 
 ---
 
-### Fraud Prevention & Attribution Capture
-When an order is submitted to `POST /api/orders`, the server automatically extracts and persists:
-- `attribution.fbp`: Meta browser cookie ID (`_fbp`).
-- `attribution.fbc`: Meta click ID (`_fbc` from Facebook ad clicks).
-- `attribution.ipAddress`: Client IP address from request headers (`x-forwarded-for`).
-- `attribution.userAgent`: Full browser user agent string.
+## 4. Common Beginner Pitfalls & Mistakes to Avoid
 
-These values are required to send the automated server-side Meta Conversions API (CAPI) `Purchase` event without losing attribution.
-
-## 4. Beginner Pitfalls & Common Mistakes to Avoid
-
-- **Mistake:** Trusting delivery fees or product prices sent from the client.
-  **Fix:** The client sends the district and selected items. Express recalculates the delivery fee and product prices on the server.
-- **Mistake:** Marking an order `delivered` immediately upon creating a courier parcel.
-  **Fix:** Mark the order `shipped` when the courier takes the box. Only mark `delivered` after the courier confirms cash delivery.
-- **Mistake:** Accepting phone numbers without validation.
-  **Fix:** Bangladeshi couriers cannot deliver without an 11-digit mobile number starting with `01`. Always validate against `BD_PHONE_REGEX`.
-- **Mistake:** Allowing customers to submit orders twice by clicking the button repeatedly.
-  **Fix:** Disable the submit button and show a loading spinner as soon as the form submits.
+- **Mistake:** Submitting orders to `POST /api/orders` or `POST /api/checkout`.
+  **Fix:** Order creation lives at `POST /api/bkash/payments`.
+- **Mistake:** Assuming order status can be freely set to any string in the admin dashboard.
+  **Fix:** The state machine enforces strict prerequisites. You cannot move to `confirmed` without paid delivery fees, and cannot move to `shipped` without courier name and tracking number.
+- **Mistake:** Using `status: "pending"` or `"refunded"`.
+  **Fix:** Neither exists in MINAN. Initial orders are `new`. Refunds are tracked via the `refunds` array and `financials.merchandise_refunded`.
+- **Mistake:** Allowing client-side price overrides.
+  **Fix:** The browser sends product IDs, sizes, colors, and quantities. Express re-fetches prices from MongoDB and computes the total.

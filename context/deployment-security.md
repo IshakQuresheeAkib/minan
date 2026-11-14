@@ -1,95 +1,119 @@
 # Deployment, Infrastructure & Security Guide
 
-## 1. Plain Concept & Overview
-This document explains where our application runs in production, how environment variables are configured, and how we protect user data. Our storefront runs on Vercel. Our Express API runs on Render. Our data lives in MongoDB Atlas. These services communicate over encrypted HTTPS connections. Secrets like database passwords and API keys stay inside cloud dashboards; they are never committed to git.
+## 1. Concept & Overview
+This document specifies production hosting, environment variables, and security enforcement for MINAN. The frontend (`apps/web`) deploys to Vercel. The backend API (`apps/api`) deploys to Render on Node 24.16.0. MongoDB Atlas hosts the database cluster. Secrets remain in cloud environment configurations and are never committed to git.
 
 ## 2. Visual Deployment Architecture
 
 ```
 [Vercel Cloud]                          [Render Cloud]                  [MongoDB Atlas]
- apps/web (Next.js 16)                   apps/api (Express 5)             Managed Cluster
-  - Domain: minan.vercel.app              - Domain: minan-api.onrender.com - Connection URI
-  - Serves React UI                       - Executes business logic        - Stores collections
-  - Proxies /api/* to Render              - Validates with Zod
+ apps/web (Next.js 16)                   apps/api (Express 5)             AWS ap-southeast-1
+  - Domain: minanclothing.com             - Domain: api.minan.com          - Replica set cluster
+  - Serves React 19 UI                    - Handles orders & payments      - Stores all collections
+  - Rewrites /api/* to Render             - Validates input with Zod
         │                                        │                                │
-        ├── (Rewrites /api/orders) ─────────────>├── (Mongoose queries) ─────────>┤
-        │                                        │<── (Data documents) ───────────┤
+        ├── (Rewrites /api/*) ──────────────────>├── (Mongoose queries) ─────────>┤
+        │                                        │<── (Documents) ────────────────┤
         │<── (JSON response) ────────────────────┤
 ```
 
 ## 3. Strict Technical Specifications
 
-### Hosting Services
-| Service | Component | Production Host | Configuration Notes |
+### Hosting Platform Configuration
+| Service | Component | Production Platform | Runtime / Details |
 | :--- | :--- | :--- | :--- |
-| **Vercel** | `apps/web` | `minan.vercel.app` (or custom) | Framework preset: Next.js. Automatic edge deployment on git push. |
-| **Render** | `apps/api` | `minan-api.onrender.com` | Environment: Node 24.16.0. Build: `npm install && npm run build`. Start: `node apps/api/dist/server.js`. |
-| **MongoDB Atlas**| Database | AWS ap-southeast-1 (Singapore) | Replica set. Whitelist Render IP addresses or set 0.0.0.0/0 with strong user password. |
-| **Cloudinary** | Image CDN | Managed Cloudinary bucket | Signed uploads for admin product images. |
+| **Frontend** | `apps/web` | Vercel | Next.js 16 (App Router, Turbopack, `proxy.ts`). |
+| **Backend API** | `apps/api` | Render | Node 24.16.0. Build: `npm install && npm run build`. Start: `node apps/api/dist/server.js`. |
+| **Database** | Primary DB | MongoDB Atlas 8.3 | AWS ap-southeast-1 (Singapore). Strict IP whitelisting. |
+| **Images** | Asset CDN | Cloudinary | Signed upload parameters for admin merchandise and banner media. |
 
 ---
 
-### Complete Environment Variables Reference
+### Authoritative Environment Variables Reference
 
-#### Frontend (`apps/web/.env.local` / Vercel Environment Variables)
-| Variable Name | Required | Example Value | Purpose |
-| :--- | :---: | :--- | :--- |
-| `NEXT_PUBLIC_APP_URL` | Yes | `https://minan.vercel.app` | Base public URL of the storefront for canonical links and SEO. |
-| `NEXT_PUBLIC_API_URL` | Yes | `/api` | Relative API path in browser (handled by Next.js rewrites). |
-| `API_PROXY_TARGET` | Yes | `https://minan-api.onrender.com` | Destination URL where Next.js proxies all `/api/:path*` calls. |
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Yes | `minan-fashion` | Cloudinary cloud identifier for `next/image` transformations. |
-| `NEXT_PUBLIC_META_PIXEL_ID` | Yes | `123456789012345` | Meta Pixel identifier for client-side tracking. |
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Yes | `G-XXXXXXXXXX` | Google Analytics 4 web stream ID. |
-| `REVALIDATE_SECRET` | Yes | `minan_cache_secret_xyz` | Secret key used by `/api/revalidate` to authorize cache clears. |
+#### Frontend (`apps/web/.env.local` / Vercel Environment Settings)
+| Variable Name | Required | Purpose / Notes |
+| :--- | :---: | :--- |
+| `API_PROXY_TARGET` | Yes | Target backend URL for `/api/*` rewrites (e.g. `https://api.minan.com`). |
+| `JWT_ACCESS_SECRET` | Yes | Same value as backend; used by `proxy.ts` to verify access-token cookies. |
+| `REVALIDATE_SECRET` | Yes | Shared secret used by `/api/revalidate` for on-demand ISR cache tag purges. |
+| `NEXT_PUBLIC_SITE_URL` | Yes | Canonical site origin for SEO, sitemap generation, and social metadata. |
+| `NEXT_PUBLIC_GA4_ID` | Yes | Google Analytics 4 Measurement ID (`G-XXXXXXXXXX`). |
+| `NEXT_PUBLIC_META_PIXEL_ID` | Yes | Meta Pixel ID for client-side event tracking. |
+| `NEXT_PUBLIC_FACEBOOK_PAGE_URL` | No | Public Facebook Page URL for footer plugin. |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Yes | Business WhatsApp number for one-click product ordering. |
 
-#### Backend (`apps/api/.env` / Render Environment Variables)
-| Variable Name | Required | Example Value | Purpose |
-| :--- | :---: | :--- | :--- |
-| `PORT` | Yes | `5000` | Port for the Express server (Render assigns `$PORT` automatically). |
-| `NODE_ENV` | Yes | `production` | Set to `production` in live environments to enable strict cookie flags. |
-| `MONGODB_URI` | Yes | `mongodb+srv://admin:pass@cluster.mongodb.net/minan` | MongoDB Atlas database connection string. |
-| `WEB_URL` | Yes | `https://minan.vercel.app` | Allowed CORS origin for frontend requests. |
-| `JWT_ACCESS_SECRET` | Yes | `super_secure_random_string_access` | 256-bit secret used to sign 15-minute access tokens. |
-| `JWT_REFRESH_SECRET`| Yes | `super_secure_random_string_refresh` | 256-bit secret used to sign 7-day refresh tokens. |
-| `AUTH_COOKIE_DOMAIN`| No | Unset (or `.minan.com`) | Leave unset on `*.vercel.app`. Set `.minan.com` only on custom domains. |
-| `CLOUDINARY_CLOUD_NAME` | Yes | `minan-fashion` | Cloudinary bucket identifier for server-side signatures. |
-| `CLOUDINARY_API_KEY` | Yes | `123456789012345` | Cloudinary API access key. |
-| `CLOUDINARY_API_SECRET` | Yes | `secret_cloudinary_key` | Cloudinary API access secret. |
-| `META_PIXEL_ID` | Yes | `123456789012345` | Meta Pixel identifier used in server CAPI events. |
-| `META_CAPI_ACCESS_TOKEN`| Yes | `EAA...` | Meta Graph API Conversions token for server event reporting. |
-| `META_TEST_EVENT_CODE` | No | `TEST12345` | Debugging code for Meta Events Manager testing. |
-| `BKASH_APP_KEY` | Yes | `key_from_bkash_merchant` | bKash tokenized payment gateway application key. |
-| `BKASH_APP_SECRET` | Yes | `secret_from_bkash_merchant` | bKash tokenized payment gateway application secret. |
-| `BKASH_USERNAME` | Yes | `merchant_username` | bKash merchant login identifier. |
-| `BKASH_PASSWORD` | Yes | `merchant_password` | bKash merchant login password. |
-| `BKASH_BASE_URL` | Yes | `https://tokenized.pay.bka.sh/v1.2.0-beta` | bKash gateway endpoint (sandbox or production). |
-| `REVALIDATE_SECRET` | Yes | `minan_cache_secret_xyz` | Shared secret to trigger storefront cache invalidation. |
+#### Backend (`apps/api/.env` / Render Environment Settings)
+| Variable Name | Required | Purpose / Notes |
+| :--- | :---: | :--- |
+| `PORT` | Yes | Express server port (Render assigns `$PORT` automatically; local default `3001`). |
+| `NODE_ENV` | Yes | Set to `production` in live environment to enforce secure cookie flags. |
+| `MONGODB_URI` | Yes | MongoDB Atlas connection string (`mongodb+srv://...`). |
+| `ALLOWED_ORIGINS` | Yes | Comma-separated CORS allowed origins (`http://localhost:3000,https://minanclothing.com`). |
+| `JWT_ACCESS_SECRET` | Yes | 256-bit secret for signing 15-minute admin access tokens. |
+| `JWT_REFRESH_SECRET` | Yes | 256-bit secret for signing 7-day admin refresh tokens. |
+| `CUSTOMER_JWT_ACCESS_SECRET` | Yes | Secret for customer session access tokens. |
+| `CUSTOMER_JWT_REFRESH_SECRET` | Yes | Secret for customer session refresh tokens (must differ from access secret). |
+| `AUTH_COOKIE_DOMAIN` | No | Cookie domain. Leave **unset** on default domains (`*.vercel.app`); set `.minan.com` only on custom subdomains. |
+| `CLOUDINARY_URL` | Yes | Cloudinary configuration URI (`cloudinary://key:secret@cloud_name`). |
+| `CLOUDINARY_UPLOAD_FOLDER` | Yes | Destination upload directory in Cloudinary bucket. |
+| `CLOUDINARY_HOME_BANNER_UPLOAD_PRESET` | Yes | Dedicated upload preset for homepage banner assets. |
+| `META_PIXEL_ID` | Yes | Meta Pixel ID for server CAPI events. |
+| `META_CAPI_TOKEN` | Yes | Meta Graph API Conversions access token. |
+| `META_GRAPH_VERSION` | No | Meta Graph API version (default: `v27.0`). |
+| `META_TEST_EVENT_CODE` | No | Debugging code for Meta Events Manager testing (leave empty in production). |
+| `BKASH_BASE_URL` | Yes | bKash tokenized gateway URL (`https://tokenized.sandbox.bka.sh/v2` in UAT). |
+| `BKASH_APP_KEY` | Yes | bKash merchant application key. |
+| `BKASH_APP_SECRET` | Yes | bKash merchant application secret. |
+| `BKASH_USERNAME` | Yes | bKash merchant username. |
+| `BKASH_PASSWORD` | Yes | bKash merchant password. |
+| `BKASH_RESTRICT_ACCESS` | No | Enables UAT access restriction (`true` or `false`). |
+| `BKASH_UAT_ALLOWED_EMAILS` | No | Comma-separated allowed customer emails when access restriction is enabled. |
+| `BKASH_ENABLE_UAT_BYPASS` | No | Allows direct UAT bypass in local/test environments (`true` or `false`). |
+| `BKASH_UAT_BYPASS_TOKEN` | No | Private developer bypass token for automated testing. |
+| `DELIVERY_FEE_INSIDE_SYLHET_BDT` | Yes | Delivery fee integer inside Sylhet (e.g. `60` or `80`). |
+| `DELIVERY_FEE_OUTSIDE_SYLHET_BDT` | Yes | Delivery fee integer outside Sylhet (e.g. `120` or `130`). |
+| `API_PUBLIC_URL` | Yes | Directly reachable Render API origin for bKash callbacks (e.g. `https://api.minan.com`). |
+| `FRONTEND_URL` | Yes | Vercel storefront origin for payment redirect landing. |
+| `STOREFRONT_REVALIDATE_URL` | Yes | Webhook target to trigger Next.js cache revalidation (`https://minanclothing.com/api/revalidate`). |
+| `STOREFRONT_REVALIDATE_SECRET` | Yes | Shared secret authorizing storefront cache invalidation. |
 
 ---
 
-### Security Implementation Checklist
+### Security Implementation Standards
 
-1. **Password Hashing:**
-   All user passwords must be hashed using Argon2id with recommended memory and iteration factors. Passwords must never be stored in plain text or logged.
-2. **Rate Limiting:**
-   Enforce rate limits on public Express endpoints:
-   - Login endpoints (`/api/auth/login`): 5 requests per 15 minutes per IP.
-   - Order submission (`/api/orders`): 10 orders per 15 minutes per IP.
-   - General public endpoints: 100 requests per 15 minutes per IP.
-3. **CORS Restrictions:**
-   Express allows requests only from `WEB_URL` and `http://localhost:3000`. All other origins receive a CORS rejection error.
-4. **HTTP Security Headers:**
-   Helmet is registered on the Express app root. It enforces `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and `Strict-Transport-Security`.
-5. **Input Validation:**
-   Every API endpoint passes incoming request bodies and query parameters through Zod validation schemas. Fields not declared in schemas are stripped automatically.
+1. **CSRF Mitigation:**
+   All non-GET state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) require the HTTP header:
+   ```http
+   X-Requested-With: XMLHttpRequest
+   ```
+   Requests missing this header receive `403 Forbidden`.
 
-## 4. Beginner Pitfalls & Common Mistakes to Avoid
+2. **Password Hashing:**
+   Admin and customer passwords are protected using Argon2id with random salt. Plain passwords are never stored or logged.
 
-- **Mistake:** Committing `.env` or `.env.local` files to git.
-  **Fix:** Add `.env` and `.env.local` to `.gitignore`. Configure variables directly in Vercel and Render project settings.
-- **Mistake:** Setting `AUTH_COOKIE_DOMAIN=.minan.com` when testing on `vercel.app`.
-  **Fix:** Browsers reject cookies when the domain doesn't match the host. Leave `AUTH_COOKIE_DOMAIN` empty until you configure custom subdomains.
-- **Mistake:** Forgetting to set `API_PROXY_TARGET` on Vercel.
-  **Fix:** Next.js won't know where to forward `/api/*` calls, resulting in 404 or 500 errors on all data fetches.
-- **Mistake:** Exposing private keys (`BKASH_APP_SECRET`, `JWT_ACCESS_SECRET`) with `NEXT_PUBLIC_` prefixes.
-  **Fix:** Any variable starting with `NEXT_PUBLIC_` is bundled into client JavaScript for anyone to see. Keep private keys strictly in `apps/api/.env`.
+3. **Rate Limiting:**
+   IP-based rate limits protect endpoints against brute force and DDoS:
+   - Admin login (`POST /api/auth/login`): 10 requests per 15 minutes per IP.
+   - Customer login (`POST /api/customer-auth/login`): 10 requests per 15 minutes per IP.
+   - Analytics logging (`POST /api/analytics`): 60 requests per 15 minutes per IP.
+   - Order creation (`POST /api/bkash/payments`): Throttled per IP and idempotency token.
+
+4. **CORS Restrictions:**
+   Express allows requests only from origins defined in `ALLOWED_ORIGINS`. Server-to-server requests without an Origin header are permitted. Cross-origin credentials (`credentials: true`) are enabled.
+
+5. **Security Headers:**
+   Helmet is registered on the Express application root to enforce `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and `Strict-Transport-Security`.
+
+---
+
+## 4. Common Beginner Pitfalls & Mistakes to Avoid
+
+- **Mistake:** Setting `AUTH_COOKIE_DOMAIN=.minan.com` on `*.vercel.app` deployments.
+  **Fix:** Browsers reject cookies when the domain attribute does not match the active host. Leave `AUTH_COOKIE_DOMAIN` unset on default domains.
+- **Mistake:** Using invented variable names like `NEXT_PUBLIC_APP_URL` or `CLOUDINARY_API_KEY`.
+  **Fix:** MINAN uses `NEXT_PUBLIC_SITE_URL` on the frontend and `CLOUDINARY_URL` on the backend. Always use the verified variable names.
+- **Mistake:** Omitting `API_PROXY_TARGET` on Vercel.
+  **Fix:** Next.js uses `API_PROXY_TARGET` to rewrite `/api/*` to Render. Without it, all client API requests fail with 404 or 500 errors.
+- **Mistake:** Hardcoding bKash `v1.2.0-beta` endpoints.
+  **Fix:** Production uses bKash Tokenized Checkout v2 (`https://tokenized.sandbox.bka.sh/v2` in sandbox).

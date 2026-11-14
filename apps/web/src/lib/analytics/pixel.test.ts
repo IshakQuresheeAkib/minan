@@ -20,21 +20,21 @@ describe("initializeMetaPixel", () => {
       head: { appendChild: vi.fn() },
     });
 
-    initializeMetaPixel("1973835693285548");
+    initializeMetaPixel("2335333213885429");
 
     expect(createdScript).toEqual({
       async: true,
       src: "https://connect.facebook.net/en_US/fbevents.js",
     });
     expect(insertBefore).toHaveBeenCalledWith(createdScript, firstScript);
-    expect(window.fbq?.queue).toEqual([["init", "1973835693285548"]]);
+    expect(window.fbq?.queue).toEqual([["init", "2335333213885429"]]);
   });
 
   it("tracks configured Pixel events without a visitor consent record", () => {
     const fbq = vi.fn();
     const originalPixelId = env.metaPixelId;
 
-    Object.assign(env, { metaPixelId: "1973835693285548" });
+    Object.assign(env, { metaPixelId: "2335333213885429" });
     vi.stubGlobal("window", { fbq });
 
     trackPixelEvent("PageView");
