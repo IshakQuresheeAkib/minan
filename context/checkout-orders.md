@@ -61,8 +61,8 @@ export type LeadInput = z.infer<typeof leadInputSchema>;
 
 ### Delivery Fee Calculation & Environment Variables
 Delivery fees are configured via backend environment variables and served to the client via `GET /api/checkout/config`:
-- **Inside Sylhet:** `DELIVERY_FEE_INSIDE_SYLHET_BDT` (default: 80 BDT)
-- **Outside Sylhet:** `DELIVERY_FEE_OUTSIDE_SYLHET_BDT` (default: 130 BDT)
+- **Inside Sylhet:** `DELIVERY_FEE_INSIDE_SYLHET_BDT` (required positive integer, e.g. 60 BDT; no code fallback)
+- **Outside Sylhet:** `DELIVERY_FEE_OUTSIDE_SYLHET_BDT` (required positive integer, e.g. 120 BDT; no code fallback)
 - **Policy:** The delivery fee is non-refundable (`refundable: false`).
 
 The browser client never calculates or submits fee amounts. Express calculates all fees and merchandise totals server-side:

@@ -4,8 +4,8 @@ const utmFields = {
   utm_source: z.string().trim().optional(),
   utm_medium: z.string().trim().optional(),
   utm_campaign: z.string().trim().optional(),
-  fbp: z.string().trim().optional(),
-  fbc: z.string().trim().optional(),
+  fbp: z.string().trim().max(255).optional(),
+  fbc: z.string().trim().max(255).optional(),
 };
 
 export const whatsappClickSchema = z.object({

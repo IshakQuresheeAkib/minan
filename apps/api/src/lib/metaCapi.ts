@@ -64,7 +64,7 @@ export async function sendMetaCapiEvent(
 ): Promise<MetaCapiResult> {
   const accessToken = process.env.META_CAPI_TOKEN;
   const pixelId = process.env.META_PIXEL_ID;
-  const graphVersion = process.env.META_GRAPH_VERSION?.trim() || "v21.0";
+  const graphVersion = process.env.META_GRAPH_VERSION?.trim() || "v27.0";
   const testEventCode = process.env.META_TEST_EVENT_CODE?.trim();
 
   if (!accessToken || !pixelId) {
