@@ -32,6 +32,13 @@ Admin Browser                          Next.js proxy.ts                Express A
 MINAN uses a single admin account model (`apps/api/src/models/AdminUser.ts`). Every active admin has full management capabilities (dashboard, product catalog, categories, subcategories, order fulfillment, banners, uploads, and admin account creation).
 *Note:* There are **no** `staff` or `super_admin` roles. Role-based claims are not used.
 
+### Admin Account Seeding (`seed:admin`)
+Initial admin credentials are bootstrapped or updated via `npm --workspace @minan/api run seed:admin`:
+- Reads `ADMIN_EMAIL` and `ADMIN_PASSWORD` from the environment (`apps/api/.env`).
+- Local templates (`apps/api/.env.example`) provide default development placeholders (`admin@minan.com` / `replace_with_secure_admin_password`).
+- In production, running `seed:admin` with the default template password is blocked; a unique secure password is required.
+- Seeding upserts by `ADMIN_EMAIL`. Rerunning it updates that admin's password and sets `is_active: true`.
+
 ### Self-Guard Rule
 An admin cannot deactivate or soft-delete their own account:
 - `PATCH /api/admin/admins/:id` rejects self `is_active: false`.

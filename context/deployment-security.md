@@ -54,6 +54,8 @@ This document specifies production hosting, environment variables, and security 
 | `JWT_REFRESH_SECRET` | Yes | 256-bit secret for signing 7-day admin refresh tokens. |
 | `CUSTOMER_JWT_ACCESS_SECRET` | Yes | Secret for customer session access tokens. |
 | `CUSTOMER_JWT_REFRESH_SECRET` | Yes | Secret for customer session refresh tokens (must differ from access secret). |
+| `ADMIN_EMAIL` | Yes (for `seed:admin`) | Initial admin email used by `seed:admin` to create or update the administrative account. |
+| `ADMIN_PASSWORD` | Yes (for `seed:admin`) | Initial admin password used by `seed:admin` (must be changed from template placeholder in production). |
 | `AUTH_COOKIE_DOMAIN` | No | Cookie domain. Leave **unset** on default domains (`*.vercel.app`); set `.minan.com` only on custom subdomains. |
 | `CLOUDINARY_URL` | Yes | Cloudinary configuration URI (`cloudinary://key:secret@cloud_name`). |
 | `CLOUDINARY_UPLOAD_FOLDER` | Yes | Destination upload directory in Cloudinary bucket. |
