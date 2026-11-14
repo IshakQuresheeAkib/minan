@@ -11,6 +11,8 @@ type LogAnalyticsOptions = {
   clientUserAgent?: string;
   clientIpAddress?: string;
   eventSourceUrl?: string;
+  fbp?: string;
+  fbc?: string;
 };
 
 function toObjectId(value: string | undefined): Types.ObjectId | undefined {
@@ -74,6 +76,8 @@ export async function logAnalyticsEvent(
     {
       clientUserAgent: options.clientUserAgent,
       clientIpAddress: options.clientIpAddress,
+      fbp: options.fbp,
+      fbc: options.fbc,
     },
   );
 }

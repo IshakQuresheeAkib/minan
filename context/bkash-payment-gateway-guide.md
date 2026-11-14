@@ -2939,7 +2939,7 @@ export function BkashPayButton({ orderId }: { orderId: string }) {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/payments/bkash/start`,
+        `api/payments/bkash/start`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2991,7 +2991,7 @@ export function PaymentResult({ orderId }: { orderId: string }) {
 
     async function check() {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/payments/bkash/status?orderId=${orderId}`,
+        `api/payments/bkash/status?orderId=${orderId}`,
       );
       const data = await response.json();
 

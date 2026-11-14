@@ -1,12 +1,21 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Read context/project.md for full architecture before starting any task.
+Read `context/project.md` for overall architecture and universal rules before starting any task.
+
+For task-specific guidelines, read the modular guide in `context/`:
+- **UI / Next.js Storefront:** `context/frontend.md`
+- **Express API / Controllers / Services:** `context/backend-api.md`
+- **MongoDB Atlas / Mongoose Schemas:** `context/database.md`
+- **Checkout / Orders / Delivery Fees:** `context/checkout-orders.md`
+- **bKash Payment Gateway Integration:** `context/bkash-payment-gateway-guide.md`
+- **Meta Pixel & CAPI Hybrid Tracking:** `context/meta-pixel-and-capi-guide.md`
+- **Auth / JWT / Admin Dashboard:** `context/auth-admin.md`
+- **DevOps / Hosting / Security / Env Vars:** `context/deployment-security.md`
+
 MINAN is an npm workspace commerce platform. The frontend lives in `apps/web`, a Next.js 16 App Router app with source under `apps/web/src`. Routes are in `src/app`, reusable UI in `src/components`, feature code in `src/features`, shared client state in `src/store`, and API helpers in `src/lib`.
 
 The backend lives in `apps/api`, an Express 5 API with `src/controllers`, `src/routes`, `src/services`, `src/models`, `src/middleware`, and seed scripts under `src/seed`. Repository context and architecture notes are in `context/`; Stitch-generated reference artifacts are in `stitch/`.
-
-Detailed architecture is in context/project.md — read it before working.
 
 ## Build, Test, and Development Commands
 

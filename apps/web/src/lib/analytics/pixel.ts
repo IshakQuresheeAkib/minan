@@ -63,6 +63,36 @@ export function initializeMetaPixel(pixelId: string): void {
   window.fbq("init", pixelId);
 }
 
+function readCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const prefix = `${name}=`;
+  const raw = document.cookie
+    .split(/;\s*/)
+    .find((c) => c.startsWith(prefix));
+  if (!raw) return undefined;
+  const value = raw.slice(prefix.length);
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export function getMetaCookies(): { fbp?: string; fbc?: string } {
+  if (typeof document === "undefined") return {};
+
+  let fbc = readCookie("_fbc");
+  if (!fbc && typeof window !== "undefined") {
+    const fbclid = new URLSearchParams(window.location.search).get("fbclid");
+    if (fbclid) fbc = `fb.1.${Date.now()}.${fbclid}`;
+  }
+
+  return {
+    fbp: readCookie("_fbp"),
+    fbc,
+  };
+}
+
 export function trackPixelEvent(
   eventName: string,
   params: Record<string, unknown> = {},

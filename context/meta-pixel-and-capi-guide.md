@@ -24,7 +24,7 @@ Browser Action (User clicks Add to Cart)
    │
    ├──> Client Pixel: fbq('track', 'AddToCart', ..., { eventID: id })
    │
-   └──> POST /api/events ──> Express Server ──> Meta CAPI (Graph API v21.0)
+   └──> POST /api/events ──> Express Server ──> Meta CAPI (Graph API v27.0)
                                                     │
                                                     ▼
                                           Meta Events Manager
@@ -318,7 +318,7 @@ export async function sendMetaCapiEvent(params: CapiParams): Promise<void> {
   };
 
   try {
-    const url = `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${encodeURIComponent(token)}`;
+    const url = `https://graph.facebook.com/v27.0/${pixelId}/events?access_token=${encodeURIComponent(token)}`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
